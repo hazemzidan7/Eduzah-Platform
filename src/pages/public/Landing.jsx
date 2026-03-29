@@ -51,9 +51,6 @@ export default function Landing() {
         <div style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,background:`radial-gradient(circle,rgba(217,27,91,.25),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
 
         <div style={{flex:"1 1 300px",position:"relative",zIndex:2}}>
-          <div style={{display:"inline-flex",alignItems:"center",gap:6,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:18}}>
-            🏆 {lang==="ar" ? "شركة التدريب المهني الرائدة في مصر" : "Egypt's Leading Professional Training Company"}
-          </div>
           <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:16}}>
             {lang==="ar"
               ? <><span style={{color:C.orange}}>حوّل</span> مسيرتك المهنية<br/>مع <span style={{color:C.red}}>Eduzah</span></>
