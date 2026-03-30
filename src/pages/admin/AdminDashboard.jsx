@@ -38,37 +38,51 @@ export default function AdminDashboard() {
   const instructors = users.filter(u => u.role === "instructor");
 
   const tabs = [
-    ["overview","🏠 Overview"],["users","👥 المستخدمون"],["requests","⏳ الطلبات"],
-    ["courses","📚 الكورسات"],["news","📰 الأخبار"],["exams","📝 الامتحانات"],
-    ["trainers","👨‍🏫 المدربون"],["programs","🌟 البرامج"],["testimonials","⭐ الآراء"],
-    ["settings","⚙️ الإعدادات"],
+    ["overview","Overview"],["users","المستخدمون"],["requests","الطلبات"],
+    ["courses","الكورسات"],["news","الأخبار"],["exams","الامتحانات"],
+    ["trainers","المدربون"],["programs","البرامج"],["testimonials","الآراء"],
+    ["settings","الإعدادات"],
   ];
 
   /* ─────────── Add Course Form ─────────── */
   const AddCourseModal = () => {
-    const [f, setF] = useState({ title:"", cat:"tech", icon:"📚", color:"#d91b5b", price:"", hours:"", projects:"", duration:"12 weeks", tagline:"", desc:"", bullets:"", outcomes:"" });
+    const [f, setF] = useState({ title:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع", tagline:"", desc:"", bullets:"", outcomes:"", image:null });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
-      if (!f.title || !f.price) { showT("❗ أدخل العنوان والسعر على الأقل", "error"); return; }
+      if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
       addCourse(f);
-      showT("✅ تم إضافة الكورس بنجاح!");
+      showT("تم إضافة الكورس بنجاح!");
       setModal(null);
     };
     return (
-      <Modal title="➕ إضافة كورس جديد" onClose={() => setModal(null)}>
+      <Modal title="إضافة كورس جديد" onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="عنوان الكورس *" value={f.title} onChange={v => set("title", v)} placeholder="Front-End Web Development" />
           </div>
-          <Input label="الأيقونة (Emoji)" value={f.icon} onChange={v => set("icon", v)} placeholder="🌐" />
-          <Input label="اللون (Hex)" value={f.color} onChange={v => set("color", v)} placeholder="#d91b5b" />
           <Input label="السعر (EGP) *" value={f.price} onChange={v => set("price", v)} placeholder="8500" />
-          <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} placeholder="16 weeks" />
+          <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} placeholder="16 أسبوع" />
           <Input label="الساعات" value={f.hours} onChange={v => set("hours", v)} placeholder="120" />
           <Input label="المشاريع" value={f.projects} onChange={v => set("projects", v)} placeholder="6" />
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
-            options={[{v:"tech",l:"⚙️ Tech"},{v:"hr",l:"👥 HR"},{v:"leadership",l:"🏆 Leadership"},{v:"soft",l:"💬 Soft Skills"}]} />
+            options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
+            {/* Course image upload */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 6 }}>صورة الكورس</label>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(255,255,255,.05)", border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style={{ fontSize: 12, color: "#aaa" }}>{f.image ? "تم رفع الصورة" : "اضغط لرفع صورة للكورس"}</span>
+                <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+              </label>
+              {f.image && (
+                <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center" }}>
+                  <img src={f.image} alt="" style={{ width: 90, height: 55, objectFit: "cover", borderRadius: 8 }} />
+                  <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
+                </div>
+              )}
+            </div>
             <Input label="Tagline" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
             <Input label="وصف الكورس" value={f.desc} onChange={v => set("desc", v)} placeholder="وصف مختصر للكورس..." rows={2} />
             <Input label="النقاط الرئيسية (سطر لكل نقطة)" value={f.bullets} onChange={v => set("bullets", v)} placeholder={"نقطة 1\nنقطة 2\nنقطة 3"} rows={3} />
@@ -82,21 +96,34 @@ export default function AdminDashboard() {
 
   /* ─────────── Add News Modal ─────────── */
   const AddNewsModal = () => {
-    const [f, setF] = useState({ title:"", tag:"إعلان", icon:"📢", excerpt:"", featured: false });
+    const [f, setF] = useState({ title:"", tag:"إعلان", excerpt:"", featured:false, image:null });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
-      if (!f.title || !f.excerpt) { showT("❗ أدخل العنوان والمحتوى", "error"); return; }
+      if (!f.title || !f.excerpt) { showT("أدخل العنوان والمحتوى", "error"); return; }
       addNews(f);
-      showT("✅ تم نشر الخبر بنجاح!");
+      showT("تم نشر الخبر بنجاح!");
       setModal(null);
     };
     return (
-      <Modal title="➕ إضافة خبر جديد" onClose={() => setModal(null)}>
+      <Modal title="إضافة خبر جديد" onClose={() => setModal(null)}>
         <Input label="عنوان الخبر *" value={f.title} onChange={v => set("title", v)} placeholder="Eduzah تطلق كورسات جديدة..." />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Input label="الأيقونة (Emoji)" value={f.icon} onChange={v => set("icon", v)} placeholder="🚀" />
-          <Select label="التصنيف" value={f.tag} onChange={v => set("tag", v)}
-            options={[{v:"إعلان",l:"📢 إعلان"},{v:"إنجاز",l:"🏆 إنجاز"},{v:"شراكة",l:"🤝 شراكة"},{v:"تحديث",l:"🔄 تحديث"},{v:"حدث",l:"🎉 حدث"}]} />
+        <Select label="التصنيف" value={f.tag} onChange={v => set("tag", v)}
+          options={[{v:"إعلان",l:"إعلان"},{v:"إنجاز",l:"إنجاز"},{v:"شراكة",l:"شراكة"},{v:"تحديث",l:"تحديث"},{v:"حدث",l:"حدث"}]} />
+        {/* News image upload */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 6 }}>صورة الخبر</label>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(255,255,255,.05)", border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span style={{ fontSize: 12, color: "#aaa" }}>{f.image ? "تم رفع الصورة" : "اضغط لرفع صورة للخبر (اختياري)"}</span>
+            <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+          </label>
+          {f.image && (
+            <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center" }}>
+              <img src={f.image} alt="" style={{ width: 90, height: 55, objectFit: "cover", borderRadius: 8 }} />
+              <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
+            </div>
+          )}
         </div>
         <Input label="محتوى الخبر *" value={f.excerpt} onChange={v => set("excerpt", v)} placeholder="اكتب تفاصيل الخبر هنا..." rows={3} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 12px", background: "rgba(255,255,255,.05)", borderRadius: 9, cursor: "pointer" }}
@@ -106,7 +133,7 @@ export default function AdminDashboard() {
           </div>
           <span style={{ fontSize: 13, color: C.muted }}>تمييز كخبر رئيسي (Featured)</span>
         </div>
-        <Btn children="✅ نشر الخبر" full onClick={submit} />
+        <Btn children="نشر الخبر" full onClick={submit} />
       </Modal>
     );
   };
@@ -128,7 +155,11 @@ export default function AdminDashboard() {
           <Input label="Name (English)" value={f.name_en} onChange={v => set("name_en", v)} placeholder="Eng. Ahmed Mohamed" />
           <Input label="اسم المستخدم (Email) *" value={f.username} onChange={v => set("username", v)} placeholder="trainer@eduzah.com" />
           <Input label="كلمة المرور *" value={f.password} onChange={v => set("password", v)} placeholder="password123" type="password" />
-          <Input label="التخصص (عربي)" value={f.specialty_ar} onChange={v => set("specialty_ar", v)} placeholder="تطوير الويب" />
+          <Select label="التخصص" value={f.specialty_ar} onChange={v => set("specialty_ar", v)}
+            options={[
+              ...([...new Set(courses.map(c => c.cat))].map(cat => ({ v: cat, l: cat }))),
+              {v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"},{v:"english",l:"English"},{v:"kids",l:"Kids"},
+            ].filter((o, i, arr) => arr.findIndex(x => x.v === o.v) === i)} />
           <Input label="Specialty (English)" value={f.specialty_en} onChange={v => set("specialty_en", v)} placeholder="Web Development" />
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="نبذة (عربي)" value={f.bio_ar} onChange={v => set("bio_ar", v)} placeholder="نبذة مختصرة عن المدرب..." rows={2} />

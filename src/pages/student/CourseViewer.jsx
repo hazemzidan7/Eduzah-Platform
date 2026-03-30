@@ -5,82 +5,209 @@ import { Btn, PBar, Badge } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 
+// Convert YouTube / Vimeo URL to embed URL
+const toEmbed = (url) => {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&modestbranding=1`;
+  const vim = url.match(/vimeo\.com\/(\d+)/);
+  if (vim) return `https://player.vimeo.com/video/${vim[1]}`;
+  return url; // direct video URL
+};
+
 export default function CourseViewer() {
-  const { slug } = useParams();
-  const navigate  = useNavigate();
+  const { slug }   = useParams();
+  const navigate   = useNavigate();
   const { currentUser, markLesson } = useAuth();
   const { courses } = useData();
-  const [li, setLi]       = useState(0);
-  const [playing, setP]   = useState(false);
-  const [tab, setTab]     = useState("lesson");
 
-  const course = courses.find(c=>c.slug===slug);
+  const [li,  setLi]  = useState(0);
+  const [tab, setTab] = useState("lesson");
+
+  const course = courses.find(c => c.slug === slug);
   if (!course) { navigate("/dashboard"); return null; }
 
-  const ed = currentUser?.enrolledCourses?.find(e=>e.courseId===course.id);
+  const ed = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
   if (!ed)  { navigate(`/courses/${slug}`); return null; }
 
-  const prog = ed.progress||0;
-  const done = ed.completedLessons||[];
-  const allLessons = course.curriculum.flatMap(ch=>ch.lessons);
-  const total = allLessons.length;
-  const lesson = allLessons[li]||"Lesson";
+  const prog       = ed.progress || 0;
+  const done       = ed.completedLessons || [];
+  const allLessons = course.curriculum.flatMap(ch => ch.lessons);
+  const allVideos  = course.curriculum.flatMap(ch => ch.videoUrls || []);
+  const total      = allLessons.length;
+  const lesson     = allLessons[li] || "Lesson";
+  const video      = allVideos[li];
+  const embedUrl   = video ? toEmbed(video.url) : null;
+
+  const isYouTube  = embedUrl && embedUrl.includes("youtube.com/embed");
+  const isVimeo    = embedUrl && embedUrl.includes("player.vimeo.com");
+  const isIframe   = isYouTube || isVimeo;
+  const isDirectVid = embedUrl && !isIframe;
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 58px)"}}>
-      {/* topbar */}
-      <div style={{background:"#2a1540",borderBottom:`1px solid ${C.border}`,padding:"9px 4%",display:"flex",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap"}}>
-        <button onClick={()=>navigate("/dashboard")} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,padding:"4px 10px",color:C.muted,fontFamily:"'Cairo',sans-serif",fontSize:12,cursor:"pointer"}}>← رجوع</button>
-        <div style={{fontWeight:700,fontSize:13,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{course.title}</div>
-        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:150}}><PBar value={prog} color={C.orange} h={5}/><span style={{color:C.orange,fontWeight:800,fontSize:13,whiteSpace:"nowrap"}}>{prog}%</span></div>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 60px)" }}>
+
+      {/* ── Top bar ── */}
+      <div style={{
+        background: "#2a1540", borderBottom: `1px solid ${C.border}`,
+        padding: "9px 4%", display: "flex", alignItems: "center",
+        gap: 10, flexShrink: 0, flexWrap: "wrap",
+      }}>
+        <button onClick={() => navigate("/dashboard")}
+          style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 12px", color: C.muted, fontFamily: "'Cairo',sans-serif", fontSize: 12, cursor: "pointer" }}>
+          &larr; رجوع
+        </button>
+        <div style={{ fontWeight: 700, fontSize: 13, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {course.title}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 140 }}>
+          <PBar value={prog} color={C.orange} h={5} />
+          <span style={{ color: C.orange, fontWeight: 800, fontSize: 12, whiteSpace: "nowrap" }}>{prog}%</span>
+        </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 250px",flex:1,overflow:"hidden"}}>
-        {/* player */}
-        <div style={{display:"flex",flexDirection:"column",overflow:"auto"}}>
-          <div style={{background:"#000",minHeight:240,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",flexShrink:0}}>
-            <div onClick={()=>setP(!playing)} style={{width:60,height:60,borderRadius:"50%",background:playing?"rgba(255,255,255,.15)":`${C.red}cc`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,cursor:"pointer",transition:"all .2s",boxShadow:playing?"none":`0 0 30px ${C.red}66`}}>
-              {playing?"⏸":"▶"}
-            </div>
-            <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,.85)",padding:"7px 12px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:3}}>
-                <span style={{color:C.muted,fontSize:9}}>0:00</span>
-                <div style={{flex:1,background:"rgba(255,255,255,.2)",borderRadius:99,height:2.5}}><div style={{width:playing?"45%":"0%",height:"100%",background:C.red,transition:"width 2s"}}/></div>
-                <span style={{color:C.muted,fontSize:9}}>45 min</span>
+      {/* ── Main ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 260px", flex: 1, overflow: "hidden" }}>
+
+        {/* ── Video / Content ── */}
+        <div style={{ display: "flex", flexDirection: "column", overflow: "auto" }}>
+
+          {/* Video player */}
+          <div style={{ background: "#000", flexShrink: 0, position: "relative", aspectRatio: "16/9", maxHeight: "60vh" }}>
+            {embedUrl && isIframe ? (
+              <iframe
+                src={embedUrl}
+                title={video?.title || lesson}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ width: "100%", height: "100%", border: "none" }}
+              />
+            ) : embedUrl && isDirectVid ? (
+              <video
+                src={embedUrl}
+                controls
+                style={{ width: "100%", height: "100%" }}
+              />
+            ) : (
+              /* Placeholder when no video */
+              <div style={{ width: "100%", height: "100%", minHeight: 240, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="10,8 16,12 10,16" fill={C.red} stroke="none"/>
+                </svg>
+                <div style={{ color: C.muted, fontSize: 13 }}>
+                  {allVideos.length === 0
+                    ? "المدرب لم يرفع فيديوهات بعد"
+                    : "لا يوجد فيديو لهذا الدرس"}
+                </div>
               </div>
-              <div style={{fontSize:11,color:"#fff",fontWeight:600}}>{lesson}</div>
-            </div>
+            )}
           </div>
-          <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:"rgba(50,29,61,.3)",flexShrink:0}}>
-            {[["lesson","الدرس"],["about","عن الكورس"],["outcomes","Skills"]].map(([k,l])=>(
-              <button key={k} onClick={()=>setTab(k)} style={{background:"transparent",border:"none",borderBottom:tab===k?`2px solid ${C.red}`:"2px solid transparent",color:tab===k?C.red:C.muted,padding:"9px 12px",fontFamily:"'Cairo',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l}</button>
+
+          {/* Lesson title bar */}
+          {video && (
+            <div style={{ background: "rgba(50,29,61,.6)", borderBottom: `1px solid ${C.border}`, padding: "8px 14px" }}>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>{video.title}</div>
+              {video.desc && <div style={{ color: C.muted, fontSize: 11, marginTop: 3 }}>{video.desc}</div>}
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: "rgba(50,29,61,.3)", flexShrink: 0 }}>
+            {[["lesson","الدرس"], ["about","عن الكورس"], ["outcomes","المهارات"]].map(([k, l]) => (
+              <button key={k} onClick={() => setTab(k)}
+                style={{ background: "transparent", border: "none", borderBottom: tab===k ? `2px solid ${C.red}` : "2px solid transparent", color: tab===k ? C.red : C.muted, padding: "10px 14px", fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                {l}
+              </button>
             ))}
           </div>
-          <div style={{padding:"14px 16px",flex:1}}>
-            {tab==="lesson"&&<div>
-              <div style={{fontWeight:800,fontSize:13,marginBottom:7}}>📖 {lesson}</div>
-              <p style={{color:C.muted,lineHeight:1.85,fontSize:12,marginBottom:12}}>في هذا الدرس هتتعلم المفاهيم الأساسية مع أمثلة عملية.</p>
-              {done.includes(li)?<Badge color={C.success}>✓ تم الإكمال</Badge>
-               :<Btn children="✅ تم مشاهدة الدرس" v="success" sm onClick={()=>markLesson(course.id,li,total)}/>}
-            </div>}
-            {tab==="about"&&<p style={{color:C.muted,fontSize:12,lineHeight:1.85}}>{course.desc}</p>}
-            {tab==="outcomes"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:7}}>
-              {course.outcomes.map(s=><div key={s} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.06)",borderRadius:8,padding:"7px 9px"}}><span style={{color:C.success,fontSize:10}}>✓</span><span style={{fontSize:11,fontWeight:600}}>{s}</span></div>)}
-            </div>}
+
+          <div style={{ padding: "16px 18px", flex: 1 }}>
+            {tab === "lesson" && (
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{lesson}</div>
+                <p style={{ color: C.muted, lineHeight: 1.85, fontSize: 13, marginBottom: 16 }}>
+                  {video?.desc || "شاهد الفيديو ثم اضغط على زر الإكمال للانتقال للدرس التالي."}
+                </p>
+                {done.includes(li)
+                  ? <Badge color={C.success}>تم الإكمال</Badge>
+                  : <Btn children="تم مشاهدة الدرس" v="success" sm onClick={() => markLesson(course.id, li, total)} />
+                }
+              </div>
+            )}
+            {tab === "about" && (
+              <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.9 }}>{course.desc}</p>
+            )}
+            {tab === "outcomes" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+                {course.outcomes.map(s => (
+                  <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", borderRadius: 8, padding: "8px 10px" }}>
+                    <span style={{ color: C.success, fontSize: 12, fontWeight: 800 }}>✓</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{s}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        {/* sidebar */}
-        <div style={{borderRight:`1px solid ${C.border}`,overflow:"auto",background:"rgba(50,29,61,.4)"}}>
-          <div style={{padding:"9px 11px",fontWeight:800,fontSize:10,borderBottom:`1px solid ${C.border}`,color:C.muted,position:"sticky",top:0,background:"rgba(42,21,64,.97)"}}>
-            📋 الدروس ({done.length}/{total})
+
+        {/* ── Sidebar: lessons list ── */}
+        <div style={{ borderRight: `1px solid ${C.border}`, overflow: "auto", background: "rgba(50,29,61,.4)" }}>
+          <div style={{
+            padding: "10px 12px", fontWeight: 800, fontSize: 11,
+            borderBottom: `1px solid ${C.border}`, color: C.muted,
+            position: "sticky", top: 0, background: "rgba(42,21,64,.97)",
+            display: "flex", justifyContent: "space-between",
+          }}>
+            <span>الدروس</span>
+            <span style={{ color: C.orange }}>{done.length}/{total}</span>
           </div>
-          {allLessons.map((l,i)=>{
-            const isDone=done.includes(i);const isA=i===li;
-            return <div key={i} onClick={()=>{setLi(i);setP(false);}} style={{padding:"9px 10px",background:isA?`${C.red}18`:"transparent",borderRight:isA?`3px solid ${C.red}`:"3px solid transparent",cursor:"pointer",borderBottom:`1px solid ${C.border}`,display:"flex",gap:7,alignItems:"flex-start",transition:"background .2s"}}>
-              <div style={{width:19,height:19,borderRadius:"50%",flexShrink:0,background:isDone?C.success:"rgba(255,255,255,.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:isDone?"#fff":C.muted}}>{isDone?"✓":i+1}</div>
-              <div style={{fontSize:10,fontWeight:600,color:isA?"#fff":C.muted,lineHeight:1.4}}>{l}</div>
-            </div>;
-          })}
+
+          {course.curriculum.map((ch, ci) => (
+            <div key={ci}>
+              {/* Chapter header */}
+              <div style={{ padding: "8px 12px", background: "rgba(103,45,134,.15)", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 800, color: C.orange }}>
+                {ch.title}
+              </div>
+              {ch.lessons.map((l, li_local) => {
+                const globalIdx = course.curriculum
+                  .slice(0, ci)
+                  .reduce((acc, c) => acc + c.lessons.length, 0) + li_local;
+                const isDone = done.includes(globalIdx);
+                const isAct  = globalIdx === li;
+                return (
+                  <div key={globalIdx}
+                    onClick={() => { setLi(globalIdx); setTab("lesson"); }}
+                    style={{
+                      padding: "10px 11px",
+                      background: isAct ? `${C.red}18` : "transparent",
+                      borderRight: isAct ? `3px solid ${C.red}` : "3px solid transparent",
+                      cursor: "pointer",
+                      borderBottom: `1px solid ${C.border}`,
+                      display: "flex", gap: 8, alignItems: "flex-start",
+                      transition: "background .2s",
+                    }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                      background: isDone ? C.success : "rgba(255,255,255,.07)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 800,
+                      color: isDone ? "#fff" : C.muted,
+                    }}>
+                      {isDone ? "✓" : globalIdx + 1}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: isAct ? "#fff" : C.muted, lineHeight: 1.4 }}>{l}</div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          {course.curriculum.length === 0 && (
+            <div style={{ padding: 24, textAlign: "center", color: C.muted, fontSize: 12 }}>
+              لا توجد دروس بعد
+            </div>
+          )}
         </div>
       </div>
     </div>

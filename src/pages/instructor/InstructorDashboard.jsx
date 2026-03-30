@@ -33,7 +33,11 @@ export default function InstructorDashboard() {
     setTimeout(() => setToast(null), 2800);
   };
 
-  const myCourses  = courses.filter(c => c.instructorId === currentUser?.id);
+  // Courses assigned via Admin "تعيين" OR courses with instructorId matching this user
+  const myCourses = courses.filter(c =>
+    c.instructorId === currentUser?.id ||
+    (currentUser?.assignedCourses || []).includes(c.id)
+  );
   const myExams    = exams.filter(e => myCourses.find(c => c.id === e.courseId));
   const myStudents = users.filter(u =>
     u.role === "student" && u.enrolledCourses.some(e => myCourses.find(c => c.id === e.courseId))

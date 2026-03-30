@@ -36,7 +36,10 @@ export default function HiringPage() {
   const [loading, setLoading] = useState(false);
   const [done,    setDone]    = useState(false);
 
-  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const set = k => e => {
+    const val = e.target.value;
+    setForm(p => ({ ...p, [k]: val }));
+  };
 
   const validate = () => {
     const e = {};
