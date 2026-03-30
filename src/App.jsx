@@ -20,6 +20,7 @@ import CourseRegister from "./pages/course/CourseRegister";
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import CourseViewer     from "./pages/student/CourseViewer";
+import ProfilePage      from "./pages/student/ProfilePage";
 
 // Admin & Instructor
 import AdminDashboard      from "./pages/admin/AdminDashboard";
@@ -67,6 +68,7 @@ export default function App() {
         {/* ── Protected ──────────────────────── */}
         <Route path="/dashboard"   element={<DashboardRouter />} />
         <Route path="/my-courses"  element={<RequireAuth><StudentDashboard /></RequireAuth>} />
+        <Route path="/profile"     element={<RequireAuth><ProfilePage /></RequireAuth>} />
         <Route path="/learn/:slug" element={<RequireAuth><CourseViewer /></RequireAuth>} />
 
         {/* ── Admin ──────────────────────────── */}

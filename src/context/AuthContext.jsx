@@ -34,6 +34,13 @@ export function AuthProvider({ children }) {
   }));
   const removeEnroll   = (uid,cid) => setUsers(p => p.map(u => u.id!==uid ? u : {...u,enrolledCourses:u.enrolledCourses.filter(e=>e.courseId!==cid)}));
   const assignInstructor = (uid,cid) => setUsers(p => p.map(u => u.id!==uid ? u : {...u,assignedCourses:[...(u.assignedCourses||[]).filter(x=>x!==cid),cid]}));
+  const updateProfile = (updates) => setUsers(p => p.map(u => {
+    if (u.id !== currentUser?.id) return u;
+    const updated = { ...u, ...updates };
+    setCU(updated);
+    return updated;
+  }));
+
   const markLesson = (cid,idx,total) => setUsers(p => p.map(u => {
     if (u.id!==currentUser?.id) return u;
     const ec = u.enrolledCourses.map(e => {
@@ -46,7 +53,7 @@ export function AuthProvider({ children }) {
   }));
 
   return (
-    <AuthCtx.Provider value={{users,currentUser:freshMe(),login,logout,register,approveUser,rejectUser,enrollUser,removeEnroll,assignInstructor,markLesson}}>
+    <AuthCtx.Provider value={{users,currentUser:freshMe(),login,logout,register,approveUser,rejectUser,enrollUser,removeEnroll,assignInstructor,markLesson,updateProfile}}>
       {children}
     </AuthCtx.Provider>
   );

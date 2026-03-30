@@ -157,9 +157,12 @@ export default function Navbar() {
                         : (lang==="ar" ? "طالب" : "Student")}
                     </div>
                   </div>
-                  <div onClick={() => navigate("/dashboard")}
-                    style={{ width: 34, height: 34, borderRadius: "50%", background: avBg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
-                    {currentUser.avatar}
+                  <div onClick={() => navigate("/profile")}
+                    title={lang==="ar" ? "بروفايلي" : "My Profile"}
+                    style={{ width: 34, height: 34, borderRadius: "50%", background: currentUser.avatarImg ? "transparent" : avBg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, cursor: "pointer", flexShrink: 0, overflow: "hidden", border: `2px solid ${avBg}` }}>
+                    {currentUser.avatarImg
+                      ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : currentUser.avatar}
                   </div>
                   <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} />
                 </div>
@@ -209,9 +212,12 @@ export default function Navbar() {
               ) : (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: avBg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15 }}>
-                      {currentUser.avatar}
-                    </div>
+                    <div onClick={() => { navigate("/profile"); setOpen(false); }}
+                    style={{ width: 36, height: 36, borderRadius: "50%", background: currentUser.avatarImg ? "transparent" : avBg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, cursor: "pointer", overflow: "hidden", border: `2px solid ${avBg}` }}>
+                    {currentUser.avatarImg
+                      ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : currentUser.avatar}
+                  </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700 }}>{currentUser.name}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>
