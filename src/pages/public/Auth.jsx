@@ -27,9 +27,6 @@ export function LoginPage() {
         {err&&<div style={{background:`${C.danger}18`,border:`1px solid ${C.danger}44`,borderRadius:9,padding:"9px 12px",fontSize:12,color:C.danger,marginBottom:12}}>{err}</div>}
         <Btn children="دخول 🚀" full onClick={submit} style={{padding:"12px",fontSize:14,boxShadow:`0 8px 25px rgba(217,27,91,.4)`}}/>
         <div style={{textAlign:"center",marginTop:14,fontSize:12,color:C.muted}}>مش عندك حساب؟ <span style={{color:C.orange,cursor:"pointer",fontWeight:700}} onClick={()=>navigate("/register")}>سجّل دلوقتي</span></div>
-        <div style={{marginTop:14,padding:"10px 12px",background:"rgba(255,255,255,.06)",borderRadius:9,fontSize:11,color:C.muted}}>
-          <b>للتجربة:</b><br/>Admin: admin@eduzah.com / admin123<br/>Student: ahmed@test.com / 123456<br/>Instructor: khalid@test.com / 123456
-        </div>
       </div>
     </div>
   );
