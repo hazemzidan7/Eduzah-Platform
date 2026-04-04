@@ -68,14 +68,6 @@ export default function CourseLanding() {
     navigate(`/learn/${slug}`);
   };
 
-  /* ── Who is this for ── */
-  const WHO = [
-    "🎯 المبتدئين اللي عايزين يدخلوا المجال من الصفر",
-    "💼 أصحاب العمل اللي عايزين يفهموا التكنولوجيا",
-    "🔄 اللي شغلانتهم في مجال تاني وعايزين يتحولوا للـ Tech",
-    "📈 المطورين اللي عايزين يرفعوا مستواهم",
-  ];
-
   return (
     <div style={{ paddingBottom: 70 }}>
 
