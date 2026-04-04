@@ -6,6 +6,7 @@ import {
   TRAINERS as INIT_TRAINERS,
   PROGRAMS as INIT_PROGRAMS,
   TESTIMONIALS as INIT_TESTIMONIALS,
+  TEAM_MEMBERS as INIT_TEAM,
   SITE,
 } from "../data";
 
@@ -18,6 +19,7 @@ export function DataProvider({ children }) {
   const [trainers,     setTrainers]     = useState(INIT_TRAINERS);
   const [programs,     setPrograms]     = useState(INIT_PROGRAMS);
   const [testimonials, setTestimonials] = useState(INIT_TESTIMONIALS);
+  const [team,         setTeam]         = useState(INIT_TEAM);
   const [vodafoneCash, setVodafoneCash] = useState(SITE.vodafoneCash);
 
   // ── COURSES ──────────────────────────────────────────
@@ -150,10 +152,32 @@ export function DataProvider({ children }) {
   const deleteTestimonial = (id) =>
     setTestimonials(p => p.filter(t => t.id !== id));
 
+  // ── TEAM ─────────────────────────────────────────────
+  const addTeamMember = (form) => {
+    const nm = {
+      id: `tm-${Date.now()}`,
+      name: form.name, name_en: form.name_en || form.name,
+      role_ar: form.role_ar || "", role_en: form.role_en || "",
+      bio_ar: form.bio_ar || "", bio_en: form.bio_en || "",
+      email: form.email || "",
+      linkedin: form.linkedin || "",
+      image: form.image || null,
+      avatar: form.name?.[0] || "?",
+      order: team.length + 1,
+    };
+    setTeam(p => [...p, nm]);
+  };
+
+  const updateTeamMember = (id, updates) =>
+    setTeam(p => p.map(m => m.id === id ? { ...m, ...updates } : m));
+
+  const deleteTeamMember = (id) =>
+    setTeam(p => p.filter(m => m.id !== id));
+
   return (
     <DataCtx.Provider value={{
       // data
-      courses, news, exams, trainers, programs, testimonials, vodafoneCash,
+      courses, news, exams, trainers, programs, testimonials, team, vodafoneCash,
       // courses
       addCourse, updateCourse, toggleFeatured, deleteCourse,
       // news
@@ -166,6 +190,8 @@ export function DataProvider({ children }) {
       addProgram, updateProgram, deleteProgram,
       // testimonials
       addTestimonial, deleteTestimonial,
+      // team
+      addTeamMember, updateTeamMember, deleteTeamMember,
       // settings
       setVodafoneCash,
     }}>

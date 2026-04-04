@@ -47,6 +47,7 @@ export default function Navbar() {
     ["/corporate",   lang==="ar" ? "تدريب الشركات"  : "Corporate"],
     ["/hiring",      lang==="ar" ? "التوظيف"        : "Hiring"],
     ["/services",    lang==="ar" ? "الخدمات"        : "Services"],
+    ["/team",        lang==="ar" ? "فريقنا"         : "Our Team"],
     ["/consultation",lang==="ar" ? "استشارة مجانية" : "Free Consult"],
     ["/news",        lang==="ar" ? "الأخبار"        : "News"],
   ];

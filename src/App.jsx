@@ -12,6 +12,7 @@ import CorporatePage     from "./pages/public/CorporatePage";
 import HiringPage        from "./pages/public/HiringPage";
 import ConsultationPage  from "./pages/public/ConsultationPage";
 import { LoginPage, RegisterPage } from "./pages/public/Auth";
+import TeamPage from "./pages/public/TeamPage";
 
 // Course marketing pages
 import CourseLanding  from "./pages/course/CourseLanding";
@@ -58,6 +59,7 @@ export default function App() {
         {/* ── Service Detail Pages ──────────── */}
         <Route path="/services/:slug" element={<ServiceDetail />} />
 
+        <Route path="/team"     element={<TeamPage />} />
         <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 

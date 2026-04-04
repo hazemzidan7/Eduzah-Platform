@@ -597,6 +597,38 @@ export const TESTIMONIALS = [
   },
 ];
 
+// ── TEAM MEMBERS ─────────────────────────────────────
+export const TEAM_MEMBERS = [
+  {
+    id: "tm-1",
+    name: "محمد عمر",
+    name_en: "Mohamed Omar",
+    role_ar: "المدير التنفيذي",
+    role_en: "CEO & Founder",
+    bio_ar: "مؤسس Eduzah وخبير في مجال التدريب المهني مع خبرة تزيد عن 10 سنوات في تطوير الكفاءات البشرية.",
+    bio_en: "Founder of Eduzah and expert in professional training with over 10 years of experience in human capital development.",
+    email: "ceo@eduzah.com",
+    linkedin: "https://www.linkedin.com/company/eduzah",
+    image: null,
+    avatar: "م",
+    order: 1,
+  },
+  {
+    id: "tm-2",
+    name: "سارة حسن",
+    name_en: "Sara Hassan",
+    role_ar: "مديرة العمليات",
+    role_en: "Operations Manager",
+    bio_ar: "مسؤولة عن تطوير مناهج التدريب وضمان جودة البرامج التعليمية في Eduzah.",
+    bio_en: "Responsible for curriculum development and ensuring quality of educational programs at Eduzah.",
+    email: "ops@eduzah.com",
+    linkedin: "https://www.linkedin.com/company/eduzah",
+    image: null,
+    avatar: "س",
+    order: 2,
+  },
+];
+
 // ── INIT USERS ────────────────────────────────────────
 export const INIT_USERS = [
   { id:"admin-1", name:"Admin Eduzah", email:"admin@eduzah.com", password:"admin123", role:"admin", status:"approved", avatar:"A", enrolledCourses:[] },

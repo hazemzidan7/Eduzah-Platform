@@ -16,7 +16,7 @@ const Row = ({ label, children }) => (
 export default function AdminDashboard() {
   const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor } = useAuth();
   const {
-    courses, news, exams, trainers, programs, testimonials,
+    courses, news, exams, trainers, programs, testimonials, team,
     vodafoneCash, setVodafoneCash,
     addCourse, toggleFeatured, deleteCourse,
     addNews, deleteNews,
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     addTrainer, deleteTrainer,
     addProgram, updateProgram, deleteProgram,
     addTestimonial, deleteTestimonial,
+    addTeamMember, updateTeamMember, deleteTeamMember,
   } = useData();
   const navigate = useNavigate();
 
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
     ["overview","Overview"],["users","المستخدمون"],["requests","الطلبات"],
     ["courses","الكورسات"],["news","الأخبار"],["exams","الامتحانات"],
     ["trainers","المدربون"],["programs","البرامج"],["testimonials","الآراء"],
-    ["settings","الإعدادات"],
+    ["team","الفريق"],["settings","الإعدادات"],
   ];
 
   /* ─────────── Add Course Form ─────────── */
@@ -295,6 +296,70 @@ export default function AdminDashboard() {
         </div>
 
         <Btn children="✅ إضافة الرأي" full onClick={submit} style={{ marginTop:14 }} />
+      </Modal>
+    );
+  };
+
+  /* ─────────── Add / Edit Team Member Modal ─────────── */
+  const AddTeamMemberModal = ({ editing }) => {
+    const init = editing
+      ? { name: editing.name, name_en: editing.name_en||"", role_ar: editing.role_ar||"", role_en: editing.role_en||"", bio_ar: editing.bio_ar||"", bio_en: editing.bio_en||"", email: editing.email||"", linkedin: editing.linkedin||"", image: editing.image||null }
+      : { name:"", name_en:"", role_ar:"", role_en:"", bio_ar:"", bio_en:"", email:"", linkedin:"", image:null };
+    const [f, setF] = useState(init);
+    const set = (k,v) => setF(p => ({ ...p, [k]:v }));
+
+    const pickImage = e => {
+      const file = e.target.files[0];
+      if (file) readFile(file, data => set("image", data));
+    };
+
+    const submit = () => {
+      if (!f.name.trim() || !f.role_ar.trim()) { showT("❗ أدخل الاسم والمنصب", "error"); return; }
+      if (editing) {
+        updateTeamMember(editing.id, f);
+        showT("✅ تم تحديث بيانات العضو!");
+      } else {
+        addTeamMember(f);
+        showT("✅ تم إضافة عضو الفريق!");
+      }
+      setModal(null);
+    };
+
+    return (
+      <Modal title={editing ? "✏️ تعديل عضو الفريق" : "➕ إضافة عضو جديد"} onClose={() => setModal(null)}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <Input label="الاسم (عربي) *"    value={f.name}    onChange={v=>set("name",v)}    placeholder="محمد أحمد" />
+          <Input label="Name (English)"    value={f.name_en} onChange={v=>set("name_en",v)} placeholder="Mohamed Ahmed" />
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <Input label="المنصب (عربي) *"   value={f.role_ar} onChange={v=>set("role_ar",v)} placeholder="مدير تنفيذي" />
+          <Input label="Role (English)"    value={f.role_en} onChange={v=>set("role_en",v)} placeholder="CEO" />
+        </div>
+
+        <div style={{ marginBottom:10 }}>
+          <label style={{ fontSize:12, color:"#aaa", fontWeight:700, display:"block", marginBottom:6 }}>صورة العضو (اختياري)</label>
+          <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", background:"rgba(255,255,255,.05)", border:`1.5px dashed ${C.border}`, borderRadius:10, padding:"10px 14px" }}>
+            <span style={{ fontSize:20 }}>👤</span>
+            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? "✅ تم رفع الصورة" : "اضغط لرفع صورة العضو"}</span>
+            <input type="file" accept="image/*" onChange={pickImage} style={{ display:"none" }} />
+          </label>
+          {f.image && (
+            <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:10 }}>
+              <img src={f.image} alt="" style={{ width:48, height:48, objectFit:"cover", borderRadius:"50%" }} />
+              <Btn children="🗑" sm v="danger" onClick={()=>set("image",null)} />
+            </div>
+          )}
+        </div>
+
+        <Input label="نبذة (عربي)"         value={f.bio_ar}   onChange={v=>set("bio_ar",v)}   placeholder="خبرة ..." rows={2} />
+        <Input label="Bio (English)"       value={f.bio_en}   onChange={v=>set("bio_en",v)}   placeholder="Expert in ..." rows={2} />
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <Input label="البريد الإلكتروني *" value={f.email}    onChange={v=>set("email",v)}    placeholder="name@eduzah.com" />
+          <Input label="LinkedIn (اختياري)" value={f.linkedin} onChange={v=>set("linkedin",v)} placeholder="https://linkedin.com/in/..." />
+        </div>
+
+        <Btn children={editing ? "✅ حفظ التعديلات" : "✅ إضافة العضو"} full onClick={submit} style={{ marginTop:14 }} />
       </Modal>
     );
   };
@@ -641,6 +706,43 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ── Team ── */}
+        {tab === "team" && (
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>👥 إدارة فريق العمل</h2>
+              <Btn children="➕ عضو جديد" onClick={()=>setModal({ type:"add-team" })} />
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
+              {(team||[]).map(m => (
+                <Card key={m.id} style={{ padding:"16px 18px" }}>
+                  <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:10 }}>
+                    {m.image
+                      ? <img src={m.image} alt={m.name} style={{ width:48, height:48, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      : <div style={{ width:48, height:48, borderRadius:"50%", background:"linear-gradient(135deg,#d91b5b,#b51549)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:20, flexShrink:0 }}>{m.avatar||m.name[0]}</div>
+                    }
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:800, fontSize:14 }}>{m.name}</div>
+                      <div style={{ color:C.orange, fontSize:11, fontWeight:700 }}>{m.role_ar}</div>
+                      {m.email && <div style={{ color:C.muted, fontSize:11 }}>{m.email}</div>}
+                    </div>
+                  </div>
+                  {m.bio_ar && <div style={{ color:C.muted, fontSize:12, lineHeight:1.6, marginBottom:10 }}>{m.bio_ar.slice(0,100)}{m.bio_ar.length>100?"…":""}</div>}
+                  <div style={{ display:"flex", gap:7 }}>
+                    <Btn children="✏️ تعديل" sm v="outline" onClick={()=>setModal({ type:"edit-team", member:m })} />
+                    <Btn children="🗑 حذف"   sm v="danger"  onClick={()=>{ deleteTeamMember(m.id); showT("تم الحذف","error"); }} />
+                  </div>
+                </Card>
+              ))}
+              {(!team||team.length===0) && (
+                <Card style={{ padding:40, textAlign:"center", gridColumn:"1/-1" }}>
+                  <div style={{ color:C.muted }}>لا يوجد أعضاء فريق. اضغط "عضو جديد" للإضافة.</div>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Settings ── */}
         {tab === "settings" && (
           <div>
@@ -703,6 +805,8 @@ export default function AdminDashboard() {
       {modal?.type === "add-program"     && <AddProgramModal />}
       {modal?.type === "edit-program"    && <AddProgramModal editing={modal.program} />}
       {modal?.type === "add-testimonial" && <AddTestimonialModal />}
+      {modal?.type === "add-team"        && <AddTeamMemberModal />}
+      {modal?.type === "edit-team"       && <AddTeamMemberModal editing={modal.member} />}
 
       {modal?.type === "enroll" && (
         <Modal title={`📚 كورسات: ${modal.user.name}`} onClose={() => setModal(null)}>
