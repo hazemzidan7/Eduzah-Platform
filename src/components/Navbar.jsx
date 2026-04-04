@@ -83,7 +83,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav style={{
+      <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} style={{
         position: "sticky", top: 0, zIndex: 200,
         background: "rgba(26,15,36,.97)", backdropFilter: "blur(20px)",
         borderBottom: `1px solid ${C.border}`,
@@ -130,7 +130,8 @@ export default function Navbar() {
           {/* ── Right controls ── */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             {/* Language toggle */}
-            <button onClick={toggle}
+            <button type="button" onClick={toggle}
+              aria-label={lang === "ar" ? "التبديل إلى الإنجليزية" : "Switch to Arabic"}
               style={{
                 background: "rgba(255,255,255,.07)",
                 border: `1.5px solid ${C.border}`,
@@ -240,6 +241,7 @@ export default function Navbar() {
       {/* WhatsApp FAB */}
       <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
         title="WhatsApp"
+        aria-label={lang === "ar" ? "تواصل عبر واتساب" : "Contact on WhatsApp"}
         style={{
           position: "fixed", bottom: 22,
           [lang === "ar" ? "right" : "left"]: 22,

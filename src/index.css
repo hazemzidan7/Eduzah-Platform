@@ -1,5 +1,13 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Cairo', sans-serif; background: #321d3d; color: #fff; direction: rtl; overflow-x: hidden; }
+
+.skip-to-content:focus {
+  transform: translateY(0) !important;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+#main-content:focus { outline: none; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: #672d86; border-radius: 3px; }
 input::placeholder, textarea::placeholder { color: rgba(255,255,255,.3); }

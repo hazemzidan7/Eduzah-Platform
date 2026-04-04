@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { C, gHero, font } from "../../theme";
 import { Btn, Select } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
+import { Seo } from "../../components/Seo";
 
 /* ── Eye icon ── */
 const EyeIcon = ({ off }) => (
@@ -81,7 +82,7 @@ const PassField = ({ label, value, onChange, error, placeholder, lang }) => {
           style={{ ...inputSx(error), paddingLeft: lang === "ar" ? 13 : 40, paddingRight: lang === "ar" ? 40 : 13 }}
         />
         <button type="button" onClick={() => setShow(s => !s)}
-          aria-label={show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+          aria-label={lang === "ar" ? (show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور") : (show ? "Hide password" : "Show password")}
           style={{
             position: "absolute", top: "50%", transform: "translateY(-50%)",
             [lang === "ar" ? "right" : "left"]: 0,
@@ -98,6 +99,13 @@ const PassField = ({ label, value, onChange, error, placeholder, lang }) => {
 /* ══════════════════════════════════════════
    LOGIN PAGE
 ══════════════════════════════════════════ */
+const loginErr = (code, lang) => {
+  if (code === "BAD_CREDENTIALS") return lang === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password";
+  if (code === "PENDING") return lang === "ar" ? "حسابك قيد المراجعة من الإدارة" : "Your account is pending admin approval";
+  if (code === "REJECTED") return lang === "ar" ? "تم رفض حسابك. تواصل مع الإدارة" : "Your account was rejected. Contact support";
+  return lang === "ar" ? "تعذر تسجيل الدخول" : "Login failed";
+};
+
 export function LoginPage() {
   const { login }  = useAuth();
   const { lang }   = useLang();
@@ -109,12 +117,16 @@ export function LoginPage() {
   const submit = () => {
     if (!email || !pass) { setErr(lang === "ar" ? "أدخل البريد وكلمة المرور" : "Enter email and password"); return; }
     const r = login(email, pass);
-    if (!r.ok) { setErr(r.msg); return; }
+    if (!r.ok) { setErr(loginErr(r.code, lang)); return; }
     navigate("/dashboard");
   };
 
   return (
-    <main style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+      <Seo
+        title={lang === "ar" ? "تسجيل الدخول — Eduzah" : "Login — Eduzah"}
+        description={lang === "ar" ? "سجّل دخولك إلى منصة Eduzah للتدريب المهني." : "Sign in to the Eduzah professional training platform."}
+      />
       <div role="form" aria-label={lang === "ar" ? "تسجيل الدخول" : "Login"}
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 380 }}>
 
@@ -139,6 +151,12 @@ export function LoginPage() {
           placeholder="••••••••" lang={lang}
         />
 
+        <div style={{ textAlign: lang === "ar" ? "right" : "left", marginBottom: 12 }}>
+          <Link to="/forgot-password" style={{ color: C.orange, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            {lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}
+          </Link>
+        </div>
+
         {err && (
           <div role="alert" style={{ background: `${C.danger}18`, border: `1px solid ${C.danger}44`, borderRadius: 9, padding: "9px 12px", fontSize: 12, color: C.danger, marginBottom: 12 }}>
             {err}
@@ -155,7 +173,7 @@ export function LoginPage() {
           </span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -190,7 +208,14 @@ export function RegisterPage() {
     if (Object.keys(e).length) { setErrs(e); return; }
     setErrs({});
     const r = register(f);
-    if (!r.ok) { setErrs({ email: r.msg }); return; }
+    if (!r.ok) {
+      if (r.code === "EMAIL_EXISTS") {
+        setErrs({ email: lang === "ar" ? "هذا البريد مسجل مسبقاً" : "This email is already registered" });
+      } else {
+        setErrs({ email: lang === "ar" ? "تعذر إنشاء الحساب" : "Registration failed" });
+      }
+      return;
+    }
     setOk(true);
   };
 
@@ -210,7 +235,11 @@ export function RegisterPage() {
   );
 
   return (
-    <main style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+      <Seo
+        title={lang === "ar" ? "إنشاء حساب — Eduzah" : "Register — Eduzah"}
+        description={lang === "ar" ? "أنشئ حساباً على Eduzah للتدريب المهني والكورسات." : "Create your Eduzah account for professional training and courses."}
+      />
       <div role="form" aria-label={lang === "ar" ? "إنشاء حساب" : "Register"}
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 440 }}>
 
@@ -271,6 +300,139 @@ export function RegisterPage() {
           </span>
         </div>
       </div>
-    </main>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   FORGOT PASSWORD (demo: token in UI — production uses email)
+══════════════════════════════════════════ */
+export function ForgotPasswordPage() {
+  const { requestPasswordReset } = useAuth();
+  const { lang } = useLang();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+  const [token, setToken] = useState(null);
+  const [err, setErr] = useState("");
+
+  const submit = () => {
+    setErr("");
+    if (!email.trim() || !email.includes("@")) {
+      setErr(lang === "ar" ? "أدخل بريداً صالحاً" : "Enter a valid email");
+      return;
+    }
+    const r = requestPasswordReset(email);
+    setDone(true);
+    setToken(r.token || null);
+  };
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  return (
+    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+      <Seo
+        title={lang === "ar" ? "استعادة كلمة المرور — Eduzah" : "Forgot password — Eduzah"}
+        description={lang === "ar" ? "استعد الوصول إلى حسابك على Eduzah." : "Recover access to your Eduzah account."}
+      />
+      <div style={{ background: "rgba(50,29,61,.92)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 420 }}>
+        <h1 style={{ fontSize: 20, marginBottom: 8 }}>{lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}</h1>
+        <p style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+          {lang === "ar"
+            ? "أدخل بريدك المسجل. في الإصدار الحالي (بدون خادم بريد) سيظهر رابط الاستعادة أدناه للتجربة."
+            : "Enter your registered email. In this demo (no mail server), a recovery link appears below for testing."}
+        </p>
+        {!done ? (
+          <>
+            <Field label={lang === "ar" ? "البريد الإلكتروني" : "Email"}>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputSx(!!err)} />
+            </Field>
+            {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{err}</div>}
+            <Btn children={lang === "ar" ? "متابعة" : "Continue"} full onClick={submit} />
+          </>
+        ) : (
+          <div>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>
+              {lang === "ar"
+                ? "إذا كان البريد مسجلاً لدينا، يمكنك استخدام الرابط التالي (تجريبي):"
+                : "If the email is registered, use this link (demo only):"}
+            </p>
+            {token ? (
+              <div>
+                <Link to={`/reset-password?token=${encodeURIComponent(token)}`} style={{ color: C.orange, fontWeight: 700 }}>
+                  {lang === "ar" ? "→ افتح صفحة تعيين كلمة المرور" : "→ Open password reset page"}
+                </Link>
+                <p style={{ fontSize: 11, color: C.muted, marginTop: 10, wordBreak: "break-all", userSelect: "all" }}>
+                  {`${origin}/reset-password?token=${encodeURIComponent(token)}`}
+                </p>
+              </div>
+            ) : (
+              <p style={{ fontSize: 13 }}>{lang === "ar" ? "لم يُعثر على حساب بهذا البريد." : "No account found for this email."}</p>
+            )}
+          </div>
+        )}
+        <div style={{ marginTop: 18 }}>
+          <button type="button" onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12 }}>
+            ← {lang === "ar" ? "العودة لتسجيل الدخول" : "Back to login"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ResetPasswordPage() {
+  const { resetPasswordWithToken } = useAuth();
+  const { lang } = useLang();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
+
+  const [pass, setPass] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [errs, setErrs] = useState({});
+  const [ok, setOk] = useState(false);
+
+  const submit = () => {
+    const e = {};
+    const rules = validatePassword(pass);
+    if (rules.some(r => !r.ok)) e.pass = lang === "ar" ? "كلمة المرور لا تستوفي الشروط" : "Password doesn't meet requirements";
+    if (pass !== confirm) e.confirm = lang === "ar" ? "غير متطابقة" : "Passwords don't match";
+    if (Object.keys(e).length) { setErrs(e); return; }
+    const r = resetPasswordWithToken(token, pass);
+    if (!r.ok) {
+      setErrs({ pass: lang === "ar" ? "الرابط منتهي أو غير صالح" : "Invalid or expired link" });
+      return;
+    }
+    setOk(true);
+  };
+
+  return (
+    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+      <Seo
+        title={lang === "ar" ? "إعادة تعيين كلمة المرور — Eduzah" : "Reset password — Eduzah"}
+        description={lang === "ar" ? "عيّن كلمة مرور جديدة لحساب Eduzah." : "Set a new password for your Eduzah account."}
+      />
+      <div style={{ background: "rgba(50,29,61,.92)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 400 }}>
+        {!token ? (
+          <p style={{ color: C.danger }}>{lang === "ar" ? "رابط غير صالح." : "Invalid reset link."}</p>
+        ) : ok ? (
+          <>
+            <h1 style={{ fontSize: 20, marginBottom: 12 }}>{lang === "ar" ? "تم التحديث" : "Password updated"}</h1>
+            <Btn children={lang === "ar" ? "تسجيل الدخول" : "Login"} full onClick={() => navigate("/login")} />
+          </>
+        ) : (
+          <>
+            <h1 style={{ fontSize: 20, marginBottom: 16 }}>{lang === "ar" ? "كلمة مرور جديدة" : "New password"}</h1>
+            <PassField label={lang === "ar" ? "كلمة المرور" : "Password"} value={pass} onChange={setPass} error={errs.pass} placeholder="••••••••" lang={lang} />
+            <PassRules pass={pass} lang={lang} />
+            <div style={{ marginTop: 10 }}>
+              <PassField label={lang === "ar" ? "تأكيد" : "Confirm"} value={confirm} onChange={setConfirm} error={errs.confirm} placeholder="••••••••" lang={lang} />
+            </div>
+            <Btn children={lang === "ar" ? "حفظ" : "Save"} full onClick={submit} style={{ marginTop: 16 }} />
+          </>
+        )}
+      </div>
+    </div>
   );
 }

@@ -15,11 +15,11 @@ const Row = ({ label, children }) => (
 );
 
 export default function AdminDashboard() {
-  const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor } = useAuth();
+  const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser } = useAuth();
   const {
     courses, news, exams, trainers, programs, testimonials, team,
     vodafoneCash, setVodafoneCash,
-    addCourse, toggleFeatured, deleteCourse,
+    addCourse, updateCourse, toggleFeatured, deleteCourse,
     addNews, deleteNews,
     addExam, deleteExam,
     addTrainer, deleteTrainer,
@@ -73,7 +73,10 @@ export default function AdminDashboard() {
 
   /* ─────────── Add Course Form ─────────── */
   const AddCourseModal = () => {
-    const [f, setF] = useState({ title:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع", tagline:"", desc:"", bullets:"", outcomes:"", image:null });
+    const [f, setF] = useState({
+      title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
+      tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
+    });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
@@ -86,7 +89,10 @@ export default function AdminDashboard() {
       <Modal title="إضافة كورس جديد" onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1/-1" }}>
-            <Input label="عنوان الكورس *" value={f.title} onChange={v => set("title", v)} placeholder="Front-End Web Development" />
+            <Input label="عنوان الكورس (عربي/أساسي) *" value={f.title} onChange={v => set("title", v)} placeholder="دبلومة Front-End" />
+          </div>
+          <div style={{ gridColumn: "1/-1" }}>
+            <Input label="Course title (English)" value={f.title_en} onChange={v => set("title_en", v)} placeholder="Front-End Web Development" />
           </div>
           <Input label="السعر (EGP) *" value={f.price} onChange={v => set("price", v)} placeholder="8500" />
           <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} placeholder="16 أسبوع" />
@@ -110,13 +116,106 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-            <Input label="Tagline" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
-            <Input label="وصف الكورس" value={f.desc} onChange={v => set("desc", v)} placeholder="وصف مختصر للكورس..." rows={2} />
-            <Input label="النقاط الرئيسية (سطر لكل نقطة)" value={f.bullets} onChange={v => set("bullets", v)} placeholder={"نقطة 1\nنقطة 2\nنقطة 3"} rows={3} />
-            <Input label="المهارات المكتسبة (سطر لكل مهارة)" value={f.outcomes} onChange={v => set("outcomes", v)} placeholder={"مهارة 1\nمهارة 2"} rows={2} />
+            <Input label="Tagline (عربي)" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
+            <Input label="Tagline (English)" value={f.tagline_en} onChange={v => set("tagline_en", v)} placeholder="Professional diploma with AI" />
+            <Input label="وصف الكورس (عربي)" value={f.desc} onChange={v => set("desc", v)} placeholder="وصف مختصر للكورس..." rows={2} />
+            <Input label="Course description (English)" value={f.desc_en} onChange={v => set("desc_en", v)} placeholder="Short description..." rows={2} />
+            <Input label="النقاط الرئيسية — عربي (سطر لكل نقطة)" value={f.bullets} onChange={v => set("bullets", v)} placeholder={"نقطة 1\nنقطة 2"} rows={3} />
+            <Input label="Key points — English (one per line)" value={f.bullets_en} onChange={v => set("bullets_en", v)} placeholder={"Point 1\nPoint 2"} rows={3} />
+            <Input label="المهارات — عربي (سطر لكل مهارة)" value={f.outcomes} onChange={v => set("outcomes", v)} placeholder={"مهارة 1\nمهارة 2"} rows={2} />
+            <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
           </div>
         </div>
         <Btn children="✅ إضافة الكورس" full onClick={submit} style={{ marginTop: 8 }} />
+      </Modal>
+    );
+  };
+
+  const EditCourseModal = ({ course: c }) => {
+    const [f, setF] = useState({
+      title: c.title || "",
+      title_en: c.title_en || "",
+      cat: c.cat || "tech",
+      price: String(c.price ?? ""),
+      hours: String(c.hours ?? ""),
+      projects: String(c.projects ?? ""),
+      duration: c.duration || "",
+      tagline: c.tagline || "",
+      tagline_en: c.tagline_en || "",
+      desc: c.desc || "",
+      desc_en: c.desc_en || "",
+      bullets: (c.bullets || []).join("\n"),
+      bullets_en: (c.bullets_en || []).join("\n"),
+      outcomes: (c.outcomes || []).join("\n"),
+      outcomes_en: (c.outcomes_en || []).join("\n"),
+      image: c.image || null,
+    });
+    const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
+    const submit = () => {
+      if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
+      updateCourse(c.id, {
+        title: f.title,
+        title_en: f.title_en || f.title,
+        cat: f.cat,
+        price: Number(f.price) || 0,
+        installment: Math.round((Number(f.price) || 0) / 3),
+        hours: Number(f.hours) || 0,
+        projects: Number(f.projects) || 0,
+        duration: f.duration,
+        tagline: f.tagline,
+        tagline_en: f.tagline_en || f.tagline,
+        desc: f.desc,
+        desc_en: f.desc_en || f.desc,
+        bullets: f.bullets.split("\n").map(s => s.trim()).filter(Boolean),
+        bullets_en: f.bullets_en.split("\n").map(s => s.trim()).filter(Boolean),
+        outcomes: f.outcomes.split("\n").map(s => s.trim()).filter(Boolean),
+        outcomes_en: f.outcomes_en.split("\n").map(s => s.trim()).filter(Boolean),
+        image: f.image,
+      });
+      showT(tx("تم تحديث الكورس", "Course updated"));
+      setModal(null);
+    };
+    return (
+      <Modal title={tx("✏️ تعديل الكورس", "✏️ Edit course")} onClose={() => setModal(null)}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ gridColumn: "1/-1" }}>
+            <Input label="عنوان الكورس *" value={f.title} onChange={v => set("title", v)} />
+          </div>
+          <div style={{ gridColumn: "1/-1" }}>
+            <Input label="Course title (EN)" value={f.title_en} onChange={v => set("title_en", v)} />
+          </div>
+          <Input label="السعر *" value={f.price} onChange={v => set("price", v)} />
+          <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} />
+          <Input label="الساعات" value={f.hours} onChange={v => set("hours", v)} />
+          <Input label="المشاريع" value={f.projects} onChange={v => set("projects", v)} />
+          <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
+            options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
+          <div style={{ gridColumn: "1/-1" }}>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 6 }}>صورة الكورس</label>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(255,255,255,.05)", border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
+                <span style={{ fontSize: 12, color: "#aaa" }}>{f.image ? "تم رفع الصورة" : "رفع صورة"}</span>
+                <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+              </label>
+              {f.image && (
+                <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center" }}>
+                  <img src={f.image} alt="" style={{ width: 90, height: 55, objectFit: "cover", borderRadius: 8 }} />
+                  <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
+                </div>
+              )}
+            </div>
+            <Input label="Tagline AR" value={f.tagline} onChange={v => set("tagline", v)} />
+            <Input label="Tagline EN" value={f.tagline_en} onChange={v => set("tagline_en", v)} />
+            <Input label="وصف AR" value={f.desc} onChange={v => set("desc", v)} rows={2} />
+            <Input label="Description EN" value={f.desc_en} onChange={v => set("desc_en", v)} rows={2} />
+            <Input label="Bullets AR" value={f.bullets} onChange={v => set("bullets", v)} rows={3} />
+            <Input label="Bullets EN" value={f.bullets_en} onChange={v => set("bullets_en", v)} rows={3} />
+            <Input label="Outcomes AR" value={f.outcomes} onChange={v => set("outcomes", v)} rows={2} />
+            <Input label="Outcomes EN" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} rows={2} />
+          </div>
+        </div>
+        <Btn children={tx("✅ حفظ التعديلات", "✅ Save changes")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -203,6 +302,33 @@ export default function AdminDashboard() {
     const r = new FileReader();
     r.onloadend = () => cb(r.result);
     r.readAsDataURL(file);
+  };
+
+  const EditUserModal = ({ user }) => {
+    const [f, setF] = useState({ name: user.name, email: user.email, phone: user.phone || "" });
+    const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const submit = () => {
+      if (!f.name.trim() || !f.email.includes("@")) {
+        showT(tx("❗ بيانات غير صالحة", "❗ Invalid data"), "error");
+        return;
+      }
+      const dup = users.filter(x => x.id !== user.id).some(x => x.email.toLowerCase() === f.email.trim().toLowerCase());
+      if (dup) {
+        showT(tx("البريد مستخدم من قبل مستخدم آخر", "Email already used by another user"), "error");
+        return;
+      }
+      adminUpdateUser(user.id, { name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() });
+      showT(tx("تم تحديث المستخدم", "User updated"));
+      setModal(null);
+    };
+    return (
+      <Modal title={tx("تعديل مستخدم", "Edit user")} onClose={() => setModal(null)}>
+        <Input label={tx("الاسم", "Name")} value={f.name} onChange={v => set("name", v)} />
+        <Input label="Email" value={f.email} onChange={v => set("email", v)} />
+        <Input label={tx("الهاتف", "Phone")} value={f.phone} onChange={v => set("phone", v)} />
+        <Btn children={tx("حفظ", "Save")} full onClick={submit} style={{ marginTop: 10 }} />
+      </Modal>
+    );
   };
 
   /* ─────────── Add Program Modal ─────────── */
@@ -341,11 +467,21 @@ export default function AdminDashboard() {
 
     const submit = () => {
       if (!f.name.trim() || !f.role_ar.trim()) { showT("❗ أدخل الاسم والمنصب", "error"); return; }
+      const em = f.email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+        showT(tx("❗ بريد إلكتروني غير صالح", "❗ Invalid email"), "error");
+        return;
+      }
+      const li = (f.linkedin || "").trim();
+      if (li && !li.startsWith("https://www.linkedin.com/")) {
+        showT(tx("❗ رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "❗ LinkedIn URL must start with https://www.linkedin.com/"), "error");
+        return;
+      }
       if (editing) {
-        updateTeamMember(editing.id, f);
+        updateTeamMember(editing.id, { ...f, email: em, linkedin: li });
         showT("✅ تم تحديث بيانات العضو!");
       } else {
-        addTeamMember(f);
+        addTeamMember({ ...f, email: em, linkedin: li });
         showT("✅ تم إضافة عضو الفريق!");
       }
       setModal(null);
@@ -382,7 +518,7 @@ export default function AdminDashboard() {
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
           <Input label="البريد الإلكتروني *" value={f.email}    onChange={v=>set("email",v)}    placeholder="name@eduzah.com" />
-          <Input label="LinkedIn (اختياري)" value={f.linkedin} onChange={v=>set("linkedin",v)} placeholder="https://linkedin.com/in/..." />
+          <Input label={tx("LinkedIn (اختياري)", "LinkedIn (optional)")} value={f.linkedin} onChange={v=>set("linkedin",v)} placeholder="https://www.linkedin.com/in/..." />
         </div>
 
         <Btn children={editing ? "✅ حفظ التعديلات" : "✅ إضافة العضو"} full onClick={submit} style={{ marginTop:14 }} />
@@ -516,8 +652,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                      {u.status === "pending"   && <><Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم القبول", "✅ Approved")); }} /><Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} /></>}
-                      {u.status === "rejected"  && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم التفعيل", "✅ Reactivated")); }} />}
+                      <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={() => setModal({ type: "edit-user", user: u })} aria-label={tx("تعديل المستخدم", "Edit user")} />
+                      {u.status === "pending"   && <><Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم القبول", "✅ Approved")); }} aria-label={tx("قبول", "Approve")} /><Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} aria-label={tx("رفض", "Reject")} /></>}
+                      {u.status === "rejected"  && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم التفعيل", "✅ Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
                       {u.role === "student"     && u.status === "approved" && <Btn children={tx("📚 كورسات", "📚 Courses")} v="orange"  sm onClick={() => setModal({ type: "enroll", user: u })} />}
                       {u.role === "instructor"  && u.status === "approved" && <Btn children={tx("🎓 تعيين", "🎓 Assign")}  v="purple"  sm onClick={() => setModal({ type: "assign", user: u })} />}
                     </div>
@@ -586,6 +723,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={() => setModal({ type: "edit-course", course: c })} />
                         <Btn children={tx("📚 تسجيل", "📚 Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
                         <Btn children={tx("🎓 مدرب", "🎓 Instructor")}               sm v="outline" onClick={() => setModal({ type: "assign-course", course: c })} />
                         <Btn children={c.featured ? tx("★ إلغاء", "★ Unfeature") : tx("⭐ تمييز", "⭐ Feature")} sm v={c.featured ? "orange" : "outline"} onClick={() => { toggleFeatured(c.id); showT(c.featured ? tx("تم إلغاء التمييز", "Unfeatured") : tx("⭐ تم التمييز", "⭐ Featured")); }} />
@@ -825,6 +963,8 @@ export default function AdminDashboard() {
 
       {/* ═══ Modals ═══ */}
       {modal?.type === "add-course"      && <AddCourseModal />}
+      {modal?.type === "edit-course"     && modal.course && <EditCourseModal course={modal.course} />}
+      {modal?.type === "edit-user"       && modal.user && <EditUserModal user={modal.user} />}
       {modal?.type === "add-news"        && <AddNewsModal />}
       {modal?.type === "add-exam"        && <AddExamModal />}
       {modal?.type === "add-trainer"     && <AddTrainerModal />}

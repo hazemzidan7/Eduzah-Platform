@@ -59,6 +59,13 @@ export default function CourseLanding() {
 
   const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
 
+  const displayBullets = lang === "ar"
+    ? (course.bullets || [])
+    : ((course.bullets_en && course.bullets_en.length) ? course.bullets_en : (course.bullets || []));
+  const displayOutcomes = lang === "ar"
+    ? (course.outcomes || [])
+    : ((course.outcomes_en && course.outcomes_en.length) ? course.outcomes_en : (course.outcomes || []));
+
   const handleEnroll = () => {
     navigate(`/courses/${slug}/register`);
   };
@@ -89,7 +96,7 @@ export default function CourseLanding() {
 
           {/* Bullets */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
-            {course.bullets.map((b, i) => (
+            {displayBullets.map((b, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ width: 24, height: 24, borderRadius: 7, background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: C.success }}>✓</span>
                 {b}
@@ -233,14 +240,14 @@ export default function CourseLanding() {
       )}
 
       {/* ══ OUTCOMES ══ */}
-      {course.outcomes?.length > 0 && (
+      {displayOutcomes?.length > 0 && (
         <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
           <div style={{ textAlign: "center", marginBottom: 28 }}>
             <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "هتخرج بإيه؟" : "OUTCOMES"}</div>
             <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "مهاراتك بعد الدبلومة" : "Your Skills After the Diploma"}</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10, maxWidth: 800, margin: "0 auto" }}>
-            {course.outcomes.map((o, i) => (
+            {displayOutcomes.map((o, i) => (
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: 13 }}>
                 <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.success, flexShrink: 0, marginTop: 1 }}>✓</div>
                 <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{o}</span>

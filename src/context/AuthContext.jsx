@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { INIT_USERS } from "../data";
+import { createResetToken, getValidResetEmail, invalidateResetToken } from "../utils/passwordReset";
 
 const AuthCtx = createContext(null);
 
@@ -10,19 +11,72 @@ export function AuthProvider({ children }) {
   const freshMe = () => currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const login = (email, pass) => {
-    const u = users.find(x => x.email === email && x.password === pass);
-    if (!u)                    return { ok:false, msg:"بيانات الدخول غلط" };
-    if (u.status==="pending")  return { ok:false, msg:"حسابك قيد المراجعة من الـ Admin" };
-    if (u.status==="rejected") return { ok:false, msg:"تم رفض حسابك. تواصل مع الإدارة" };
+    const norm = email.trim().toLowerCase();
+    const u = users.find(x => x.email.toLowerCase() === norm && x.password === pass);
+    if (!u)                    return { ok:false, code:"BAD_CREDENTIALS" };
+    if (u.status==="pending")  return { ok:false, code:"PENDING" };
+    if (u.status==="rejected") return { ok:false, code:"REJECTED" };
     setCU(u); return { ok:true, role:u.role };
   };
+
   const logout   = () => setCU(null);
+
   const register = (d) => {
-    if (users.find(u => u.email===d.email)) return { ok:false, msg:"البريد مسجل مسبقاً" };
-    const nu = { id:`u${Date.now()}`, name:d.name, email:d.email, password:d.pass, role:d.role, status:"pending", avatar:d.name[0].toUpperCase(), phone:d.phone||"", enrolledCourses:[], assignedCourses:[] };
+    const norm = d.email.trim().toLowerCase();
+    if (users.find(u => u.email.toLowerCase() === norm))
+      return { ok:false, code:"EMAIL_EXISTS" };
+    const nu = {
+      id:`u${Date.now()}`,
+      name:d.name,
+      email:d.email.trim(),
+      password:d.pass,
+      role:d.role,
+      status:"pending",
+      avatar:d.name[0].toUpperCase(),
+      phone:d.phone||"",
+      enrolledCourses:[],
+      assignedCourses:[],
+    };
     setUsers(p => [...p, nu]);
     return { ok:true };
   };
+
+  /** Admin edits another user (name, email, phone). */
+  const adminUpdateUser = (id, patch) => {
+    const merge = (u) => {
+      if (u.id !== id) return u;
+      return {
+        ...u,
+        ...patch,
+        email: patch.email != null ? String(patch.email).trim() : u.email,
+        phone: patch.phone != null ? String(patch.phone).trim() : u.phone,
+        name: patch.name != null ? String(patch.name).trim() : u.name,
+      };
+    };
+    setUsers(p => p.map(merge));
+    setCU(cu => (cu && cu.id === id ? merge(cu) : cu));
+  };
+
+  /** Demo reset: returns token for same-origin reset link (no email server). */
+  const requestPasswordReset = (email) => {
+    const norm = email.trim().toLowerCase();
+    const u = users.find(x => x.email.toLowerCase() === norm);
+    if (!u) return { ok:true, token: null };
+    const token = createResetToken(u.email);
+    return { ok:true, token };
+  };
+
+  const resetPasswordWithToken = (token, newPassword) => {
+    const em = getValidResetEmail(token);
+    if (!em) return { ok:false, code:"INVALID_TOKEN" };
+    setUsers(p => p.map(u => (u.email.toLowerCase() === em ? { ...u, password: newPassword } : u)));
+    if (currentUser?.email.toLowerCase() === em) {
+      setCU(prev => (prev ? { ...prev, password: newPassword } : null));
+    }
+    invalidateResetToken(token);
+    return { ok:true };
+  };
+
   const approveUser    = id  => setUsers(p => p.map(u => u.id===id ? {...u,status:"approved"} : u));
   const rejectUser     = id  => setUsers(p => p.map(u => u.id===id ? {...u,status:"rejected"} : u));
   const enrollUser     = (uid,cid) => setUsers(p => p.map(u => {
@@ -53,7 +107,23 @@ export function AuthProvider({ children }) {
   }));
 
   return (
-    <AuthCtx.Provider value={{users,currentUser:freshMe(),login,logout,register,approveUser,rejectUser,enrollUser,removeEnroll,assignInstructor,markLesson,updateProfile}}>
+    <AuthCtx.Provider value={{
+      users,
+      currentUser:freshMe(),
+      login,
+      logout,
+      register,
+      approveUser,
+      rejectUser,
+      enrollUser,
+      removeEnroll,
+      assignInstructor,
+      markLesson,
+      updateProfile,
+      adminUpdateUser,
+      requestPasswordReset,
+      resetPasswordWithToken,
+    }}>
       {children}
     </AuthCtx.Provider>
   );

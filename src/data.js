@@ -147,6 +147,12 @@ export const COURSES = [
       "دعم توظيف مع أكبر شركات مصر",
       "شهادة معتمدة عند الإتمام",
     ],
+    bullets_en: [
+      "Integrated with AI tools for developers",
+      "15+ real projects for your CV",
+      "Hiring support with top companies in Egypt",
+      "Accredited certificate upon completion",
+    ],
     outcomes: [
       "بناء مواقع احترافية من الصفر",
       "كتابة كود نظيف بـ TypeScript",
@@ -154,6 +160,14 @@ export const COURSES = [
       "التعامل مع REST APIs",
       "استخدام AI لمضاعفة الإنتاجية",
       "Portfolio جاهز بـ 15+ مشروع",
+    ],
+    outcomes_en: [
+      "Build professional websites from scratch",
+      "Write clean code with TypeScript",
+      "React & Next.js in real projects",
+      "Work with REST APIs",
+      "Use AI to boost productivity",
+      "Portfolio with 15+ projects",
     ],
     techStack: [
       { label: "الأساسيات", items: ["HTML5","CSS3","SASS/SCSS","Bootstrap 5","Tailwind CSS","Git & GitHub"] },

@@ -5,6 +5,7 @@ import { SITE, TRACKS } from "../../data";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import { Seo } from "../../components/Seo";
 
 function CourseCard({ course, lang }) {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ function CourseCard({ course, lang }) {
       onClick={()=>navigate(`/courses/${course.slug}`)}
       style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
       {course.image
-        ? <img src={course.image} alt={title} style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
+        ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
         : <div style={{height:150,background:`linear-gradient(135deg,${course.color},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(2rem,5vw,3rem)",position:"relative"}}>
             <span style={{fontWeight:900,color:"rgba(255,255,255,.3)",fontSize:"0.9rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center"}}>{title}</span>
             {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{course.badge}</div>}
@@ -46,7 +47,11 @@ export default function Landing() {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   return (
-    <main dir={dir}>
+    <div dir={dir}>
+      <Seo
+        title={lang === "ar" ? "Eduzah — شركة التدريب الاحترافي" : "Eduzah — Professional Training"}
+        description={lang === "ar" ? SITE.tagline : (SITE.tagline_en || SITE.tagline)}
+      />
       {/* ── Hero ── */}
       <div style={{minHeight:"calc(100vh - 60px)",background:gHero,display:"flex",alignItems:"center",padding:"50px 5%",position:"relative",overflow:"hidden",gap:40,flexWrap:"wrap"}}>
         <div style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
@@ -374,6 +379,6 @@ export default function Landing() {
           © 2025 Eduzah. {lang==="ar"?"جميع الحقوق محفوظة.":"All rights reserved."}
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

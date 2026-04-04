@@ -1,6 +1,7 @@
 import { C, gHero, font } from "../../theme";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import { Seo } from "../../components/Seo";
 
 const LinkedInIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -22,10 +23,16 @@ export default function TeamPage() {
   const sorted = [...team].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
-    <main style={{ minHeight: "calc(100vh - 60px)", background: gHero, direction: lang === "ar" ? "rtl" : "ltr" }}>
+    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, direction: lang === "ar" ? "rtl" : "ltr" }}>
+      <Seo
+        title={lang === "ar" ? "فريق العمل — Eduzah" : "Our Team — Eduzah"}
+        description={lang === "ar"
+          ? "تعرّف على فريق Eduzah: مدربون وخبراء يقدمون تدريباً مهنياً احترافياً في مصر."
+          : "Meet the Eduzah team: trainers and experts delivering professional training in Egypt."}
+      />
       {/* ── Hero ── */}
-      <section style={{ textAlign: "center", padding: "64px 16px 40px" }}>
-        <h1 style={{ fontFamily: font, fontWeight: 900, fontSize: "clamp(28px, 5vw, 44px)", margin: 0, marginBottom: 12 }}>
+      <section aria-labelledby="team-page-title" style={{ textAlign: "center", padding: "64px 16px 40px" }}>
+        <h1 id="team-page-title" style={{ fontFamily: font, fontWeight: 900, fontSize: "clamp(28px, 5vw, 44px)", margin: 0, marginBottom: 12 }}>
           {lang === "ar" ? "فريق " : "Meet the "}
           <span style={{ color: C.red }}>Edu</span>
           <span style={{ color: C.orange }}>zah</span>
@@ -56,7 +63,7 @@ export default function TeamPage() {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }
 
@@ -110,17 +117,19 @@ function MemberCard({ member, lang }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {member.email && (
             <a href={`mailto:${member.email}`}
-              style={{ display: "flex", alignItems: "center", gap: 5, color: C.muted, textDecoration: "none", fontSize: 12, padding: "5px 10px", background: "rgba(255,255,255,.07)", borderRadius: 7, transition: "color .15s" }}
-              onMouseEnter={e => e.currentTarget.style.color = "#fff"}
-              onMouseLeave={e => e.currentTarget.style.color = C.muted}>
-              <MailIcon /> {lang === "ar" ? "راسلني" : "Email"}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, color: C.muted, textDecoration: "none", fontSize: 12, padding: "6px 12px", background: "rgba(255,255,255,.09)", borderRadius: 7, border: `1px solid ${C.border}`, transition: "color .15s, background .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,.12)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.background = "rgba(255,255,255,.09)"; }}
+              aria-label={lang === "ar" ? `تواصل عبر البريد مع ${name}` : `Contact ${name} by email`}>
+              <MailIcon /> {lang === "ar" ? "تواصل" : "Contact"}
             </a>
           )}
           {member.linkedin && (
-            <a href={member.linkedin} target="_blank" rel="noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: 5, color: C.muted, textDecoration: "none", fontSize: 12, padding: "5px 10px", background: "rgba(255,255,255,.07)", borderRadius: 7, transition: "color .15s" }}
+            <a href={member.linkedin} target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, color: C.muted, textDecoration: "none", fontSize: 12, padding: "6px 12px", background: "rgba(255,255,255,.09)", borderRadius: 7, border: `1px solid ${C.border}`, transition: "color .15s" }}
               onMouseEnter={e => e.currentTarget.style.color = "#0a66c2"}
-              onMouseLeave={e => e.currentTarget.style.color = C.muted}>
+              onMouseLeave={e => e.currentTarget.style.color = C.muted}
+              aria-label={lang === "ar" ? `ملف ${name} على LinkedIn` : `${name} on LinkedIn`}>
               <LinkedInIcon /> LinkedIn
             </a>
           )}

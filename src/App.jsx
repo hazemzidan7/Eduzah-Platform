@@ -5,7 +5,7 @@ import Navbar from "./components/Navbar";
 
 // Eagerly loaded (always needed)
 import Landing from "./pages/public/Landing";
-import { LoginPage, RegisterPage } from "./pages/public/Auth";
+import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./pages/public/Auth";
 
 // Lazy loaded — only downloaded when needed
 const CoursesPage        = lazy(() => import("./pages/public/CoursesPage"));
@@ -52,7 +52,31 @@ function DashboardRouter() {
 export default function App() {
   return (
     <>
-      <Navbar />
+      <a
+        href="#main-content"
+        style={{
+          position: "absolute",
+          left: 8,
+          top: 8,
+          zIndex: 9999,
+          padding: "8px 14px",
+          background: "#d91b5b",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: 12,
+          borderRadius: 8,
+          textDecoration: "none",
+          transform: "translateY(-120%)",
+          transition: "transform .2s",
+        }}
+        className="skip-to-content"
+      >
+        Skip to content
+      </a>
+      <header>
+        <Navbar />
+      </header>
+      <main id="main-content" tabIndex={-1}>
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* ── Public ─────────────────────────── */}
@@ -70,6 +94,8 @@ export default function App() {
 
           <Route path="/login"    element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
           {/* ── Course Landing + Register ──────── */}
           <Route path="/courses/:slug"          element={<CourseLanding />} />
@@ -91,6 +117,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </main>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { Btn, PBar, Badge } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import SecureVideoPlayer from "../../components/SecureVideoPlayer";
 
 // Convert YouTube / Vimeo URL to embed URL
 const toEmbed = (url) => {
@@ -52,6 +53,15 @@ export default function CourseViewer() {
     ? [["lesson", "الدرس"], ["about", "عن الكورس"], ["outcomes", "المهارات"]]
     : [["lesson", "Lesson"], ["about", "About"], ["outcomes", "Skills"]];
 
+  const wm = currentUser?.email
+    ? `${currentUser.email} · ${new Date().toLocaleString(ar ? "ar-EG" : "en-GB")}`
+    : "";
+
+  const aboutText = ar ? course.desc : (course.desc_en || course.desc);
+  const outcomeList = ar
+    ? (course.outcomes || [])
+    : ((course.outcomes_en && course.outcomes_en.length) ? course.outcomes_en : (course.outcomes || []));
+
   return (
     <div dir={dir} style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 60px)" }}>
 
@@ -62,11 +72,12 @@ export default function CourseViewer() {
         gap: 10, flexShrink: 0, flexWrap: "wrap",
       }}>
         <button type="button" onClick={() => navigate("/dashboard")}
+          aria-label={ar ? "رجوع للوحة التحكم" : "Back to dashboard"}
           style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 12px", color: C.muted, fontFamily: "'Cairo',sans-serif", fontSize: 12, cursor: "pointer" }}>
           {ar ? "← رجوع" : "← Back"}
         </button>
         <div style={{ fontWeight: 700, fontSize: 13, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {course.title}
+          {ar ? course.title : (course.title_en || course.title)}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 140 }}>
           <PBar value={prog} color={C.orange} h={5} />
@@ -83,19 +94,31 @@ export default function CourseViewer() {
           {/* Video player */}
           <div style={{ background: "#000", flexShrink: 0, position: "relative", aspectRatio: "16/9", maxHeight: "60vh" }}>
             {embedUrl && isIframe ? (
-              <iframe
-                src={embedUrl}
-                title={video?.title || lesson}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ width: "100%", height: "100%", border: "none" }}
-              />
+              <SecureVideoPlayer
+                watermarkText={wm}
+                ariaLabel={ar ? "مشغّل فيديو الدرس" : "Lesson video player"}
+              >
+                <iframe
+                  src={embedUrl}
+                  title={video?.title || lesson}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                />
+              </SecureVideoPlayer>
             ) : embedUrl && isDirectVid ? (
-              <video
-                src={embedUrl}
-                controls
-                style={{ width: "100%", height: "100%" }}
-              />
+              <SecureVideoPlayer
+                watermarkText={wm}
+                ariaLabel={ar ? "مشغّل فيديو الدرس" : "Lesson video player"}
+              >
+                <video
+                  src={embedUrl}
+                  controls
+                  controlsList="nodownload noplaybackrate"
+                  disablePictureInPicture
+                  style={{ width: "100%", height: "100%", display: "block" }}
+                />
+              </SecureVideoPlayer>
             ) : (
               /* Placeholder when no video */
               <div style={{ width: "100%", height: "100%", minHeight: 240, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
@@ -144,11 +167,11 @@ export default function CourseViewer() {
               </div>
             )}
             {tab === "about" && (
-              <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.9 }}>{course.desc}</p>
+              <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.9 }}>{aboutText}</p>
             )}
             {tab === "outcomes" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
-                {(course.outcomes || []).map(s => (
+                {outcomeList.map(s => (
                   <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.06)", borderRadius: 8, padding: "8px 10px" }}>
                     <span style={{ color: C.success, fontSize: 12, fontWeight: 800 }}>✓</span>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{s}</span>

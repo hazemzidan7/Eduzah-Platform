@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, font } from "../theme";
 
-export function Btn({ children, onClick, v="primary", sm, full, disabled, style={} }) {
+export function Btn({ children, onClick, v="primary", sm, full, disabled, style={}, type = "button", ...rest }) {
   const [h,setH] = useState(false);
   const vs = {
     primary: { bg: h?C.rdark:C.red, color:"#fff" },
@@ -14,8 +14,9 @@ export function Btn({ children, onClick, v="primary", sm, full, disabled, style=
   };
   const s = vs[v]||vs.primary;
   return (
-    <button disabled={disabled} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={disabled?undefined:onClick}
-      style={{background:disabled?"#555":s.bg,color:s.color,border:s.border||"none",borderRadius:10,padding:sm?"5px 12px":"9px 20px",fontFamily:font,fontWeight:700,fontSize:sm?12:13,cursor:disabled?"not-allowed":"pointer",transition:"all .2s",width:full?"100%":"auto",opacity:disabled?.6:1,...style}}>
+    <button type={type} disabled={disabled} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={disabled?undefined:onClick}
+      style={{background:disabled?"#555":s.bg,color:s.color,border:s.border||"none",borderRadius:10,padding:sm?"5px 12px":"9px 20px",fontFamily:font,fontWeight:700,fontSize:sm?12:13,cursor:disabled?"not-allowed":"pointer",transition:"all .2s",width:full?"100%":"auto",opacity:disabled?.6:1,...style}}
+      {...rest}>
       {children}
     </button>
   );
