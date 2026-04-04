@@ -38,7 +38,7 @@ export default function NewsPage() {
             <h2 style={{fontSize:"clamp(1.2rem,3vw,1.9rem)",fontWeight:900,margin:"12px 0 10px"}}>
               {lang==="ar" ? featured.title : (featured.title_en||featured.title)}
             </h2>
-            <p style={{color:C.muted,fontSize:14,maxWidth:600,lineHeight:1.8}}>{featured.excerpt}</p>
+            <p style={{color:C.muted,fontSize:14,maxWidth:600,lineHeight:1.8}}>{lang==="ar"?featured.excerpt:(featured.excerpt_en||featured.excerpt)}</p>
             <div style={{color:C.muted,fontSize:12,marginTop:14}}>📅 {featured.date}</div>
           </div>
         </div>
@@ -60,7 +60,7 @@ export default function NewsPage() {
               <div style={{fontWeight:800,fontSize:14,margin:"10px 0 7px",lineHeight:1.5}}>
                 {lang==="ar" ? n.title : (n.title_en||n.title)}
               </div>
-              <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{n.excerpt.slice(0,80)}...</div>
+              <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{(lang==="ar"?n.excerpt:(n.excerpt_en||n.excerpt)).slice(0,80)}...</div>
               <div style={{color:C.muted,fontSize:11,marginTop:10}}>📅 {n.date}</div>
             </div>
           </Card>
@@ -80,7 +80,7 @@ export default function NewsPage() {
               <h2 style={{fontWeight:900,fontSize:"clamp(1.2rem,2.5vw,1.7rem)",marginBottom:14,lineHeight:1.4}}>
                 {lang==="ar" ? selected.title : (selected.title_en||selected.title)}
               </h2>
-              <p style={{color:C.muted,fontSize:14,lineHeight:1.9}}>{selected.excerpt}</p>
+              <p style={{color:C.muted,fontSize:14,lineHeight:1.9}}>{lang==="ar"?selected.excerpt:(selected.excerpt_en||selected.excerpt)}</p>
               {selected.images?.length>1&&(
                 <div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>
                   {selected.images.slice(1).map((img,i)=>(

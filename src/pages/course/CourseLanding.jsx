@@ -4,13 +4,34 @@ import { C } from "../../theme";
 import { Btn, Card, Stars, Badge } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
+import { useLang } from "../../context/LangContext";
 
-const FAQ_DEFAULT = [
+const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
   { q:"إيه طريقة التدريس؟",            a:"تدريب مباشر Online مع مدرب، مع تسجيلات لكل الجلسات. تقدر تشوف أي درس وقت ما تحب." },
   { q:"هل في شهادة في الآخر؟",          a:"أيوه، بتاخد شهادة معتمدة من Eduzah عند إتمام الدبلومة بنجاح." },
   { q:"إيه طرق الدفع المتاحة؟",         a:"كارت بنكي، Vodafone Cash، فوري، أو نظام 3 أقساط مريحة." },
   { q:"هل فيه دعم بعد انتهاء الكورس؟", a:"أيوه، بتنضم لمجتمع خريجي Eduzah ومتاح لك دعم التوظيف وربطك بالشركات." },
+];
+const FAQ_EN = [
+  { q:"Do I need prior experience?",      a:"No, the diploma starts from scratch and takes you to a professional level. All you need is motivation and commitment." },
+  { q:"What is the teaching method?",     a:"Live online training with an instructor, plus recordings of all sessions. You can watch any lesson whenever you want." },
+  { q:"Is there a certificate at the end?", a:"Yes, you receive an Eduzah-accredited certificate upon successfully completing the diploma." },
+  { q:"What payment methods are available?", a:"Bank card, Vodafone Cash, Fawry, or a convenient 3-installment plan." },
+  { q:"Is there support after the course ends?", a:"Yes, you join the Eduzah alumni community with access to career support and company connections." },
+];
+
+const WHO_AR = [
+  "🎯 المبتدئين اللي عايزين يدخلوا المجال من الصفر",
+  "💼 أصحاب العمل اللي عايزين يفهموا التكنولوجيا",
+  "🔄 اللي شغلانتهم في مجال تاني وعايزين يتحولوا للـ Tech",
+  "📈 المطورين اللي عايزين يرفعوا مستواهم",
+];
+const WHO_EN = [
+  "🎯 Beginners who want to enter the field from scratch",
+  "💼 Business owners who want to understand technology",
+  "🔄 Professionals from other fields looking to switch to Tech",
+  "📈 Developers who want to level up their skills",
 ];
 
 export default function CourseLanding() {
@@ -18,16 +39,21 @@ export default function CourseLanding() {
   const navigate    = useNavigate();
   const { courses } = useData();
   const { currentUser } = useAuth();
+  const { lang } = useLang();
 
   const [openCurr, setOpenCurr] = useState(0);
   const [openFaq,  setOpenFaq]  = useState(null);
+
+  const FAQ = lang === "ar" ? FAQ_AR : FAQ_EN;
+  const WHO = lang === "ar" ? WHO_AR : WHO_EN;
+  const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
 
   const course   = courses.find(c => c.slug === slug);
   if (!course) return (
     <div style={{ padding: "80px 5%", textAlign: "center", color: C.muted }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>😕</div>
-      <h2 style={{ marginBottom: 8 }}>الكورس مش موجود</h2>
-      <Btn children="← الكورسات" onClick={() => navigate("/courses")} />
+      <h2 style={{ marginBottom: 8 }}>{lang === "ar" ? "الكورس مش موجود" : "Course not found"}</h2>
+      <Btn children={lang === "ar" ? "← الكورسات" : "← Courses"} onClick={() => navigate("/courses")} />
     </div>
   );
 
@@ -66,8 +92,8 @@ export default function CourseLanding() {
             </div>
           )}
 
-          <h1 style={{ fontSize: "clamp(1.5rem,4vw,2.7rem)", fontWeight: 900, lineHeight: 1.2, marginBottom: 12 }}>{course.tagline || course.title}</h1>
-          <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.9, marginBottom: 20, maxWidth: 500 }}>{course.desc}</p>
+          <h1 style={{ fontSize: "clamp(1.5rem,4vw,2.7rem)", fontWeight: 900, lineHeight: 1.2, marginBottom: 12 }}>{lang === "ar" ? (course.tagline || course.title) : (course.tagline_en || course.title_en || course.title)}</h1>
+          <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.9, marginBottom: 20, maxWidth: 500 }}>{lang === "ar" ? course.desc : (course.desc_en || course.desc)}</p>
 
           {/* Bullets */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
@@ -85,18 +111,18 @@ export default function CourseLanding() {
               <Stars n={Math.round(course.rating || 5)} />
               <span style={{ fontWeight: 800, color: C.orange, fontSize: 13 }}>{course.rating || "5.0"}</span>
             </div>
-            <span style={{ color: C.muted, fontSize: 12 }}>({course.students || 0}+ خريج)</span>
-            <Badge color={C.orange}>⏱ {course.duration}</Badge>
+            <span style={{ color: C.muted, fontSize: 12 }}>({course.students || 0}+ {lang === "ar" ? "خريج" : "graduates"})</span>
+            <Badge color={C.orange}>⏱ {dur(course.duration)}</Badge>
             <Badge color={C.purple}>📚 {course.hours}h</Badge>
           </div>
 
           {/* CTA buttons */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {enrolled
-              ? <Btn children="متابعة التعلم ▶" onClick={goLearn} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12 }} />
-              : <Btn children="سجّل الآن 🚀" onClick={handleEnroll} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, animation: "pulse 2s infinite" }} />
+              ? <Btn children={lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶"} onClick={goLearn} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12 }} />
+              : <Btn children={lang === "ar" ? "سجّل الآن 🚀" : "Enroll Now 🚀"} onClick={handleEnroll} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, animation: "pulse 2s infinite" }} />
             }
-            <Btn children="استعرض المنهج" v="outline"
+            <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline"
               onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })}
               style={{ padding: "13px 22px", fontSize: 14, borderRadius: 12 }} />
           </div>
@@ -111,9 +137,9 @@ export default function CourseLanding() {
             </div>
             <div style={{ padding: 18 }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{course.price.toLocaleString()} EGP</div>
-              <div style={{ color: C.muted, fontSize: 11, marginBottom: 14 }}>أو 3 أقساط × {course.installment.toLocaleString()} EGP</div>
+              <div style={{ color: C.muted, fontSize: 11, marginBottom: 14 }}>{lang === "ar" ? `أو 3 أقساط × ${course.installment.toLocaleString()} EGP` : `or 3 installments × ${course.installment.toLocaleString()} EGP`}</div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-                {[[course.duration?.split(" ")[0] || "—", "أسبوع"], [course.hours + "", "ساعة"], [(course.projects || 0) + "+", "مشروع"], [(course.rating || 5) + "★", "تقييم"]].map(([v, l]) => (
+                {[[course.duration?.split(" ")[0] || "—", lang === "ar" ? "أسبوع" : "weeks"], [course.hours + "", lang === "ar" ? "ساعة" : "hours"], [(course.projects || 0) + "+", lang === "ar" ? "مشروع" : "projects"], [(course.rating || 5) + "★", lang === "ar" ? "تقييم" : "rating"]].map(([v, l]) => (
                   <div key={l} style={{ textAlign: "center" }}>
                     <div style={{ fontWeight: 800, fontSize: 14 }}>{v}</div>
                     <div style={{ color: C.muted, fontSize: 10 }}>{l}</div>
@@ -122,11 +148,11 @@ export default function CourseLanding() {
               </div>
               <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, marginBottom: 14 }} />
               {enrolled
-                ? <Btn children="متابعة التعلم ▶" full onClick={goLearn} style={{ marginBottom: 8 }} />
-                : <Btn children="سجّل الآن 🚀" full onClick={handleEnroll} style={{ marginBottom: 8, animation: "pulse 2s infinite" }} />
+                ? <Btn children={lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶"} full onClick={goLearn} style={{ marginBottom: 8 }} />
+                : <Btn children={lang === "ar" ? "سجّل الآن 🚀" : "Enroll Now 🚀"} full onClick={handleEnroll} style={{ marginBottom: 8, animation: "pulse 2s infinite" }} />
               }
-              <Btn children="استعرض المنهج" v="outline" full onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })} style={{ fontSize: 12 }} />
-              <div style={{ textAlign: "center", marginTop: 10, color: C.muted, fontSize: 10 }}>🔒 ضمان استرداد 14 يوم</div>
+              <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline" full onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })} style={{ fontSize: 12 }} />
+              <div style={{ textAlign: "center", marginTop: 10, color: C.muted, fontSize: 10 }}>🔒 {lang === "ar" ? "ضمان استرداد 14 يوم" : "14-day money-back guarantee"}</div>
             </div>
           </div>
         </div>
@@ -135,8 +161,8 @@ export default function CourseLanding() {
       {/* ══ WHO IS THIS FOR ══ */}
       <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>المحتوى ده ليك؟</div>
-          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>الدبلومة دي مناسبة إذا كنت...</h2>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "المحتوى ده ليك؟" : "IS THIS FOR YOU?"}</div>
+          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "الدبلومة دي مناسبة إذا كنت..." : "This diploma is right for you if you are..."}</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12, maxWidth: 760, margin: "0 auto" }}>
           {WHO.map((w, i) => (
@@ -151,8 +177,8 @@ export default function CourseLanding() {
       {course.techStack?.length > 0 && (
         <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
           <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>التقنيات</div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>اللي هتتعلمه</h2>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "التقنيات" : "TECHNOLOGIES"}</div>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "اللي هتتعلمه" : "What You Will Learn"}</h2>
           </div>
           <div style={{ maxWidth: 760, margin: "0 auto" }}>
             {course.techStack.map((group, gi) => (
@@ -178,9 +204,9 @@ export default function CourseLanding() {
       {course.curriculum?.length > 0 && (
         <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }} id="curriculum">
           <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>المنهج</div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>محتوى الدبلومة</h2>
-            <p style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>{course.curriculum.length} وحدة · {course.hours} ساعة تدريب</p>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "المنهج" : "CURRICULUM"}</div>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "محتوى الدبلومة" : "Diploma Content"}</h2>
+            <p style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>{course.curriculum.length} {lang === "ar" ? "وحدة · " : "units · "}{course.hours} {lang === "ar" ? "ساعة تدريب" : "training hours"}</p>
           </div>
           <div style={{ maxWidth: 720, margin: "0 auto" }}>
             {course.curriculum.map((ch, ci) => (
@@ -192,7 +218,7 @@ export default function CourseLanding() {
                     {ch.title}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: C.muted, fontSize: 11 }}>{ch.lessons?.length || 0} درس</span>
+                    <span style={{ color: C.muted, fontSize: 11 }}>{ch.lessons?.length || 0} {lang === "ar" ? "درس" : "lessons"}</span>
                     <span style={{ color: C.muted, fontSize: 16, transition: "transform .25s", transform: openCurr === ci ? "rotate(180deg)" : "" }}>⌄</span>
                   </div>
                 </div>
@@ -218,8 +244,8 @@ export default function CourseLanding() {
       {course.outcomes?.length > 0 && (
         <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
           <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>هتخرج بإيه؟</div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>مهاراتك بعد الدبلومة</h2>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "هتخرج بإيه؟" : "OUTCOMES"}</div>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "مهاراتك بعد الدبلومة" : "Your Skills After the Diploma"}</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10, maxWidth: 800, margin: "0 auto" }}>
             {course.outcomes.map((o, i) => (
@@ -236,10 +262,10 @@ export default function CourseLanding() {
       {course.reviews?.length > 0 && (
         <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }}>
           <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>آراء الطلاب</div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900, marginBottom: 4 }}>قالوا إيه عن الدبلومة</h2>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "آراء الطلاب" : "STUDENT REVIEWS"}</div>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900, marginBottom: 4 }}>{lang === "ar" ? "قالوا إيه عن الدبلومة" : "What Students Say"}</h2>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-              <Stars n={5} /><span style={{ color: C.muted, fontSize: 13 }}>{course.rating} / 5.0 · {course.reviews.length} تقييم</span>
+              <Stars n={5} /><span style={{ color: C.muted, fontSize: 13 }}>{course.rating} / 5.0 · {course.reviews.length} {lang === "ar" ? "تقييم" : "reviews"}</span>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14 }}>
@@ -260,11 +286,11 @@ export default function CourseLanding() {
       {/* ══ FAQ ══ */}
       <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>الأسئلة الشائعة</div>
-          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>عندك سؤال؟</h2>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>{lang === "ar" ? "الأسئلة الشائعة" : "FAQ"}</div>
+          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>{lang === "ar" ? "عندك سؤال؟" : "Have a Question?"}</h2>
         </div>
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          {FAQ_DEFAULT.map((faq, fi) => (
+          {FAQ.map((faq, fi) => (
             <div key={fi} style={{ border: `1px solid ${openFaq === fi ? C.orange + "55" : C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 8, transition: "border-color .2s" }}>
               <div onClick={() => setOpenFaq(openFaq === fi ? null : fi)}
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: openFaq === fi ? `${C.orange}10` : "rgba(255,255,255,.04)", cursor: "pointer" }}>
@@ -280,38 +306,38 @@ export default function CourseLanding() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 20 }}>
-          <span style={{ color: C.muted, fontSize: 13 }}>عندك سؤال تاني؟ </span>
+          <span style={{ color: C.muted, fontSize: 13 }}>{lang === "ar" ? "عندك سؤال تاني؟ " : "Have another question? "}</span>
           <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
-            style={{ color: "#25d366", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>تكلمنا على واتساب 💬</a>
+            style={{ color: "#25d366", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>{lang === "ar" ? "تكلمنا على واتساب 💬" : "Chat with us on WhatsApp 💬"}</a>
         </div>
       </div>
 
       {/* ══ BOTTOM CTA ══ */}
       <div style={{ background: "linear-gradient(135deg,#1a0a2e,#4a1f6e)", border: `1px solid rgba(217,27,91,.2)`, borderRadius: 20, padding: "clamp(24px,5vw,44px)", textAlign: "center", margin: "0 4% 80px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "-30px", right: "-30px", width: 200, height: 200, background: "radial-gradient(circle,rgba(217,27,91,.22),transparent 70%)", borderRadius: "50%" }} />
-        <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.8rem)", fontWeight: 900, marginBottom: 8, position: "relative" }}>مستنى إيه؟ ابدأ رحلتك دلوقتي 🚀</h2>
-        <p style={{ color: C.muted, fontSize: 13, marginBottom: 22, position: "relative" }}>الدفعة القادمة محدودة — الأماكن بتتملى بسرعة</p>
+        <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.8rem)", fontWeight: 900, marginBottom: 8, position: "relative" }}>{lang === "ar" ? "مستنى إيه؟ ابدأ رحلتك دلوقتي 🚀" : "What Are You Waiting For? Start Now 🚀"}</h2>
+        <p style={{ color: C.muted, fontSize: 13, marginBottom: 22, position: "relative" }}>{lang === "ar" ? "الدفعة القادمة محدودة — الأماكن بتتملى بسرعة" : "Next batch is limited — spots fill up fast"}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
-          <Btn children={`سجّل الآن — ${course.price.toLocaleString()} EGP`} onClick={handleEnroll} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
+          <Btn children={`${lang === "ar" ? "سجّل الآن" : "Enroll Now"} — ${course.price.toLocaleString()} EGP`} onClick={handleEnroll} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
           <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
             style={{ background: "#25d366", color: "#fff", padding: "13px 24px", borderRadius: 12, fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-            💬 استفسر عبر واتساب
+            💬 {lang === "ar" ? "استفسر عبر واتساب" : "Ask on WhatsApp"}
           </a>
         </div>
-        <div style={{ marginTop: 12, color: C.muted, fontSize: 11, position: "relative" }}>🔒 دفع آمن · ضمان استرداد 14 يوم · شهادة معتمدة</div>
+        <div style={{ marginTop: 12, color: C.muted, fontSize: 11, position: "relative" }}>🔒 {lang === "ar" ? "دفع آمن · ضمان استرداد 14 يوم · شهادة معتمدة" : "Secure payment · 14-day money-back · Accredited certificate"}</div>
       </div>
 
       {/* ══ STICKY BAR ══ */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(26,10,46,.97)", backdropFilter: "blur(16px)", borderTop: `1px solid ${C.border}`, padding: "10px 4%", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 90, gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 13 }}>{course.title}</div>
-          <div style={{ color: C.muted, fontSize: 11 }}>{course.duration} · {course.hours}h · {course.projects}+ مشروع</div>
+          <div style={{ fontWeight: 800, fontSize: 13 }}>{lang === "ar" ? course.title : (course.title_en || course.title)}</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>{dur(course.duration)} · {course.hours}h · {course.projects}+ {lang === "ar" ? "مشروع" : "projects"}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{course.price.toLocaleString()} EGP</div>
           {enrolled
-            ? <Btn children="متابعة ▶" sm onClick={goLearn} />
-            : <Btn children="سجّل الآن 🚀" sm onClick={handleEnroll} />
+            ? <Btn children={lang === "ar" ? "متابعة ▶" : "Continue ▶"} sm onClick={goLearn} />
+            : <Btn children={lang === "ar" ? "سجّل الآن 🚀" : "Enroll Now 🚀"} sm onClick={handleEnroll} />
           }
         </div>
       </div>

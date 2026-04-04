@@ -42,6 +42,7 @@ export default function CoursesPage() {
   });
 
   const dir2 = lang === "ar" ? "rtl" : "ltr";
+  const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
 
   return (
     <div style={{padding:"clamp(24px,5vw,44px) 5%"}} dir={dir2}>
@@ -129,7 +130,7 @@ export default function CoursesPage() {
                   </div>}
 
                   <div style={{fontWeight:800,fontSize:14,marginBottom:5}}>{lang==="ar"?c.title:(c.title_en||c.title)}</div>
-                  <div style={{color:C.muted,fontSize:12,marginBottom:10,lineHeight:1.6}}>{(c.desc||"").slice(0,65)}...</div>
+                  <div style={{color:C.muted,fontSize:12,marginBottom:10,lineHeight:1.6}}>{(lang==="ar"?c.desc:(c.desc_en||c.desc)||"").slice(0,65)}...</div>
 
                   {/* Training types */}
                   <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
@@ -141,7 +142,7 @@ export default function CoursesPage() {
                   </div>
 
                   <div style={{display:"flex",gap:12,marginBottom:10}}>
-                    <span style={{color:C.muted,fontSize:11}}>⏱ {c.duration}</span>
+                    <span style={{color:C.muted,fontSize:11}}>⏱ {dur(c.duration)}</span>
                     <span style={{color:C.muted,fontSize:11}}>📚 {c.hours}h</span>
                     {c.rating>0&&<span style={{color:C.orange,fontSize:11}}>⭐ {c.rating}</span>}
                   </div>

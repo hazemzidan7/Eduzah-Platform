@@ -472,6 +472,7 @@ export const NEWS = [
     icon: "🚀",
     images: ["/images/team-office.webp"],
     excerpt: "في إطار خطتها التوسعية، أعلنت Eduzah عن إطلاق 10 كورسات جديدة في الذكاء الاصطناعي ستبدأ الدفعة الجديدة في أبريل 2025.",
+    excerpt_en: "As part of its expansion plan, Eduzah announced the launch of 10 new AI courses. The new batch will begin in April 2025.",
     featured: true,
   },
   {
@@ -483,6 +484,7 @@ export const NEWS = [
     icon: "🏆",
     images: ["/images/team-banner.webp"],
     excerpt: "حصلت Eduzah على جائزة أفضل منصة تعليمية عربية لعام 2025 تقديراً لجهودها في رفع مستوى التدريب المهني.",
+    excerpt_en: "Eduzah received the Best Arabic Educational Platform Award for 2025 in recognition of its efforts to elevate professional training standards.",
     featured: false,
   },
   {
@@ -494,6 +496,7 @@ export const NEWS = [
     icon: "🤝",
     images: [],
     excerpt: "وقّعت Eduzah شراكة مع 5 شركات توظيف كبرى لضمان توظيف خريجينا في أفضل الشركات المصرية.",
+    excerpt_en: "Eduzah signed a partnership with 5 major recruitment companies to ensure employment opportunities for our graduates at Egypt's top firms.",
     featured: false,
   },
 ];
