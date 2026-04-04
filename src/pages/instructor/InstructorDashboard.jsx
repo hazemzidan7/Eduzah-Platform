@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { C, gPur } from "../../theme";
 import { Card, Badge, Btn, Modal, Input, Select } from "../../components/UI";
+import AddSessionModal from "../../components/AddSessionModal";
+import { flattenLessonsWithVideos } from "../../utils/courseVideos";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
@@ -65,40 +67,6 @@ export default function InstructorDashboard() {
         ["materials", "📄 Materials"],
         ["exams", "📝 Exams"],
       ];
-
-  /* ── Add Session Modal ── */
-  const AddSessionModal = ({ course }) => {
-    const [f, setF] = useState({ title: "", url: "", desc: "" });
-    const set = k => e => setF(p => ({ ...p, [k]: e.target.value }));
-    const submit = () => {
-      if (!f.title || !f.url) { showT(tx("❗ أدخل العنوان والرابط", "❗ Enter title and URL"), "error"); return; }
-      const existing = course.curriculum || [];
-      // Add as a new chapter or append to last chapter
-      const newLesson = f.title;
-      let updated;
-      if (existing.length === 0) {
-        updated = [{ title: ar ? "جلسات" : "Sessions", lessons: [newLesson], videoUrls: [{ title: f.title, url: f.url, desc: f.desc }] }];
-      } else {
-        const chapters = [...existing];
-        const last = { ...chapters[chapters.length - 1] };
-        last.lessons = [...(last.lessons || []), newLesson];
-        last.videoUrls = [...(last.videoUrls || []), { title: f.title, url: f.url, desc: f.desc }];
-        chapters[chapters.length - 1] = last;
-        updated = chapters;
-      }
-      updateCourse(course.id, { curriculum: updated });
-      showT(tx("✅ تم إضافة الفيديو!", "✅ Video added!"));
-      setModal(null);
-    };
-    return (
-      <Modal title={tx(`🎬 إضافة فيديو – ${course.title}`, `🎬 Add video – ${course.title}`)} onClose={() => setModal(null)}>
-        <Input label={tx("عنوان الدرس *", "Lesson title *")} value={f.title} onChange={v => setF(p => ({ ...p, title: v }))} placeholder={tx("مثال: درس 1 – HTML Basics", "e.g. Lesson 1 – HTML Basics")} />
-        <Input label={tx("رابط الفيديو (YouTube / Vimeo) *", "Video URL (YouTube / Vimeo) *")} value={f.url} onChange={v => setF(p => ({ ...p, url: v }))} placeholder="https://youtu.be/..." />
-        <Input label={tx("وصف الدرس (اختياري)", "Description (optional)")} value={f.desc} onChange={v => setF(p => ({ ...p, desc: v }))} placeholder={tx("ما الذي ستتعلمه في هذا الدرس...", "What you will learn...")} rows={2} />
-        <Btn children={tx("✅ إضافة الفيديو", "✅ Add video")} full onClick={submit} style={{ marginTop: 8 }} />
-      </Modal>
-    );
-  };
 
   /* ── Add Material Modal ── */
   const AddMaterialModal = ({ course }) => {
@@ -330,19 +298,24 @@ export default function InstructorDashboard() {
               )}
             </div>
             {myCourses.map(c => {
-              const allLessons = (c.curriculum || []).flatMap(ch => ch.videoUrls || ch.lessons.map(l => ({ title: l, url: null })));
-              if (!allLessons.length) return null;
+              const rows = flattenLessonsWithVideos(c);
+              if (!rows.length) return null;
               return (
                 <Card key={c.id} style={{ padding: 18, marginBottom: 14 }}>
                   <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12 }}>{c.title}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {allLessons.map((l, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", background: "rgba(255,255,255,.05)", borderRadius: 9 }}>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 600 }}>🎬 {typeof l === "string" ? l : l.title}</div>
-                          {l.url && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{l.url.slice(0, 40)}...</div>}
+                    {rows.map((row, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", background: "rgba(255,255,255,.05)", borderRadius: 9, gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                          {row.video?.thumbnail && (
+                            <img src={row.video.thumbnail} alt="" style={{ width: 56, height: 32, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600 }}>{row.lessonTitle}</div>
+                            {row.video?.url && <div style={{ fontSize: 10, color: C.muted, marginTop: 2, wordBreak: "break-all" }}>{String(row.video.url).slice(0, 48)}…</div>}
+                          </div>
                         </div>
-                        {l.url && <a href={l.url} target="_blank" rel="noreferrer" style={{ color: C.orange, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>{tx("▶ فتح", "▶ Open")}</a>}
+                        {row.video?.url && <a href={row.video.url} target="_blank" rel="noreferrer" style={{ color: C.orange, fontSize: 11, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>{tx("فتح", "Open")}</a>}
                       </div>
                     ))}
                   </div>
@@ -429,7 +402,16 @@ export default function InstructorDashboard() {
       </div>
 
       {/* ── Modals ── */}
-      {modal?.type === "add-session"  && <AddSessionModal  course={modal.course} />}
+      {modal?.type === "add-session" && modal.course && (
+        <AddSessionModal
+          course={modal.course}
+          onClose={() => setModal(null)}
+          ar={ar}
+          updateCourse={updateCourse}
+          addExam={addExam}
+          showToast={showT}
+        />
+      )}
       {modal?.type === "add-material" && <AddMaterialModal course={modal.course} />}
       {modal?.type === "add-exam"     && <AddExamModal />}
     </div>

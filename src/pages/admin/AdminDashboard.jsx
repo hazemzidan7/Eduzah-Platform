@@ -2,11 +2,29 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
+import AddSessionModal from "../../components/AddSessionModal";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 
 /* ─── small helpers ─── */
+function formatNewsDateAdmin(n, lang) {
+  if (n.dateIso) {
+    const d = new Date(`${n.dateIso}T12:00:00`);
+    return d.toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+  return n.date || "";
+}
+
+function newsTagAdmin(n, lang) {
+  if (lang === "en" && n.tag_en) return n.tag_en;
+  return n.tag;
+}
+
 const Row = ({ label, children }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,.04)", borderRadius: 10, marginBottom: 8 }}>
     <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
@@ -723,6 +741,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <Btn children={tx("فيديو", "Video")} sm v="outline" onClick={() => setModal({ type: "add-session", course: c })} />
                         <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={() => setModal({ type: "edit-course", course: c })} />
                         <Btn children={tx("📚 تسجيل", "📚 Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
                         <Btn children={tx("🎓 مدرب", "🎓 Instructor")}               sm v="outline" onClick={() => setModal({ type: "assign-course", course: c })} />
@@ -749,13 +768,12 @@ export default function AdminDashboard() {
                 <Card key={n.id} style={{ padding: "12px 14px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 24, flexShrink: 0 }}>{n.icon}</span>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{n.title}</div>
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          <Badge color={C.orange}>{n.tag}</Badge>
-                          {n.featured && <Badge color={C.red}>⭐ Featured</Badge>}
-                          <span style={{ color: C.muted, fontSize: 10 }}>📅 {n.date}</span>
+                          <Badge color={C.orange}>{newsTagAdmin(n, lang)}</Badge>
+                          {n.featured && <Badge color={C.red}>Featured</Badge>}
+                          <span style={{ color: C.muted, fontSize: 10 }}>{formatNewsDateAdmin(n, lang)}</span>
                         </div>
                       </div>
                     </div>
@@ -945,10 +963,10 @@ export default function AdminDashboard() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{e.title}</div>
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          <Badge color={e.type === "mcq" ? C.red : C.purple}>{e.type === "mcq" ? "📋 MCQ" : "🛠 Task"}</Badge>
-                          {c && <Badge color={C.orange}>{c.icon} {c.title.slice(0, 22)}</Badge>}
-                          <span style={{ color: C.muted, fontSize: 10 }}>📅 {e.dueDate}</span>
-                          {e.type === "mcq" && <span style={{ color: C.muted, fontSize: 10 }}>⏱ {e.duration} {tx("دقيقة", "min")}</span>}
+                          <Badge color={e.type === "mcq" ? C.red : C.purple}>{e.type === "mcq" ? "MCQ" : "Task"}</Badge>
+                          {c && <Badge color={C.orange}>{c.title.slice(0, 22)}</Badge>}
+                          <span style={{ color: C.muted, fontSize: 10 }}>{e.dueDate}</span>
+                          {e.type === "mcq" && <span style={{ color: C.muted, fontSize: 10 }}>{e.duration} {tx("دقيقة", "min")}</span>}
                         </div>
                       </div>
                       <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
@@ -963,6 +981,16 @@ export default function AdminDashboard() {
 
       {/* ═══ Modals ═══ */}
       {modal?.type === "add-course"      && <AddCourseModal />}
+      {modal?.type === "add-session"     && modal.course && (
+        <AddSessionModal
+          course={modal.course}
+          onClose={() => setModal(null)}
+          ar={ar}
+          updateCourse={updateCourse}
+          addExam={addExam}
+          showToast={showT}
+        />
+      )}
       {modal?.type === "edit-course"     && modal.course && <EditCourseModal course={modal.course} />}
       {modal?.type === "edit-user"       && modal.user && <EditUserModal user={modal.user} />}
       {modal?.type === "add-news"        && <AddNewsModal />}

@@ -23,7 +23,7 @@ function CourseCard({ course, lang }) {
         ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
         : <div style={{height:150,background:`linear-gradient(135deg,${course.color},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(2rem,5vw,3rem)",position:"relative"}}>
             <span style={{fontWeight:900,color:"rgba(255,255,255,.3)",fontSize:"0.9rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center"}}>{title}</span>
-            {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{course.badge}</div>}
+            {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
           </div>
       }
       <div style={{padding:"14px 16px 16px"}}>

@@ -65,14 +65,26 @@ export function DataProvider({ children }) {
 
   // ── NEWS ─────────────────────────────────────────────
   const addNews = (form) => {
+    const tagEnMap = {
+      إعلان: "Announcement",
+      إنجاز: "Achievement",
+      شراكة: "Partnership",
+      تحديث: "Update",
+      حدث: "Event",
+    };
+    const tag = form.tag || "إعلان";
     const nn = {
       id: Date.now(),
-      title: form.title, title_en: form.title_en || form.title,
-      tag: form.tag || "إعلان",
-      icon: form.icon || "📢",
+      title: form.title,
+      title_en: form.title_en || form.title,
+      tag,
+      tag_en: form.tag_en || tagEnMap[tag] || tag,
+      icon: null,
       images: form.images || [],
       excerpt: form.excerpt,
-      date: new Date().toLocaleDateString("ar-EG", { day:"numeric", month:"long", year:"numeric" }),
+      excerpt_en: form.excerpt_en || form.excerpt,
+      dateIso: form.dateIso || new Date().toISOString().slice(0, 10),
+      date: new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" }),
       featured: form.featured || false,
     };
     setNews(p => [...p, nn]);
@@ -82,14 +94,21 @@ export function DataProvider({ children }) {
 
   // ── EXAMS ────────────────────────────────────────────
   const addExam = (form) => {
+    const lessonIndex =
+      form.lessonIndex != null && form.lessonIndex !== ""
+        ? Number(form.lessonIndex)
+        : null;
     const ne = {
       id: Date.now(),
-      title: form.title, courseId: form.courseId,
+      title: form.title,
+      courseId: form.courseId,
       type: form.type || "mcq",
       dueDate: form.dueDate,
       duration: Number(form.duration) || 45,
       description: form.description || "",
-      questions: [], submissions: [],
+      questions: Array.isArray(form.questions) ? form.questions : [],
+      submissions: [],
+      ...(lessonIndex != null && !Number.isNaN(lessonIndex) ? { lessonIndex } : {}),
     };
     setExams(p => [...p, ne]);
   };

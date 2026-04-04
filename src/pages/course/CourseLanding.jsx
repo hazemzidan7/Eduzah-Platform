@@ -87,7 +87,7 @@ export default function CourseLanding() {
         <div style={{ flex: "1 1 300px", position: "relative", zIndex: 2 }}>
           {course.badge && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(250,166,51,.14)", border: "1px solid rgba(250,166,51,.3)", color: C.orange, borderRadius: 50, padding: "4px 14px", fontSize: 11, fontWeight: 700, marginBottom: 16 }}>
-              {course.badge}
+              {lang === "ar" ? course.badge : (course.badge_en || course.badge)}
             </div>
           )}
 
@@ -132,7 +132,7 @@ export default function CourseLanding() {
           <div style={{ background: "rgba(255,255,255,.05)", backdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.45)" }}>
             <div style={{ height: 160, background: `linear-gradient(135deg,${course.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52, position: "relative" }}>
               {course.icon}
-              {course.badge && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{course.badge}</div>}
+              {course.badge && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
             </div>
             <div style={{ padding: 18 }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{course.price.toLocaleString()} EGP</div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, PBar, Badge } from "../../components/UI";
@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import SecureVideoPlayer from "../../components/SecureVideoPlayer";
+import { getVideoForLesson } from "../../utils/courseVideos";
 
 // Convert YouTube / Vimeo URL to embed URL
 const toEmbed = (url) => {
@@ -21,13 +22,15 @@ export default function CourseViewer() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
   const { currentUser, markLesson } = useAuth();
-  const { courses } = useData();
+  const { courses, exams } = useData();
   const { lang } = useLang();
   const ar = lang === "ar";
   const dir = ar ? "rtl" : "ltr";
 
   const [li,  setLi]  = useState(0);
   const [tab, setTab] = useState("lesson");
+  const [iframePlay, setIframePlay] = useState(false);
+  useEffect(() => { setIframePlay(false); }, [li]);
 
   const course = courses.find(c => c.slug === slug);
   if (!course) { navigate("/dashboard"); return null; }
@@ -38,11 +41,13 @@ export default function CourseViewer() {
   const prog       = ed.progress || 0;
   const done       = ed.completedLessons || [];
   const allLessons = course.curriculum.flatMap(ch => ch.lessons);
-  const allVideos  = course.curriculum.flatMap(ch => ch.videoUrls || []);
   const total      = allLessons.length;
   const lesson     = allLessons[li] || (ar ? "درس" : "Lesson");
-  const video      = allVideos[li];
-  const embedUrl   = video ? toEmbed(video.url) : null;
+  const video      = getVideoForLesson(course, li);
+  const embedUrl   = video?.url ? toEmbed(video.url) : null;
+  const sessionExams = (exams || []).filter(
+    (e) => e.courseId === course.id && e.lessonIndex === li
+  );
 
   const isYouTube  = embedUrl && embedUrl.includes("youtube.com/embed");
   const isVimeo    = embedUrl && embedUrl.includes("player.vimeo.com");
@@ -94,18 +99,54 @@ export default function CourseViewer() {
           {/* Video player */}
           <div style={{ background: "#000", flexShrink: 0, position: "relative", aspectRatio: "16/9", maxHeight: "60vh" }}>
             {embedUrl && isIframe ? (
-              <SecureVideoPlayer
-                watermarkText={wm}
-                ariaLabel={ar ? "مشغّل فيديو الدرس" : "Lesson video player"}
-              >
-                <iframe
-                  src={embedUrl}
-                  title={video?.title || lesson}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                />
-              </SecureVideoPlayer>
+              video?.thumbnail && !iframePlay ? (
+                <button
+                  type="button"
+                  onClick={() => setIframePlay(true)}
+                  aria-label={ar ? "تشغيل الفيديو" : "Play video"}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    padding: 0,
+                    border: "none",
+                    cursor: "pointer",
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                  }}
+                >
+                  <img src={video.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(0,0,0,.35)",
+                      color: "#fff",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      fontFamily: "'Cairo',sans-serif",
+                    }}
+                  >
+                    {ar ? "تشغيل" : "Play"}
+                  </span>
+                </button>
+              ) : (
+                <SecureVideoPlayer
+                  watermarkText={wm}
+                  ariaLabel={ar ? "مشغّل فيديو الدرس" : "Lesson video player"}
+                >
+                  <iframe
+                    src={embedUrl}
+                    title={video?.title || lesson}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  />
+                </SecureVideoPlayer>
+              )
             ) : embedUrl && isDirectVid ? (
               <SecureVideoPlayer
                 watermarkText={wm}
@@ -113,6 +154,7 @@ export default function CourseViewer() {
               >
                 <video
                   src={embedUrl}
+                  poster={video?.thumbnail || undefined}
                   controls
                   controlsList="nodownload noplaybackrate"
                   disablePictureInPicture
@@ -127,7 +169,7 @@ export default function CourseViewer() {
                   <polygon points="10,8 16,12 10,16" fill={C.red} stroke="none"/>
                 </svg>
                 <div style={{ color: C.muted, fontSize: 13 }}>
-                  {allVideos.length === 0
+                  {!(course.curriculum || []).some((ch) => (ch.videoUrls || []).some((v) => v?.url))
                     ? (ar ? "المدرب لم يرفع فيديوهات بعد" : "No videos uploaded yet")
                     : (ar ? "لا يوجد فيديو لهذا الدرس" : "No video for this lesson")}
                 </div>
@@ -160,6 +202,35 @@ export default function CourseViewer() {
                 <p style={{ color: C.muted, lineHeight: 1.85, fontSize: 13, marginBottom: 16 }}>
                   {video?.desc || (ar ? "شاهد الفيديو ثم اضغط على زر الإكمال للانتقال للدرس التالي." : "Watch the video, then mark complete to go to the next lesson.")}
                 </p>
+                {video?.materials?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>{ar ? "مواد الجلسة" : "Session materials"}</div>
+                    <ul style={{ margin: 0, paddingInlineStart: 18, color: C.muted, fontSize: 13, lineHeight: 1.8 }}>
+                      {video.materials.map((m, i) => (
+                        <li key={i}>
+                          <a href={m.url} target="_blank" rel="noopener noreferrer" style={{ color: C.orange, fontWeight: 600 }}>
+                            {m.title || m.url}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {sessionExams.length > 0 && (
+                  <div style={{ marginBottom: 16, padding: "12px 14px", background: "rgba(103,45,134,.12)", borderRadius: 10, border: `1px solid ${C.border}` }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>{ar ? "امتحان هذه الجلسة" : "Session exam"}</div>
+                    {sessionExams.map((ex) => (
+                      <div key={ex.id} style={{ fontSize: 13, marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600 }}>{ex.title}</span>
+                        <span style={{ color: C.muted, fontSize: 11, marginInlineStart: 8 }}>
+                          {ex.type === "task" ? (ar ? "مهمة" : "Task") : ex.type === "mcq" ? "MCQ" : ex.type}
+                          {" · "}
+                          {ex.dueDate}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {done.includes(li)
                   ? <Badge color={C.success}>{ar ? "تم الإكمال" : "Completed"}</Badge>
                   : <Btn children={ar ? "تم مشاهدة الدرس" : "Mark as watched"} v="success" sm onClick={() => markLesson(course.id, li, total)} />
@@ -204,6 +275,7 @@ export default function CourseViewer() {
                 const globalIdx = course.curriculum
                   .slice(0, ci)
                   .reduce((acc, c) => acc + c.lessons.length, 0) + li_local;
+                const lessonVideo = getVideoForLesson(course, globalIdx);
                 const isDone = done.includes(globalIdx);
                 const isAct  = globalIdx === li;
                 return (
@@ -227,7 +299,16 @@ export default function CourseViewer() {
                     }}>
                       {isDone ? "✓" : globalIdx + 1}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: isAct ? "#fff" : C.muted, lineHeight: 1.4 }}>{l}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+                      {lessonVideo?.thumbnail && (
+                        <img
+                          src={lessonVideo.thumbnail}
+                          alt=""
+                          style={{ width: 48, height: 27, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                        />
+                      )}
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isAct ? "#fff" : C.muted, lineHeight: 1.4 }}>{l}</div>
+                    </div>
                   </div>
                 );
               })}
