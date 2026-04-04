@@ -44,7 +44,7 @@ export default function Landing() {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   return (
-    <div dir={dir}>
+    <main dir={dir}>
       {/* ── Hero ── */}
       <div style={{minHeight:"calc(100vh - 60px)",background:gHero,display:"flex",alignItems:"center",padding:"50px 5%",position:"relative",overflow:"hidden",gap:40,flexWrap:"wrap"}}>
         <div style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
@@ -76,7 +76,14 @@ export default function Landing() {
         {/* Team photo */}
         <div style={{flex:"0 1 380px",position:"relative",zIndex:2}}>
           <div style={{borderRadius:20,overflow:"hidden",border:`2px solid ${C.border}`,boxShadow:`0 20px 60px rgba(0,0,0,.4)`}}>
-            <img src="/images/team-office.jpg" alt="Eduzah Team" style={{width:"100%",height:290,objectFit:"cover",display:"block"}}/>
+            <img
+              src="/images/team-office.webp"
+              srcSet="/images/team-office-small.webp 500w, /images/team-office.webp 900w"
+              sizes="(max-width:600px) 500px, 900px"
+              alt="Eduzah Team"
+              loading="eager"
+              style={{width:"100%",height:290,objectFit:"cover",display:"block"}}
+            />
             <div style={{background:"rgba(26,15,36,.92)",padding:"14px 18px"}}>
               <div style={{fontWeight:800,fontSize:13,marginBottom:2}}>
                 {lang==="ar" ? "فريق Eduzah المتخصص" : "Eduzah Expert Team"}
@@ -212,7 +219,14 @@ export default function Landing() {
             </div>
           </div>
           <div style={{borderRadius:20,overflow:"hidden",boxShadow:`0 20px 60px rgba(0,0,0,.4)`}}>
-            <img src="/images/team-banner.jpg" alt="Eduzah Event" style={{width:"100%",height:340,objectFit:"cover",display:"block"}}/>
+            <img
+              src="/images/team-banner.webp"
+              srcSet="/images/team-banner-small.webp 500w, /images/team-banner.webp 900w"
+              sizes="(max-width:600px) 500px, 900px"
+              alt="Eduzah Event"
+              loading="lazy"
+              style={{width:"100%",height:340,objectFit:"cover",display:"block"}}
+            />
           </div>
         </div>
       </div>
@@ -358,6 +372,6 @@ export default function Landing() {
           © 2025 Eduzah. {lang==="ar"?"جميع الحقوق محفوظة.":"All rights reserved."}
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

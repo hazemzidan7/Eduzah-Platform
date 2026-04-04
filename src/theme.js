@@ -1,5 +1,5 @@
 export const C = {
-  red:"#d91b5b", rdark:"#b51549",
+  red:"#ff4d6d", rdark:"#d91b5b",
   orange:"#faa633", odark:"#e8920f",
   purple:"#672d86", pdark:"#321d3d", pmid:"#4a1f6e",
   muted:"rgba(255,255,255,.55)", faint:"rgba(255,255,255,.07)",

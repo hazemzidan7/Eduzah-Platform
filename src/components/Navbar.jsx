@@ -172,7 +172,10 @@ export default function Navbar() {
 
             {/* Hamburger */}
             {mobile && (
-              <button onClick={() => setOpen(o => !o)}
+              <button
+                onClick={() => setOpen(o => !o)}
+                aria-label={open ? (lang === "ar" ? "إغلاق القائمة" : "Close menu") : (lang === "ar" ? "فتح القائمة" : "Open menu")}
+                aria-expanded={open}
                 style={{
                   background: "transparent",
                   border: `1.5px solid ${C.border}`,
