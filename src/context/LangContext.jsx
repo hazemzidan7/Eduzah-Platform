@@ -1,6 +1,15 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 const LangCtx = createContext(null);
+const LANG_KEY = "eduzah-lang";
+
+function readStoredLang() {
+  try {
+    const v = localStorage.getItem(LANG_KEY);
+    if (v === "ar" || v === "en") return v;
+  } catch { /* ignore */ }
+  return "ar";
+}
 
 export const TRANS = {
   ar: {
@@ -84,11 +93,14 @@ export const TRANS = {
 };
 
 export function LangProvider({ children }) {
-  const [lang, setLang] = useState("ar");
+  const [lang, setLang] = useState(readStoredLang);
 
   useEffect(() => {
     document.documentElement.dir  = lang === "ar" ? "rtl" : "ltr";
     document.documentElement.lang = lang;
+    try {
+      localStorage.setItem(LANG_KEY, lang);
+    } catch { /* ignore */ }
   }, [lang]);
 
   const toggle = () => setLang(l => l === "ar" ? "en" : "ar");
