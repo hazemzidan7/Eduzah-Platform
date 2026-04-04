@@ -6,10 +6,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 
-function CourseCard({ course }) {
+function CourseCard({ course, lang }) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
+  const title = lang === "ar" ? course.title : (course.title_en || course.title);
+  const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
   return (
     <div
       onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-6px)";e.currentTarget.style.boxShadow=`0 18px 45px rgba(217,27,91,.25)`;}}
@@ -17,18 +19,18 @@ function CourseCard({ course }) {
       onClick={()=>navigate(`/courses/${course.slug}`)}
       style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
       {course.image
-        ? <img src={course.image} alt={course.title} style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
+        ? <img src={course.image} alt={title} style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
         : <div style={{height:150,background:`linear-gradient(135deg,${course.color},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(2rem,5vw,3rem)",position:"relative"}}>
-            <span style={{fontWeight:900,color:"rgba(255,255,255,.3)",fontSize:"0.9rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center"}}>{course.title}</span>
+            <span style={{fontWeight:900,color:"rgba(255,255,255,.3)",fontSize:"0.9rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center"}}>{title}</span>
             {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{course.badge}</div>}
           </div>
       }
       <div style={{padding:"14px 16px 16px"}}>
-        <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{course.title}</div>
-        <div style={{display:"flex",gap:10,marginBottom:10}}><span style={{color:C.muted,fontSize:11}}>⏱ {course.duration}</span><span style={{color:C.muted,fontSize:11}}>📚 {course.hours}h</span></div>
+        <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{title}</div>
+        <div style={{display:"flex",gap:10,marginBottom:10}}><span style={{color:C.muted,fontSize:11}}>⏱ {dur(course.duration)}</span><span style={{color:C.muted,fontSize:11}}>📚 {course.hours}h</span></div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:`1px solid ${C.border}`,paddingTop:10}}>
           <span style={{fontWeight:900,fontSize:15,color:C.red}}>{course.price.toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
-          <Btn children={enrolled?"متابعة ▶":"سجّل الآن"} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${course.slug}`);}}/>
+          <Btn children={enrolled?(lang==="ar"?"متابعة ▶":"Continue ▶"):(lang==="ar"?"سجّل الآن":"Enroll")} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${course.slug}`);}}/>
         </div>
       </div>
     </div>
@@ -178,7 +180,7 @@ export default function Landing() {
         </div>
         {featured.length===0
           ? <div style={{textAlign:"center",color:C.muted,padding:"40px 0"}}>{lang==="ar"?"لا توجد كورسات مميزة.":"No featured courses yet."}</div>
-          : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}}>{featured.map(c=><CourseCard key={c.id} course={c}/>)}</div>}
+          : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}}>{featured.map(c=><CourseCard key={c.id} course={c} lang={lang}/>)}</div>}
         <div style={{textAlign:"center",marginTop:28}}>
           <Btn children={lang==="ar"?"عرض كل الكورسات ←":"View All Courses →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
         </div>
@@ -316,7 +318,7 @@ export default function Landing() {
                 <div style={{padding:"14px 16px"}}>
                   <span style={{background:`${C.orange}22`,color:C.orange,border:`1px solid ${C.orange}44`,borderRadius:50,padding:"2px 9px",fontSize:11,fontWeight:700}}>{n.tag}</span>
                   <div style={{fontWeight:800,fontSize:13,margin:"8px 0 6px",lineHeight:1.5}}>{lang==="ar"?n.title:(n.title_en||n.title)}</div>
-                  <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{n.excerpt.slice(0,75)}...</div>
+                  <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{(lang==="ar"?n.excerpt:(n.excerpt_en||n.excerpt)).slice(0,75)}...</div>
                   <div style={{color:C.muted,fontSize:11,marginTop:9}}>📅 {n.date}</div>
                 </div>
               </Card>
