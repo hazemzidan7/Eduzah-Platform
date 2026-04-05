@@ -97,12 +97,8 @@ export default function Navbar() {
         }}>
 
           {/* ── Logo ── */}
-          <Link to="/" style={{
-            fontWeight: 900, fontSize: 24, fontFamily: font,
-            textDecoration: "none", flexShrink: 0, letterSpacing: -0.5,
-          }}>
-            <span style={{ color: C.red }}>Edu</span>
-            <span style={{ color: C.orange }}>zah</span>
+          <Link to="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
+            <img src="/logo.png" alt="Eduzah" style={{ height: 36, width: "auto", display: "block" }} />
           </Link>
 
           {/* ── Desktop links ── */}
