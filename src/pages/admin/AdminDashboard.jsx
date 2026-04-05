@@ -144,7 +144,7 @@ export default function AdminDashboard() {
             <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
           </div>
         </div>
-        <Btn children="✅ إضافة الكورس" full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("إضافة الكورس", "Add Course")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
       setModal(null);
     };
     return (
-      <Modal title={tx("✏️ تعديل الكورس", "✏️ Edit course")} onClose={() => setModal(null)}>
+      <Modal title={tx("تعديل الكورس", "Edit Course")} onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="عنوان الكورس *" value={f.title} onChange={v => set("title", v)} />
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
             <Input label="Outcomes EN" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} rows={2} />
           </div>
         </div>
-        <Btn children={tx("✅ حفظ التعديلات", "✅ Save changes")} full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("حفظ التعديلات", "Save Changes")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -287,13 +287,13 @@ export default function AdminDashboard() {
     const [f, setF] = useState({ name:"", name_en:"", username:"", password:"", specialty_ar:"", specialty_en:"", bio_ar:"", bio_en:"" });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const submit = () => {
-      if (!f.name || !f.username || !f.password) { showT("❗ أدخل الاسم واسم المستخدم وكلمة المرور", "error"); return; }
+      if (!f.name || !f.username || !f.password) { showT(tx("أدخل الاسم واسم المستخدم وكلمة المرور", "Enter name, username and password"), "error"); return; }
       addTrainer(f);
-      showT("✅ تم إضافة المدرب بنجاح!");
+      showT(tx("تم إضافة المدرب بنجاح", "Trainer added successfully"));
       setModal(null);
     };
     return (
-      <Modal title="➕ إضافة مدرب جديد" onClose={() => setModal(null)}>
+      <Modal title={tx("إضافة مدرب جديد", "Add New Trainer")} onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Input label="الاسم (عربي) *" value={f.name} onChange={v => set("name", v)} placeholder="م. أحمد محمد" />
           <Input label="Name (English)" value={f.name_en} onChange={v => set("name_en", v)} placeholder="Eng. Ahmed Mohamed" />
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
             <Input label="Bio (English)" value={f.bio_en} onChange={v => set("bio_en", v)} placeholder="Short bio about the trainer..." rows={2} />
           </div>
         </div>
-        <Btn children="✅ إضافة المدرب" full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("إضافة المدرب", "Add Trainer")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -327,7 +327,7 @@ export default function AdminDashboard() {
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const submit = () => {
       if (!f.name.trim() || !f.email.includes("@")) {
-        showT(tx("❗ بيانات غير صالحة", "❗ Invalid data"), "error");
+        showT(tx("بيانات غير صالحة", "Invalid data"), "error");
         return;
       }
       const dup = users.filter(x => x.id !== user.id).some(x => x.email.toLowerCase() === f.email.trim().toLowerCase());
@@ -364,19 +364,19 @@ export default function AdminDashboard() {
     };
 
     const submit = () => {
-      if (!f.title_ar.trim() && !f.title_en.trim()) { showT("❗ أدخل عنوان البرنامج", "error"); return; }
+      if (!f.title_ar.trim() && !f.title_en.trim()) { showT(tx("أدخل عنوان البرنامج", "Enter program title"), "error"); return; }
       if (editing) {
         updateProgram(editing.id, f);
-        showT("✅ تم تحديث البرنامج!");
+        showT(tx("تم تحديث البرنامج", "Program updated"));
       } else {
         addProgram(f);
-        showT("✅ تم إضافة البرنامج!");
+        showT(tx("تم إضافة البرنامج", "Program added"));
       }
       setModal(null);
     };
 
     return (
-      <Modal title={editing ? "✏️ تعديل البرنامج" : "➕ إضافة برنامج جديد"} onClose={() => setModal(null)}>
+      <Modal title={editing ? tx("تعديل البرنامج","Edit Program") : tx("إضافة برنامج جديد","Add New Program")} onClose={() => setModal(null)}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
           <Input label="العنوان (عربي) *" value={f.title_ar} onChange={v=>set("title_ar",v)} placeholder="تطوير الويب الاحترافي" />
           <Input label="Title (English) *" value={f.title_en} onChange={v=>set("title_en",v)} placeholder="Professional Web Dev" />
@@ -392,19 +392,19 @@ export default function AdminDashboard() {
         <div style={{ marginTop:10 }}>
           <label style={{ fontSize:12, color:"#aaa", fontWeight:700, display:"block", marginBottom:6 }}>صورة البرنامج</label>
           <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", background:"rgba(255,255,255,.05)", border:`1.5px dashed ${C.border}`, borderRadius:10, padding:"10px 14px" }}>
-            <span style={{ fontSize:20 }}>🖼</span>
-            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? "✅ تم رفع الصورة" : "اضغط لرفع صورة (JPG/PNG)"}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? tx("تم رفع الصورة","Image uploaded") : tx("اضغط لرفع صورة (JPG/PNG)","Click to upload image (JPG/PNG)")}</span>
             <input type="file" accept="image/*" onChange={pickImage} style={{ display:"none" }} />
           </label>
           {f.image && (
             <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:10 }}>
               <img src={f.image} alt="" style={{ width:80, height:50, objectFit:"cover", borderRadius:8 }} />
-              <Btn children="🗑 إزالة" sm v="danger" onClick={()=>set("image",null)} />
+              <Btn children={tx("إزالة","Remove")} sm v="danger" onClick={()=>set("image",null)} />
             </div>
           )}
         </div>
 
-        <Btn children={editing ? "✅ حفظ التعديلات" : "✅ إضافة البرنامج"} full onClick={submit} style={{ marginTop:14 }} />
+        <Btn children={editing ? tx("حفظ التعديلات","Save Changes") : tx("إضافة البرنامج","Add Program")} full onClick={submit} style={{ marginTop:14 }} />
       </Modal>
     );
   };
@@ -420,27 +420,27 @@ export default function AdminDashboard() {
     };
 
     const submit = () => {
-      if (!f.name.trim() || !f.comment_ar.trim()) { showT("❗ أدخل الاسم والتعليق", "error"); return; }
+      if (!f.name.trim() || !f.comment_ar.trim()) { showT(tx("أدخل الاسم والتعليق","Enter name and comment"), "error"); return; }
       addTestimonial(f);
-      showT("✅ تم إضافة الرأي!");
+      showT(tx("تم إضافة الرأي","Review added"));
       setModal(null);
     };
 
     return (
-      <Modal title="➕ إضافة رأي جديد" onClose={() => setModal(null)}>
+      <Modal title={tx("إضافة رأي جديد","Add New Review")} onClose={() => setModal(null)}>
         <Input label="اسم الطالب *" value={f.name} onChange={v=>set("name",v)} placeholder="أحمد محمد" />
 
         <div style={{ marginBottom:10 }}>
           <label style={{ fontSize:12, color:"#aaa", fontWeight:700, display:"block", marginBottom:6 }}>صورة الطالب (اختياري)</label>
           <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", background:"rgba(255,255,255,.05)", border:`1.5px dashed ${C.border}`, borderRadius:10, padding:"10px 14px" }}>
-            <span style={{ fontSize:20 }}>👤</span>
-            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? "✅ تم رفع الصورة" : "اضغط لرفع صورة الطالب"}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? tx("تم رفع الصورة","Image uploaded") : tx("اضغط لرفع صورة الطالب","Click to upload student photo")}</span>
             <input type="file" accept="image/*" onChange={pickImage} style={{ display:"none" }} />
           </label>
           {f.image && (
             <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:10 }}>
               <img src={f.image} alt="" style={{ width:44, height:44, objectFit:"cover", borderRadius:"50%" }} />
-              <Btn children="🗑" sm v="danger" onClick={()=>set("image",null)} />
+              <Btn children={tx("إزالة","Remove")} sm v="danger" onClick={()=>set("image",null)} />
             </div>
           )}
         </div>
@@ -465,7 +465,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <Btn children="✅ إضافة الرأي" full onClick={submit} style={{ marginTop:14 }} />
+        <Btn children={tx("إضافة الرأي","Add Review")} full onClick={submit} style={{ marginTop:14 }} />
       </Modal>
     );
   };
@@ -484,29 +484,29 @@ export default function AdminDashboard() {
     };
 
     const submit = () => {
-      if (!f.name.trim() || !f.role_ar.trim()) { showT("❗ أدخل الاسم والمنصب", "error"); return; }
+      if (!f.name.trim() || !f.role_ar.trim()) { showT(tx("أدخل الاسم والمنصب","Enter name and role"), "error"); return; }
       const em = f.email.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
-        showT(tx("❗ بريد إلكتروني غير صالح", "❗ Invalid email"), "error");
+        showT(tx("بريد إلكتروني غير صالح", "Invalid email"), "error");
         return;
       }
       const li = (f.linkedin || "").trim();
       if (li && !li.startsWith("https://www.linkedin.com/")) {
-        showT(tx("❗ رابط LinkedIn يجب أن يبدأ بـ https://www.linkedin.com/", "❗ LinkedIn URL must start with https://www.linkedin.com/"), "error");
+        showT(tx("رابط LinkedIn غير صالح", "Invalid LinkedIn URL"), "error");
         return;
       }
       if (editing) {
         updateTeamMember(editing.id, { ...f, email: em, linkedin: li });
-        showT("✅ تم تحديث بيانات العضو!");
+        showT(tx("تم تحديث بيانات العضو","Member updated"));
       } else {
         addTeamMember({ ...f, email: em, linkedin: li });
-        showT("✅ تم إضافة عضو الفريق!");
+        showT(tx("تم إضافة عضو الفريق","Team member added"));
       }
       setModal(null);
     };
 
     return (
-      <Modal title={editing ? "✏️ تعديل عضو الفريق" : "➕ إضافة عضو جديد"} onClose={() => setModal(null)}>
+      <Modal title={editing ? tx("تعديل عضو الفريق","Edit Team Member") : tx("إضافة عضو جديد","Add New Member")} onClose={() => setModal(null)}>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
           <Input label="الاسم (عربي) *"    value={f.name}    onChange={v=>set("name",v)}    placeholder="محمد أحمد" />
           <Input label="Name (English)"    value={f.name_en} onChange={v=>set("name_en",v)} placeholder="Mohamed Ahmed" />
@@ -519,14 +519,14 @@ export default function AdminDashboard() {
         <div style={{ marginBottom:10 }}>
           <label style={{ fontSize:12, color:"#aaa", fontWeight:700, display:"block", marginBottom:6 }}>صورة العضو (اختياري)</label>
           <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", background:"rgba(255,255,255,.05)", border:`1.5px dashed ${C.border}`, borderRadius:10, padding:"10px 14px" }}>
-            <span style={{ fontSize:20 }}>👤</span>
-            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? "✅ تم رفع الصورة" : "اضغط لرفع صورة العضو"}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <span style={{ fontSize:12, color:"#aaa" }}>{f.image ? tx("تم رفع الصورة","Image uploaded") : tx("اضغط لرفع صورة العضو","Click to upload member photo")}</span>
             <input type="file" accept="image/*" onChange={pickImage} style={{ display:"none" }} />
           </label>
           {f.image && (
             <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:10 }}>
               <img src={f.image} alt="" style={{ width:48, height:48, objectFit:"cover", borderRadius:"50%" }} />
-              <Btn children="🗑" sm v="danger" onClick={()=>set("image",null)} />
+              <Btn children={tx("إزالة","Remove")} sm v="danger" onClick={()=>set("image",null)} />
             </div>
           )}
         </div>
@@ -539,7 +539,7 @@ export default function AdminDashboard() {
           <Input label={tx("LinkedIn (اختياري)", "LinkedIn (optional)")} value={f.linkedin} onChange={v=>set("linkedin",v)} placeholder="https://www.linkedin.com/in/..." />
         </div>
 
-        <Btn children={editing ? "✅ حفظ التعديلات" : "✅ إضافة العضو"} full onClick={submit} style={{ marginTop:14 }} />
+        <Btn children={editing ? tx("حفظ التعديلات","Save Changes") : tx("إضافة العضو","Add Member")} full onClick={submit} style={{ marginTop:14 }} />
       </Modal>
     );
   };
@@ -549,19 +549,19 @@ export default function AdminDashboard() {
     const [f, setF] = useState({ title:"", courseId: courses[0]?.id || "", type:"mcq", dueDate:"", duration:"45", description:"" });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const submit = () => {
-      if (!f.title || !f.courseId || !f.dueDate) { showT("❗ أكمل البيانات الأساسية", "error"); return; }
+      if (!f.title || !f.courseId || !f.dueDate) { showT(tx("أكمل البيانات الأساسية","Fill in the required fields"), "error"); return; }
       addExam(f);
-      showT("✅ تم إضافة الامتحان بنجاح!");
+      showT(tx("تم إضافة الامتحان بنجاح","Exam added successfully"));
       setModal(null);
     };
     return (
-      <Modal title="➕ إضافة امتحان / تاسك جديد" onClose={() => setModal(null)}>
+      <Modal title={tx("إضافة امتحان / تاسك جديد","Add Exam / Task")} onClose={() => setModal(null)}>
         <Input label="عنوان الامتحان *" value={f.title} onChange={v => set("title", v)} placeholder="امتحان HTML & CSS الأول" />
         <Select label="الكورس *" value={f.courseId} onChange={v => set("courseId", v)}
-          options={courses.map(c => ({ v: c.id, l: `${c.icon} ${c.title}` }))} />
+          options={courses.map(c => ({ v: c.id, l: c.title }))} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Select label="النوع" value={f.type} onChange={v => set("type", v)}
-            options={[{v:"mcq",l:"📋 MCQ (أسئلة متعددة)"},{v:"task",l:"🛠 Task (مهمة عملية)"}]} />
+            options={[{v:"mcq",l:"MCQ"},{v:"task",l:"Task"}]} />
           <Input label="الموعد النهائي *" value={f.dueDate} onChange={v => set("dueDate", v)} placeholder="15 أبريل 2025" />
         </div>
         {f.type === "mcq" && (
@@ -570,7 +570,7 @@ export default function AdminDashboard() {
         {f.type === "task" && (
           <Input label="وصف المهمة" value={f.description} onChange={v => set("description", v)} placeholder="ابني صفحة Landing Page باستخدام..." rows={3} />
         )}
-        <Btn children="✅ إضافة الامتحان" full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("إضافة الامتحان","Add Exam")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -608,13 +608,12 @@ export default function AdminDashboard() {
             <h2 style={{ fontWeight: 900, fontSize: 20, marginBottom: 20 }}>{tx("نظرة عامة", "Dashboard overview")}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
               {[
-                { l: tx("الطلاب", "Students"),    v: students.length,     i:"👨‍🎓", c: C.red },
-                { l: tx("المدربين", "Instructors"),  v: instructors.length,  i:"👨‍🏫", c: C.purple },
-                { l: tx("الكورسات", "Courses"), v: courses.length,       i:"📚", c: C.orange },
-                { l: tx("الطلبات", "Requests"),  v: pending.length,       i:"⏳", c: C.warning },
+                { l: tx("الطلاب", "Students"),     v: students.length,    c: C.red },
+                { l: tx("المدربين", "Instructors"), v: instructors.length, c: C.purple },
+                { l: tx("الكورسات", "Courses"),     v: courses.length,     c: C.orange },
+                { l: tx("الطلبات", "Requests"),     v: pending.length,     c: C.warning },
               ].map(s => (
                 <Card key={s.l} style={{ padding: "14px 12px" }}>
-                  <div style={{ fontSize: 20, marginBottom: 5 }}>{s.i}</div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
                   <div style={{ color: C.muted, fontSize: 12 }}>{s.l}</div>
                 </Card>
@@ -624,7 +623,7 @@ export default function AdminDashboard() {
             {pending.length > 0 && (
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  {tx("⏳ طلبات جديدة", "⏳ New requests")} <Badge color={C.danger}>{pending.length}</Badge>
+                  {tx("طلبات جديدة", "New requests")} <Badge color={C.danger}>{pending.length}</Badge>
                 </div>
                 {pending.map(u => (
                   <Card key={u.id} style={{ padding: "13px 15px", marginBottom: 9 }}>
@@ -638,8 +637,8 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <Btn children={tx("✅ قبول", "✅ Approve")} v="success" sm onClick={() => { approveUser(u.id); showT(tx(`تم قبول ${u.name} ✅`, `${u.name} approved ✅`)); }} />
-                        <Btn children={tx("❌ رفض", "❌ Reject")}  v="danger"  sm onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
+                        <Btn children={tx("قبول", "Approve")} v="success" sm onClick={() => { approveUser(u.id); showT(ar ? `تم قبول ${u.name}` : `${u.name} approved`); }} />
+                        <Btn children={tx("رفض", "Reject")}  v="danger"  sm onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
                       </div>
                     </div>
                   </Card>
@@ -665,16 +664,16 @@ export default function AdminDashboard() {
                         <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
                           <Badge color={u.role === "instructor" ? C.purple : C.orange}>{u.role}</Badge>
                           <Badge color={u.status === "approved" ? C.success : u.status === "pending" ? C.warning : C.danger}>{u.status}</Badge>
-                          {u.enrolledCourses.length > 0 && <Badge color={C.muted}>📚 {u.enrolledCourses.length}</Badge>}
+                          {u.enrolledCourses.length > 0 && <Badge color={C.muted}>{u.enrolledCourses.length} {tx("كورسات","courses")}</Badge>}
                         </div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                      <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={() => setModal({ type: "edit-user", user: u })} aria-label={tx("تعديل المستخدم", "Edit user")} />
-                      {u.status === "pending"   && <><Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم القبول", "✅ Approved")); }} aria-label={tx("قبول", "Approve")} /><Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} aria-label={tx("رفض", "Reject")} /></>}
-                      {u.status === "rejected"  && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("✅ تم التفعيل", "✅ Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
-                      {u.role === "student"     && u.status === "approved" && <Btn children={tx("📚 كورسات", "📚 Courses")} v="orange"  sm onClick={() => setModal({ type: "enroll", user: u })} />}
-                      {u.role === "instructor"  && u.status === "approved" && <Btn children={tx("🎓 تعيين", "🎓 Assign")}  v="purple"  sm onClick={() => setModal({ type: "assign", user: u })} />}
+                      <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={() => setModal({ type: "edit-user", user: u })} aria-label={tx("تعديل المستخدم", "Edit user")} />
+                      {u.status === "pending"   && <><Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم القبول", "Approved")); }} aria-label={tx("قبول", "Approve")} /><Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} aria-label={tx("رفض", "Reject")} /></>}
+                      {u.status === "rejected"  && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم التفعيل", "Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
+                      {u.role === "student"     && u.status === "approved" && <Btn children={tx("كورسات", "Courses")} v="orange"  sm onClick={() => setModal({ type: "enroll", user: u })} />}
+                      {u.role === "instructor"  && u.status === "approved" && <Btn children={tx("تعيين", "Assign")}  v="purple"  sm onClick={() => setModal({ type: "assign", user: u })} />}
                     </div>
                   </div>
                 </Card>
@@ -688,7 +687,7 @@ export default function AdminDashboard() {
           <div>
             <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("طلبات التسجيل", "Registration requests")}</h2>
             {pending.length === 0
-              ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("✅ لا توجد طلبات معلقة", "✅ No pending requests")}</div></Card>
+              ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات معلقة", "No pending requests")}</div></Card>
               : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                   {pending.map(u => (
                     <Card key={u.id} style={{ padding: "14px 16px" }}>
@@ -705,8 +704,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <Btn children={tx("✅ قبول", "✅ Approve")} v="success" onClick={() => { approveUser(u.id); showT(tx(`تم قبول ${u.name}`, `${u.name} approved`)); }} />
-                          <Btn children={tx("❌ رفض", "❌ Reject")}  v="danger"  onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
+                          <Btn children={tx("قبول", "Approve")} v="success" onClick={() => { approveUser(u.id); showT(ar ? `تم قبول ${u.name}` : `${u.name} approved`); }} />
+                          <Btn children={tx("رفض", "Reject")}  v="danger"  onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
                         </div>
                       </div>
                     </Card>
@@ -720,7 +719,7 @@ export default function AdminDashboard() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
               <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة الكورسات", "Course management")}</h2>
-              <Btn children={tx("➕ كورس جديد", "➕ New course")} onClick={() => setModal({ type: "add-course" })} style={{ background: C.red }} />
+              <Btn children={tx("كورس جديد", "New Course")} onClick={() => setModal({ type: "add-course" })} style={{ background: C.red }} />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {courses.map(c => {
@@ -730,22 +729,22 @@ export default function AdminDashboard() {
                   <Card key={c.id} style={{ padding: "12px 14px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 9 }}>
                       <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${c.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{c.icon}</div>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${c.color||C.red},#321d3d)`, flexShrink: 0 }}></div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
-                          <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{c.price.toLocaleString()} EGP · 👨‍🎓 {sc} {tx("طالب", "students")} · {inst ? `👨‍🏫 ${inst.name}` : tx("بدون مدرب", "No instructor")}</div>
+                          <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{c.price.toLocaleString()} EGP · {sc} {tx("طالب", "students")} · {inst ? inst.name : tx("بدون مدرب", "No instructor")}</div>
                           <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                             <Badge color={C.orange}>{c.cat}</Badge>
-                            {c.featured && <Badge color={C.red}>⭐ Featured</Badge>}
+                            {c.featured && <Badge color={C.red}>{tx("مميز","Featured")}</Badge>}
                           </div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                         <Btn children={tx("فيديو", "Video")} sm v="outline" onClick={() => setModal({ type: "add-session", course: c })} />
-                        <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={() => setModal({ type: "edit-course", course: c })} />
-                        <Btn children={tx("📚 تسجيل", "📚 Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
-                        <Btn children={tx("🎓 مدرب", "🎓 Instructor")}               sm v="outline" onClick={() => setModal({ type: "assign-course", course: c })} />
-                        <Btn children={c.featured ? tx("★ إلغاء", "★ Unfeature") : tx("⭐ تمييز", "⭐ Feature")} sm v={c.featured ? "orange" : "outline"} onClick={() => { toggleFeatured(c.id); showT(c.featured ? tx("تم إلغاء التمييز", "Unfeatured") : tx("⭐ تم التمييز", "⭐ Featured")); }} />
+                        <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={() => setModal({ type: "edit-course", course: c })} />
+                        <Btn children={tx("تسجيل", "Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
+                        <Btn children={tx("مدرب", "Instructor")}               sm v="outline" onClick={() => setModal({ type: "assign-course", course: c })} />
+                        <Btn children={c.featured ? tx("إلغاء التمييز", "Unfeature") : tx("تمييز", "Feature")} sm v={c.featured ? "orange" : "outline"} onClick={() => { toggleFeatured(c.id); showT(c.featured ? tx("تم إلغاء التمييز", "Unfeatured") : tx("تم التمييز", "Featured")); }} />
                         <Btn children="🗑"                     sm v="danger"  onClick={() => { deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
@@ -761,7 +760,7 @@ export default function AdminDashboard() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة الأخبار", "News management")}</h2>
-              <Btn children={tx("➕ خبر جديد", "➕ New article")} onClick={() => setModal({ type: "add-news" })} style={{ background: C.orange, color: C.pdark }} />
+              <Btn children={tx("خبر جديد", "New Article")} onClick={() => setModal({ type: "add-news" })} style={{ background: C.orange, color: C.pdark }} />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {news.map(n => (
@@ -777,7 +776,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-                    <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={() => { deleteNews(n.id); showT(tx("تم حذف الخبر", "Article deleted"), "error"); }} />
+                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteNews(n.id); showT(tx("تم حذف الخبر", "Article deleted"), "error"); }} />
                   </div>
                 </Card>
               ))}
@@ -790,7 +789,7 @@ export default function AdminDashboard() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
               <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة المدربين", "Trainer management")}</h2>
-              <Btn children={tx("➕ مدرب جديد", "➕ New trainer")} onClick={() => setModal({ type: "add-trainer" })} v="purple" />
+              <Btn children={tx("مدرب جديد", "New Trainer")} onClick={() => setModal({ type: "add-trainer" })} v="purple" />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {trainers.map(tr => (
@@ -800,14 +799,14 @@ export default function AdminDashboard() {
                       <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg,#672d86,#321d3d)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>{tr.avatar}</div>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: 14 }}>{tr.name}</div>
-                        <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>📧 {tr.username}</div>
-                        <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>🔑 {tr.password}</div>
+                        <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>{tx("المستخدم","Username")}: {tr.username}</div>
+                        <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>{tx("كلمة المرور","Password")}: {tr.password}</div>
                         {tr.specialty_ar && <Badge color={C.purple}>{tr.specialty_ar}</Badge>}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Badge color={C.orange}>{tr.courses?.length || 0} {tx("كورس", "courses")}</Badge>
-                      <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={() => { deleteTrainer(tr.id); showT(tx("تم حذف المدرب", "Trainer deleted"), "error"); }} />
+                      <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteTrainer(tr.id); showT(tx("تم حذف المدرب", "Trainer deleted"), "error"); }} />
                     </div>
                   </div>
                   {tr.bio_ar && <div style={{ color: C.muted, fontSize: 11, marginTop: 8, lineHeight: 1.7 }}>{tr.bio_ar}</div>}
@@ -822,23 +821,23 @@ export default function AdminDashboard() {
         {tab === "programs" && (
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:10 }}>
-              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("🌟 إدارة البرامج الرئيسية", "🌟 Programs")}</h2>
-              <Btn children={tx("➕ برنامج جديد", "➕ New program")} onClick={()=>setModal({ type:"add-program" })} style={{ background:C.orange, color:C.pdark }} />
+              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("إدارة البرامج", "Programs")}</h2>
+              <Btn children={tx("برنامج جديد", "New Program")} onClick={()=>setModal({ type:"add-program" })} style={{ background:C.orange, color:C.pdark }} />
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14 }}>
               {(programs||[]).map(pr => (
                 <Card key={pr.id} style={{ padding:0, overflow:"hidden" }}>
                   {pr.image
                     ? <img src={pr.image} alt={pr.title_ar} style={{ width:"100%", height:140, objectFit:"cover" }} />
-                    : <div style={{ width:"100%", height:140, background:`linear-gradient(135deg,${C.red}44,${C.purple}44)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40 }}>🌟</div>
+                    : <div style={{ width:"100%", height:140, background:`linear-gradient(135deg,${C.red}44,${C.purple}44)` }}></div>
                   }
                   <div style={{ padding:"14px 16px" }}>
                     <div style={{ fontWeight:800, fontSize:14, marginBottom:4 }}>{pr.title_ar}</div>
                     {pr.title_en && <div style={{ color:C.muted, fontSize:12, marginBottom:6 }}>{pr.title_en}</div>}
                     {pr.desc_ar  && <div style={{ color:C.muted, fontSize:11, lineHeight:1.6, marginBottom:10 }}>{pr.desc_ar.slice(0,80)}{pr.desc_ar.length>80?"…":""}</div>}
                     <div style={{ display:"flex", gap:8 }}>
-                      <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-program", program:pr })} />
-                      <Btn children={tx("🗑 حذف", "🗑 Delete")}   sm v="danger"  onClick={()=>{ deleteProgram(pr.id); showT(tx("تم حذف البرنامج","Program deleted"),"error"); }} />
+                      <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-program", program:pr })} />
+                      <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ deleteProgram(pr.id); showT(tx("تم حذف البرنامج","Program deleted"),"error"); }} />
                     </div>
                   </div>
                 </Card>
@@ -856,8 +855,8 @@ export default function AdminDashboard() {
         {tab === "testimonials" && (
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:10 }}>
-              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("⭐ إدارة آراء الطلاب", "⭐ Testimonials")}</h2>
-              <Btn children={tx("➕ رأي جديد", "➕ New testimonial")} onClick={()=>setModal({ type:"add-testimonial" })} style={{ background:C.orange, color:C.pdark }} />
+              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("آراء الطلاب", "Testimonials")}</h2>
+              <Btn children={tx("رأي جديد", "New Testimonial")} onClick={()=>setModal({ type:"add-testimonial" })} style={{ background:C.orange, color:C.pdark }} />
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {(testimonials||[]).map(t => (
@@ -870,12 +869,12 @@ export default function AdminDashboard() {
                       }
                       <div style={{ minWidth:0 }}>
                         <div style={{ fontWeight:800, fontSize:13, marginBottom:2 }}>{t.name}</div>
-                        {t.course && <div style={{ color:C.orange, fontSize:11, marginBottom:4 }}>📚 {t.course}</div>}
+                        {t.course && <div style={{ color:C.orange, fontSize:11, marginBottom:4 }}>{t.course}</div>}
                         <div style={{ color:"#fbbf24", fontSize:13, marginBottom:4 }}>{"★".repeat(t.rating||5)}</div>
                         <div style={{ color:C.muted, fontSize:12, lineHeight:1.65 }}>{t.comment_ar}</div>
                       </div>
                     </div>
-                    <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={()=>{ deleteTestimonial(t.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
+                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={()=>{ deleteTestimonial(t.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
                   </div>
                 </Card>
               ))}
@@ -892,8 +891,8 @@ export default function AdminDashboard() {
         {tab === "team" && (
           <div>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:10 }}>
-              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("👥 إدارة فريق العمل", "👥 Team")}</h2>
-              <Btn children={tx("➕ عضو جديد", "➕ New member")} onClick={()=>setModal({ type:"add-team" })} />
+              <h2 style={{ fontWeight:900, fontSize:18, margin:0 }}>{tx("إدارة فريق العمل", "Team")}</h2>
+              <Btn children={tx("عضو جديد", "New Member")} onClick={()=>setModal({ type:"add-team" })} />
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
               {(team||[]).map(m => (
@@ -911,8 +910,8 @@ export default function AdminDashboard() {
                   </div>
                   {m.bio_ar && <div style={{ color:C.muted, fontSize:12, lineHeight:1.6, marginBottom:10 }}>{m.bio_ar.slice(0,100)}{m.bio_ar.length>100?"…":""}</div>}
                   <div style={{ display:"flex", gap:7 }}>
-                    <Btn children={tx("✏️ تعديل", "✏️ Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-team", member:m })} />
-                    <Btn children={tx("🗑 حذف", "🗑 Delete")}   sm v="danger"  onClick={()=>{ deleteTeamMember(m.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
+                    <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-team", member:m })} />
+                    <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ deleteTeamMember(m.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
                   </div>
                 </Card>
               ))}
@@ -928,9 +927,9 @@ export default function AdminDashboard() {
         {/* ── Settings ── */}
         {tab === "settings" && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 20 }}>{tx("⚙️ إعدادات المنصة", "⚙️ Platform settings")}</h2>
+            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 20 }}>{tx("إعدادات المنصة", "Platform Settings")}</h2>
             <Card style={{ padding: 24, maxWidth: 480 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{tx("📱 رقم Vodafone Cash", "📱 Vodafone Cash number")}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{tx("رقم Vodafone Cash", "Vodafone Cash Number")}</div>
               <div style={{ color: C.muted, fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
                 {tx("هذا الرقم يظهر للطلاب في صفحة الدفع عند اختيار Vodafone Cash", "This number is shown to students on checkout when they choose Vodafone Cash.")}
               </div>
@@ -941,7 +940,7 @@ export default function AdminDashboard() {
                   placeholder="01xxxxxxxxx"
                   style={{ flex: 1, background: "rgba(50,29,61,.6)", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: "#fff", fontFamily: "'Cairo',sans-serif", fontSize: 14, outline: "none" }}
                 />
-                <Btn children={tx("✅ حفظ", "✅ Save")} sm onClick={() => showT(tx("✅ تم حفظ الرقم بنجاح!", "✅ Number saved!"))} />
+                <Btn children={tx("حفظ", "Save")} sm onClick={() => showT(tx("تم حفظ الرقم بنجاح", "Number saved"))} />
               </div>
             </Card>
           </div>
@@ -952,7 +951,7 @@ export default function AdminDashboard() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة الامتحانات", "Exam management")}</h2>
-              <Btn children={tx("➕ امتحان جديد", "➕ New exam")} onClick={() => setModal({ type: "add-exam" })} v="purple" />
+              <Btn children={tx("امتحان جديد", "New Exam")} onClick={() => setModal({ type: "add-exam" })} v="purple" />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {exams.map(e => {
@@ -969,7 +968,7 @@ export default function AdminDashboard() {
                           {e.type === "mcq" && <span style={{ color: C.muted, fontSize: 10 }}>{e.duration} {tx("دقيقة", "min")}</span>}
                         </div>
                       </div>
-                      <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
+                      <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
                     </div>
                   </Card>
                 );
@@ -1003,16 +1002,16 @@ export default function AdminDashboard() {
       {modal?.type === "edit-team"       && <AddTeamMemberModal editing={modal.member} />}
 
       {modal?.type === "enroll" && (
-        <Modal title={`📚 كورسات: ${modal.user.name}`} onClose={() => setModal(null)}>
+        <Modal title={`${tx("كورسات","Courses")}: ${modal.user.name}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {courses.map(c => {
               const isE = !!users.find(u => u.id === modal.user.id)?.enrolledCourses.find(e => e.courseId === c.id);
               return (
                 <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
-                  <div><div style={{ fontWeight: 600, fontSize: 12 }}>{c.icon} {c.title}</div><div style={{ color: C.muted, fontSize: 10 }}>{c.price.toLocaleString()} EGP</div></div>
+                  <div><div style={{ fontWeight: 600, fontSize: 12 }}>{c.title}</div><div style={{ color: C.muted, fontSize: 10 }}>{c.price.toLocaleString()} EGP</div></div>
                   {isE
-                    ? <Btn children="إزالة"   sm v="danger"  onClick={() => { removeEnroll(modal.user.id, c.id); showT("تم الإزالة", "error"); setModal(p => ({ ...p })); }} />
-                    : <Btn children="+ تسجيل" sm v="success" onClick={() => { enrollUser(modal.user.id, c.id);  showT("✅ تم التسجيل"); setModal(p => ({ ...p })); }} />
+                    ? <Btn children={tx("إزالة","Remove")}   sm v="danger"  onClick={() => { removeEnroll(modal.user.id, c.id); showT(tx("تم الإزالة","Removed"), "error"); setModal(p => ({ ...p })); }} />
+                    : <Btn children={tx("تسجيل","Enroll")} sm v="success" onClick={() => { enrollUser(modal.user.id, c.id);  showT(tx("تم التسجيل","Enrolled")); setModal(p => ({ ...p })); }} />
                   }
                 </div>
               );
@@ -1022,7 +1021,7 @@ export default function AdminDashboard() {
       )}
 
       {modal?.type === "enroll-course" && (
-        <Modal title={`👨‍🎓 تسجيل طلاب في: ${modal.course.title}`} onClose={() => setModal(null)}>
+        <Modal title={`${tx("تسجيل طلاب في","Enroll students in")}: ${modal.course.title}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {students.filter(u => u.status === "approved").map(u => {
               const isE = !!u.enrolledCourses.find(e => e.courseId === modal.course.id);
@@ -1033,8 +1032,8 @@ export default function AdminDashboard() {
                     <span style={{ fontWeight: 600, fontSize: 12 }}>{u.name}</span>
                   </div>
                   {isE
-                    ? <Btn children="إزالة"   sm v="danger"  onClick={() => { removeEnroll(u.id, modal.course.id); showT("تم الإزالة", "error"); }} />
-                    : <Btn children="+ تسجيل" sm v="success" onClick={() => { enrollUser(u.id, modal.course.id);  showT("✅ تم التسجيل"); }} />
+                    ? <Btn children={tx("إزالة","Remove")}   sm v="danger"  onClick={() => { removeEnroll(u.id, modal.course.id); showT(tx("تم الإزالة","Removed"), "error"); }} />
+                    : <Btn children={tx("تسجيل","Enroll")} sm v="success" onClick={() => { enrollUser(u.id, modal.course.id);  showT(tx("تم التسجيل","Enrolled")); }} />
                   }
                 </div>
               );
@@ -1044,16 +1043,16 @@ export default function AdminDashboard() {
       )}
 
       {modal?.type === "assign-course" && (
-        <Modal title={`🎓 تعيين مدرب لـ: ${modal.course.title}`} onClose={() => setModal(null)}>
+        <Modal title={`${tx("تعيين مدرب لـ","Assign trainer to")}: ${modal.course.title}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {instructors.filter(u => u.status === "approved").map(u => {
               const isA = modal.course.instructorId === u.id;
               return (
                 <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
-                  <span style={{ fontWeight: 600, fontSize: 12 }}>{u.avatar} {u.name}</span>
+                  <span style={{ fontWeight: 600, fontSize: 12 }}>{u.name}</span>
                   {isA
-                    ? <Badge color={C.success}>معيّن ✓</Badge>
-                    : <Btn children="+ تعيين" sm v="success" onClick={() => { assignInstructor(u.id, modal.course.id); showT("✅ تم التعيين"); }} />
+                    ? <Badge color={C.success}>{tx("معيّن","Assigned")} ✓</Badge>
+                    : <Btn children={tx("تعيين","Assign")} sm v="success" onClick={() => { assignInstructor(u.id, modal.course.id); showT(tx("تم التعيين","Assigned")); }} />
                   }
                 </div>
               );
@@ -1063,12 +1062,12 @@ export default function AdminDashboard() {
       )}
 
       {modal?.type === "assign" && (
-        <Modal title={`🎓 تعيين كورسات للمدرب: ${modal.user.name}`} onClose={() => setModal(null)}>
+        <Modal title={`${tx("تعيين كورسات للمدرب","Assign courses to")}: ${modal.user.name}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {courses.map(c => (
               <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
-                <div style={{ fontWeight: 600, fontSize: 12 }}>{c.icon} {c.title}</div>
-                <Btn children="+ تعيين" sm v="success" onClick={() => { assignInstructor(modal.user.id, c.id); showT("✅ تم التعيين"); }} />
+                <div style={{ fontWeight: 600, fontSize: 12 }}>{c.title}</div>
+                <Btn children={tx("تعيين","Assign")} sm v="success" onClick={() => { assignInstructor(modal.user.id, c.id); showT(tx("تم التعيين","Assigned")); }} />
               </div>
             ))}
           </div>

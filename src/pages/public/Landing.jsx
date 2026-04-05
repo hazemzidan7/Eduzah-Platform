@@ -21,14 +21,17 @@ function CourseCard({ course, lang }) {
       style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
       {course.image
         ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
-        : <div style={{height:150,background:`linear-gradient(135deg,${course.color},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(2rem,5vw,3rem)",position:"relative"}}>
-            <span style={{fontWeight:900,color:"rgba(255,255,255,.3)",fontSize:"0.9rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center"}}>{title}</span>
+        : <div style={{height:150,background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            <span style={{fontWeight:900,color:"rgba(255,255,255,.45)",fontSize:"0.85rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center",lineHeight:1.4}}>{title}</span>
             {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
           </div>
       }
       <div style={{padding:"14px 16px 16px"}}>
         <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{title}</div>
-        <div style={{display:"flex",gap:10,marginBottom:10}}><span style={{color:C.muted,fontSize:11}}>⏱ {dur(course.duration)}</span><span style={{color:C.muted,fontSize:11}}>📚 {course.hours}h</span></div>
+        <div style={{display:"flex",gap:10,marginBottom:10}}>
+          <span style={{color:C.muted,fontSize:11}}>{dur(course.duration)}</span>
+          <span style={{color:C.muted,fontSize:11}}>{course.hours}h</span>
+        </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:`1px solid ${C.border}`,paddingTop:10}}>
           <span style={{fontWeight:900,fontSize:15,color:C.red}}>{course.price.toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
           <Btn children={enrolled?(lang==="ar"?"متابعة ▶":"Continue ▶"):(lang==="ar"?"سجّل الآن":"Enroll")} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${course.slug}`);}}/>
@@ -70,11 +73,16 @@ export default function Landing() {
             }
           </p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:36}}>
-            <Btn children={lang==="ar" ? "🚀 استعرض البرامج" : "🚀 Explore Programs"} onClick={()=>navigate("/courses")} style={{padding:"12px 26px",fontSize:14,boxShadow:`0 8px 25px rgba(217,27,91,.4)`}}/>
+            <Btn children={lang==="ar" ? "استعرض البرامج" : "Explore Programs"} onClick={()=>navigate("/courses")} style={{padding:"12px 26px",fontSize:14,boxShadow:`0 8px 25px rgba(217,27,91,.4)`}}/>
             <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"12px 26px",fontSize:14}}/>
           </div>
           <div style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap"}}>
-            {[["5,000+",lang==="ar"?"متدرب":"Trainees"],["50+",lang==="ar"?"مؤسسة شريكة":"Partners"],["4.8/5",lang==="ar"?"تقييم":"Rating"],["3+",lang==="ar"?"سنوات":"Years"]].map(([n,l])=>(
+            {[
+              ["5,000+", lang==="ar"?"متدرب":"Trainees"],
+              ["50+",    lang==="ar"?"مؤسسة شريكة":"Partners"],
+              ["4.8/5",  lang==="ar"?"تقييم":"Rating"],
+              ["3+",     lang==="ar"?"سنوات":"Years"]
+            ].map(([n,l])=>(
               <div key={l}><div style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:900,color:C.orange}}>{n}</div><div style={{color:C.muted,fontSize:11,marginTop:2}}>{l}</div></div>
             ))}
           </div>
@@ -120,7 +128,9 @@ export default function Landing() {
               onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.borderColor=C.border;}}
               onClick={()=>navigate(`/courses?track=${tr.id}`)}
               style={{background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:16,padding:22,cursor:"pointer",transition:"all .25s"}}>
-              <div style={{width:52,height:52,borderRadius:14,background:`${tr.color}22`,border:`1.5px solid ${tr.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:14}}>{tr.icon}</div>
+              <div style={{width:52,height:52,borderRadius:14,background:`${tr.color}22`,border:`1.5px solid ${tr.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:tr.color,marginBottom:14,letterSpacing:1}}>
+                {tr.icon}
+              </div>
               <div style={{fontWeight:800,fontSize:15,marginBottom:6}}>{lang==="ar"?tr.title_ar:tr.title_en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.7,marginBottom:12}}>{lang==="ar"?tr.desc_ar:tr.desc_en}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
@@ -318,13 +328,15 @@ export default function Landing() {
               <Card key={n.id} style={{padding:0,overflow:"hidden"}}>
                 {n.images?.length>0
                   ? <img src={n.images[0]} alt={n.title} style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
-                  : <div style={{height:80,background:"linear-gradient(135deg,rgba(103,45,134,.4),rgba(217,27,91,.2))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>{n.icon}</div>
+                  : <div style={{height:80,background:"linear-gradient(135deg,rgba(103,45,134,.4),rgba(217,27,91,.2))"}}/>
                 }
                 <div style={{padding:"14px 16px"}}>
-                  <span style={{background:`${C.orange}22`,color:C.orange,border:`1px solid ${C.orange}44`,borderRadius:50,padding:"2px 9px",fontSize:11,fontWeight:700}}>{n.tag}</span>
+                  <span style={{background:`${C.orange}22`,color:C.orange,border:`1px solid ${C.orange}44`,borderRadius:50,padding:"2px 9px",fontSize:11,fontWeight:700}}>
+                    {lang==="ar" ? n.tag : (n.tag_en || n.tag)}
+                  </span>
                   <div style={{fontWeight:800,fontSize:13,margin:"8px 0 6px",lineHeight:1.5}}>{lang==="ar"?n.title:(n.title_en||n.title)}</div>
                   <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{(lang==="ar"?n.excerpt:(n.excerpt_en||n.excerpt)).slice(0,75)}...</div>
-                  <div style={{color:C.muted,fontSize:11,marginTop:9}}>📅 {n.date}</div>
+                  <div style={{color:C.muted,fontSize:11,marginTop:9}}>{n.date}</div>
                 </div>
               </Card>
             ))}
@@ -338,7 +350,7 @@ export default function Landing() {
       {/* ── CTA ── */}
       <div style={{background:gHero,padding:"clamp(36px,7vw,60px) 5%",textAlign:"center"}}>
         <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:12}}>
-          {lang==="ar" ? "جاهز لتطوير مسيرتك أو مؤسستك؟ 🚀" : "Ready to Elevate Your Career or Organization? 🚀"}
+          {lang==="ar" ? "جاهز لتطوير مسيرتك أو مؤسستك؟" : "Ready to Elevate Your Career or Organization?"}
         </h2>
         <p style={{color:C.muted,fontSize:14,marginBottom:26}}>
           {lang==="ar" ? "انضم لأكثر من 5,000 متدرب اختاروا Eduzah" : "Join 5,000+ trainees who chose Eduzah"}
@@ -359,24 +371,30 @@ export default function Landing() {
           </div>
           <div>
             <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>{lang==="ar"?"روابط سريعة":"Quick Links"}</div>
-            {[["/courses",lang==="ar"?"البرامج":"Programs"],["/corporate",lang==="ar"?"تدريب الشركات":"Corporate"],["/hiring",lang==="ar"?"التوظيف":"Hiring"],["/consultation",lang==="ar"?"استشارة":"Consultation"],["/news",lang==="ar"?"الأخبار":"News"]].map(([p,l])=>(
+            {[
+              ["/courses",     lang==="ar"?"البرامج":"Programs"],
+              ["/corporate",   lang==="ar"?"تدريب الشركات":"Corporate"],
+              ["/hiring",      lang==="ar"?"التوظيف":"Hiring"],
+              ["/consultation",lang==="ar"?"استشارة":"Consultation"],
+              ["/news",        lang==="ar"?"الأخبار":"News"],
+            ].map(([p,l])=>(
               <div key={p} style={{color:C.muted,fontSize:12,marginBottom:7,cursor:"pointer"}} onClick={()=>navigate(p)}>{l}</div>
             ))}
           </div>
           <div>
             <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>{lang==="ar"?"تواصل معنا":"Contact"}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>📍 {SITE.location}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>📞 {SITE.phone}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>✉️ {SITE.email}</div>
+            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"الموقع:":"Location:"} {SITE.location}</div>
+            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"الهاتف:":"Phone:"} {SITE.phone}</div>
+            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"البريد:":"Email:"} {SITE.email}</div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              {[["fb",SITE.social.facebook,"f"],["ig",SITE.social.instagram,"📸"],["in",SITE.social.linkedin,"in"]].map(([k,url,ic])=>(
+              {[["fb",SITE.social.facebook,"f"],["ig",SITE.social.instagram,"IG"],["in",SITE.social.linkedin,"in"]].map(([k,url,ic])=>(
                 <a key={k} href={url} target="_blank" rel="noreferrer" style={{width:30,height:30,background:"rgba(255,255,255,.08)",border:`1px solid ${C.border}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",textDecoration:"none",fontWeight:700}}>{ic}</a>
               ))}
             </div>
           </div>
         </div>
         <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,textAlign:"center",color:C.muted,fontSize:11}}>
-          © 2025 Eduzah. {lang==="ar"?"جميع الحقوق محفوظة.":"All rights reserved."}
+          &copy; 2025 Eduzah. {lang==="ar"?"جميع الحقوق محفوظة.":"All rights reserved."}
         </div>
       </footer>
     </div>

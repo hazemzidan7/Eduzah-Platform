@@ -18,10 +18,10 @@ const SPECIALTIES = [
 ];
 
 const MEETING_PLATFORMS = [
-  { v:"zoom",  label:"Zoom",            icon:"🎥" },
-  { v:"meet",  label:"Google Meet",     icon:"📹" },
-  { v:"teams", label:"Microsoft Teams", icon:"💼" },
-  { v:"phone", label:"هاتف / Phone",    icon:"📞" },
+  { v:"zoom",  label:"Zoom" },
+  { v:"meet",  label:"Google Meet" },
+  { v:"teams", label:"Microsoft Teams" },
+  { v:"phone", label:"هاتف / Phone" },
 ];
 
 const init = { company:"", contact:"", phone:"", email:"", specialty:"frontend", count:"1", platform:"meet", date:"", notes:"" };
@@ -88,7 +88,7 @@ export default function HiringPage() {
         <div style={{position:"absolute",top:"-20%",left:"-10%",width:500,height:500,background:`radial-gradient(circle,rgba(217,27,91,.2),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:700}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
-            💼 {lang==="ar" ? "خدمة توظيف خريجي Eduzah" : "Hire Eduzah Graduates"}
+            {lang==="ar" ? "خدمة توظيف خريجي Eduzah" : "Hire Eduzah Graduates"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
@@ -106,7 +106,7 @@ export default function HiringPage() {
               style={{padding:"13px 28px",boxShadow:`0 8px 25px rgba(217,27,91,.44)`}}/>
             <a href={`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`} target="_blank" rel="noreferrer"
               style={{display:"inline-flex",alignItems:"center",gap:8,padding:"13px 22px",border:"1.5px solid #25d366",borderRadius:10,color:"#25d366",fontFamily:"'Cairo',sans-serif",fontWeight:700,fontSize:14,textDecoration:"none"}}>
-              💬 WhatsApp
+              WhatsApp
             </a>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function HiringPage() {
 
           {done ? (
             <div style={{background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.25)",borderRadius:20,padding:40,textAlign:"center"}}>
-              <div style={{fontSize:60,marginBottom:16}}>🎉</div>
+              <div style={{width:60,height:60,borderRadius:"50%",background:"rgba(16,185,129,.15)",border:"2px solid rgba(16,185,129,.4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:22,fontWeight:900,color:"#10b981"}}>✓</div>
               <h3 style={{fontWeight:900,fontSize:20,marginBottom:10}}>{lang==="ar"?"تم إرسال طلبك!":"Request Sent!"}</h3>
               <p style={{color:C.muted,fontSize:13,marginBottom:22}}>
                 {lang==="ar"
@@ -224,7 +224,7 @@ export default function HiringPage() {
                   {MEETING_PLATFORMS.map(mp=>(
                     <button key={mp.v} onClick={()=>setForm(p=>({...p,platform:mp.v}))}
                       style={{padding:"9px 16px",borderRadius:10,background:form.platform===mp.v?`${C.red}22`:"transparent",border:`1.5px solid ${form.platform===mp.v?C.red:C.border}`,color:form.platform===mp.v?C.red:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:6}}>
-                      {mp.icon} {mp.label}
+                      {mp.label}
                     </button>
                   ))}
                 </div>

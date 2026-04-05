@@ -15,9 +15,8 @@ const readFile = (file, cb) => {
 };
 
 // ── Small stat card ──
-const Stat = ({ icon, label, value, color }) => (
+const Stat = ({ label, value, color }) => (
   <Card style={{ padding: "16px 14px", textAlign: "center" }}>
-    <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
     <div style={{ fontSize: 22, fontWeight: 900, color }}>{value}</div>
     <div style={{ color: C.muted, fontSize: 12 }}>{label}</div>
   </Card>
@@ -52,43 +51,42 @@ export default function InstructorDashboard() {
 
   const tabs = ar
     ? [
-        ["overview", "🏠 نظرة عامة"],
-        ["courses", "📚 كورساتي"],
-        ["students", "👨‍🎓 الطلاب"],
-        ["sessions", "🎬 الفيديوهات"],
-        ["materials", "📄 الملفات"],
-        ["exams", "📝 الامتحانات"],
+        ["overview",  "نظرة عامة"],
+        ["courses",   "كورساتي"],
+        ["students",  "الطلاب"],
+        ["sessions",  "الفيديوهات"],
+        ["materials", "الملفات"],
+        ["exams",     "الامتحانات"],
       ]
     : [
-        ["overview", "🏠 Overview"],
-        ["courses", "📚 My courses"],
-        ["students", "👨‍🎓 Students"],
-        ["sessions", "🎬 Videos"],
-        ["materials", "📄 Materials"],
-        ["exams", "📝 Exams"],
+        ["overview",  "Overview"],
+        ["courses",   "My courses"],
+        ["students",  "Students"],
+        ["sessions",  "Videos"],
+        ["materials", "Materials"],
+        ["exams",     "Exams"],
       ];
 
   /* ── Add Material Modal ── */
   const AddMaterialModal = ({ course }) => {
     const [f, setF] = useState({ title: "", url: "", type: "pdf" });
     const [fileData, setFileData] = useState(null);
-    const set = k => e => setF(p => ({ ...p, [k]: e.target.value }));
     const submit = () => {
-      if (!f.title) { showT(tx("❗ أدخل عنوان الملف", "❗ Enter file title"), "error"); return; }
-      if (!f.url && !fileData) { showT(tx("❗ أدخل رابط أو ارفع ملف", "❗ Enter URL or upload a file"), "error"); return; }
+      if (!f.title) { showT(tx("أدخل عنوان الملف", "Enter file title"), "error"); return; }
+      if (!f.url && !fileData) { showT(tx("أدخل رابط أو ارفع ملف", "Enter URL or upload a file"), "error"); return; }
       const materials = [...(course.materials || []), {
         id: Date.now(), title: f.title,
         type: f.type, url: fileData || f.url,
       }];
       updateCourse(course.id, { materials });
-      showT(tx("✅ تم إضافة الملف!", "✅ File added!"));
+      showT(tx("تم إضافة الملف!", "File added!"));
       setModal(null);
     };
     return (
-      <Modal title={tx(`📄 إضافة ملف – ${course.title}`, `📄 Add file – ${course.title}`)} onClose={() => setModal(null)}>
+      <Modal title={tx(`إضافة ملف – ${course.title}`, `Add file – ${course.title}`)} onClose={() => setModal(null)}>
         <Input label={tx("اسم الملف *", "File name *")} value={f.title} onChange={v => setF(p => ({ ...p, title: v }))} placeholder={tx("مثال: شيت المراجعة – HTML", "e.g. Review sheet – HTML")} />
         <Select label={tx("نوع الملف", "File type")} value={f.type} onChange={v => setF(p => ({ ...p, type: v }))}
-          options={[{ v: "pdf", l: "📄 PDF" }, { v: "doc", l: "📝 Word Doc" }, { v: "ppt", l: "📊 PowerPoint" }, { v: "other", l: tx("📎 أخرى", "📎 Other") }]} />
+          options={[{ v: "pdf", l: "PDF" }, { v: "doc", l: "Word Doc" }, { v: "ppt", l: "PowerPoint" }, { v: "other", l: tx("أخرى", "Other") }]} />
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 8 }}>{tx("رفع ملف من جهازك", "Upload from your device")}</div>
           <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx"
@@ -96,7 +94,7 @@ export default function InstructorDashboard() {
             style={{ color: C.muted, fontSize: 12 }} />
         </div>
         <Input label={tx("أو رابط مباشر للملف", "Or direct file link")} value={f.url} onChange={v => setF(p => ({ ...p, url: v }))} placeholder="https://drive.google.com/..." />
-        <Btn children={tx("✅ إضافة الملف", "✅ Add file")} full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("إضافة الملف", "Add file")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -111,8 +109,6 @@ export default function InstructorDashboard() {
     const [qText, setQText] = useState("");
     const [qAnswer, setQAnswer] = useState("true");
 
-    const set = k => e => setF(p => ({ ...p, [k]: e.target.value }));
-
     const addQ = () => {
       if (!qText.trim()) return;
       if (f.type === "truefalse") {
@@ -124,24 +120,24 @@ export default function InstructorDashboard() {
     };
 
     const submit = () => {
-      if (!f.title || !f.courseId || !f.dueDate) { showT(tx("❗ أكمل البيانات الأساسية", "❗ Fill required fields"), "error"); return; }
+      if (!f.title || !f.courseId || !f.dueDate) { showT(tx("أكمل البيانات الأساسية", "Fill required fields"), "error"); return; }
       addExam({ ...f, questions });
-      showT(tx("✅ تم إضافة الامتحان!", "✅ Exam created!"));
+      showT(tx("تم إضافة الامتحان!", "Exam created!"));
       setModal(null);
     };
 
     return (
-      <Modal title={tx("📝 إنشاء امتحان جديد", "📝 Create new exam")} onClose={() => setModal(null)}>
+      <Modal title={tx("إنشاء امتحان جديد", "Create new exam")} onClose={() => setModal(null)}>
         <Input label={tx("عنوان الامتحان *", "Exam title *")} value={f.title} onChange={v => setF(p => ({ ...p, title: v }))} placeholder={tx("امتحان الوحدة الأولى", "Unit 1 exam")} />
         <Select label={tx("الكورس *", "Course *")} value={f.courseId} onChange={v => setF(p => ({ ...p, courseId: v }))}
           options={myCourses.map(c => ({ v: c.id, l: c.title }))} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Select label={tx("نوع الامتحان", "Exam type")} value={f.type} onChange={v => setF(p => ({ ...p, type: v }))}
             options={[
-              { v: "truefalse", l: tx("✅ صح / خطأ", "✅ True / False") },
-              { v: "essay", l: tx("📝 مقالي", "📝 Essay") },
-              { v: "mcq", l: tx("📋 MCQ (اختيار متعدد)", "📋 Multiple choice") },
-              { v: "task", l: tx("🛠 مهمة عملية", "🛠 Practical task") },
+              { v: "truefalse", l: tx("صح / خطأ", "True / False") },
+              { v: "essay",     l: tx("مقالي", "Essay") },
+              { v: "mcq",       l: tx("MCQ (اختيار متعدد)", "Multiple choice") },
+              { v: "task",      l: tx("مهمة عملية", "Practical task") },
             ]} />
           <Input label={tx("الموعد النهائي *", "Due date *")} value={f.dueDate} onChange={v => setF(p => ({ ...p, dueDate: v }))} type="date" />
         </div>
@@ -154,7 +150,7 @@ export default function InstructorDashboard() {
             <Input label={tx("نص السؤال", "Question")} value={qText} onChange={v => setQText(v)} placeholder={tx("اكتب السؤال هنا...", "Type the question...")} />
             {f.type === "truefalse" && (
               <Select label={tx("الإجابة الصحيحة", "Correct answer")} value={qAnswer} onChange={v => setQAnswer(v)}
-                options={[{ v: "true", l: tx("✅ صح", "✅ True") }, { v: "false", l: tx("❌ خطأ", "❌ False") }]} />
+                options={[{ v: "true", l: tx("صح", "True") }, { v: "false", l: tx("خطأ", "False") }]} />
             )}
             <Btn children={tx("+ إضافة السؤال", "+ Add question")} sm v="outline" onClick={addQ} style={{ marginTop: 4 }} />
             {questions.length > 0 && (
@@ -171,7 +167,7 @@ export default function InstructorDashboard() {
             )}
           </div>
         )}
-        <Btn children={tx("✅ إنشاء الامتحان", "✅ Create exam")} full onClick={submit} style={{ marginTop: 8 }} />
+        <Btn children={tx("إنشاء الامتحان", "Create exam")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
   };
@@ -204,14 +200,14 @@ export default function InstructorDashboard() {
         {tab === "overview" && (
           <div>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ color: C.muted, fontSize: 12, marginBottom: 3 }}>{tx("مرحباً 👨‍🏫", "Welcome 👨‍🏫")}</div>
+              <div style={{ color: C.muted, fontSize: 12, marginBottom: 3 }}>{tx("مرحباً", "Welcome")}</div>
               <h1 style={{ fontWeight: 900, fontSize: 22, margin: 0 }}>{currentUser?.name}</h1>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 22 }}>
-              <Stat label={tx("كورساتي", "My courses")}   value={myCourses.length}  icon="📚" color={C.red}    />
-              <Stat label={tx("الطلاب", "Students")}    value={myStudents.length} icon="👨‍🎓" color={C.orange} />
-              <Stat label={tx("الامتحانات", "Exams")} value={myExams.length}   icon="📝" color={C.purple} />
-              <Stat label={tx("الفيديوهات", "Videos")} value={myCourses.reduce((s,c)=>s+(c.curriculum?.flatMap(ch=>ch.lessons)||[]).length,0)} icon="🎬" color="#0ea5e9" />
+              <Stat label={tx("كورساتي", "My courses")}   value={myCourses.length}  color={C.red}    />
+              <Stat label={tx("الطلاب", "Students")}      value={myStudents.length} color={C.orange} />
+              <Stat label={tx("الامتحانات", "Exams")}     value={myExams.length}    color={C.purple} />
+              <Stat label={tx("الفيديوهات", "Videos")}    value={myCourses.reduce((s,c)=>s+(c.curriculum?.flatMap(ch=>ch.lessons)||[]).length,0)} color="#0ea5e9" />
             </div>
             {myCourses.length === 0 && (
               <Card style={{ padding: 32, textAlign: "center" }}>
@@ -224,7 +220,7 @@ export default function InstructorDashboard() {
         {/* ── My Courses ── */}
         {tab === "courses" && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("📚 كورساتي", "📚 My courses")}</h2>
+            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("كورساتي", "My courses")}</h2>
             {myCourses.length === 0
               ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لم يتم تعيينك بعد", "Not assigned yet")}</div></Card>
               : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 14 }}>
@@ -236,13 +232,15 @@ export default function InstructorDashboard() {
                     <Card key={c.id} style={{ padding: 18 }}>
                       {c.image
                         ? <img src={c.image} alt={c.title} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 12 }} />
-                        : <div style={{ height: 90, borderRadius: 10, background: `linear-gradient(135deg,${c.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, marginBottom: 12 }}>{c.icon}</div>
+                        : <div style={{ height: 90, borderRadius: 10, background: `linear-gradient(135deg,${c.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                            <span style={{ fontWeight: 900, color: "rgba(255,255,255,.4)", fontSize: "0.75rem", textAlign: "center", padding: "0 10px" }}>{c.title}</span>
+                          </div>
                       }
                       <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{c.title}</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                        <Badge color={C.orange}>👨‍🎓 {sc} {tx("طالب", "students")}</Badge>
-                        <Badge color="#0ea5e9">🎬 {vids} {tx("درس", "lessons")}</Badge>
-                        <Badge color={C.purple}>📄 {mats} {tx("ملف", "files")}</Badge>
+                        <Badge color={C.orange}>{sc} {tx("طالب", "students")}</Badge>
+                        <Badge color="#0ea5e9">{vids} {tx("درس", "lessons")}</Badge>
+                        <Badge color={C.purple}>{mats} {tx("ملف", "files")}</Badge>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <Btn children={tx("+ فيديو", "+ Video")} sm v="outline" onClick={() => setModal({ type: "add-session", course: c })} />
@@ -259,7 +257,7 @@ export default function InstructorDashboard() {
         {/* ── Students ── */}
         {tab === "students" && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("👨‍🎓 طلابي", "👨‍🎓 My students")}</h2>
+            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("طلابي", "My students")}</h2>
             {myStudents.length === 0
               ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا يوجد طلاب مسجلون بعد", "No enrolled students yet")}</div></Card>
               : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -291,7 +289,7 @@ export default function InstructorDashboard() {
         {tab === "sessions" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("🎬 الفيديوهات والجلسات", "🎬 Videos & sessions")}</h2>
+              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("الفيديوهات والجلسات", "Videos & sessions")}</h2>
               {myCourses.length > 0 && (
                 <Select label="" value="" onChange={v => v && setModal({ type: "add-session", course: courses.find(c => c.id === v) })}
                   options={[{ v: "", l: tx("+ إضافة فيديو لكورس...", "+ Add video to course...") }, ...myCourses.map(c => ({ v: c.id, l: c.title }))]} />
@@ -332,7 +330,7 @@ export default function InstructorDashboard() {
         {tab === "materials" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("📄 الملفات والمواد التعليمية", "📄 Files & materials")}</h2>
+              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("الملفات والمواد التعليمية", "Files & materials")}</h2>
               {myCourses.length > 0 && (
                 <Select label="" value="" onChange={v => v && setModal({ type: "add-material", course: courses.find(c => c.id === v) })}
                   options={[{ v: "", l: tx("+ إضافة ملف لكورس...", "+ Add file to course...") }, ...myCourses.map(c => ({ v: c.id, l: c.title }))]} />
@@ -351,7 +349,7 @@ export default function InstructorDashboard() {
                           <Badge color={C.purple}>{m.type.toUpperCase()}</Badge>
                           <span style={{ fontSize: 12, fontWeight: 600 }}>{m.title}</span>
                         </div>
-                        {m.url && <a href={m.url} target="_blank" rel="noreferrer" style={{ color: C.orange, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>{tx("⬇ تحميل", "⬇ Download")}</a>}
+                        {m.url && <a href={m.url} target="_blank" rel="noreferrer" style={{ color: C.orange, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>{tx("تحميل", "Download")}</a>}
                       </div>
                     ))}
                   </div>
@@ -368,7 +366,7 @@ export default function InstructorDashboard() {
         {tab === "exams" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("📝 الامتحانات", "📝 Exams")}</h2>
+              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("الامتحانات", "Exams")}</h2>
               <Btn children={tx("+ إنشاء امتحان", "+ Create exam")} onClick={() => setModal({ type: "add-exam" })} v="purple" />
             </div>
             {myExams.length === 0
@@ -383,14 +381,14 @@ export default function InstructorDashboard() {
                           <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{e.title}</div>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <Badge color={e.type==="truefalse"?C.success:e.type==="essay"?C.orange:C.red}>
-                              {e.type==="truefalse"?tx("✅ صح/خطأ","✅ T/F"):e.type==="essay"?tx("📝 مقالي","📝 Essay"):e.type==="mcq"?tx("📋 MCQ","📋 MCQ"):tx("🛠 مهمة","🛠 Task")}
+                              {e.type==="truefalse"?tx("صح/خطأ","T/F"):e.type==="essay"?tx("مقالي","Essay"):e.type==="mcq"?"MCQ":tx("مهمة","Task")}
                             </Badge>
                             {c && <Badge color={C.purple}>{c.title.slice(0, 22)}</Badge>}
-                            <span style={{ color: C.muted, fontSize: 10 }}>📅 {e.dueDate}</span>
+                            <span style={{ color: C.muted, fontSize: 10 }}>{e.dueDate}</span>
                             {e.questions?.length > 0 && <Badge color={C.muted}>{e.questions.length} {tx("سؤال", "Q")}</Badge>}
                           </div>
                         </div>
-                        <Btn children={tx("🗑 حذف", "🗑 Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
+                        <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
                       </div>
                     </Card>
                   );

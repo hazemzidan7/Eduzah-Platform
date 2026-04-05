@@ -226,7 +226,11 @@ export default function Navbar() {
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700 }}>{currentUser.name}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>
-                        {role === "admin" ? "Admin" : role === "instructor" ? "Trainer" : "Student"}
+                        {role === "admin"
+                          ? (lang === "ar" ? "مدير" : "Admin")
+                          : role === "instructor"
+                            ? (lang === "ar" ? "مدرب" : "Trainer")
+                            : (lang === "ar" ? "طالب" : "Student")}
                       </div>
                     </div>
                   </div>

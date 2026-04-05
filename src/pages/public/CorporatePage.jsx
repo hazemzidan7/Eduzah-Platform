@@ -7,19 +7,19 @@ import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
 
 const MEETING_PLATFORMS = [
-  { v:"zoom",  label:"Zoom",             icon:"🎥" },
-  { v:"meet",  label:"Google Meet",      icon:"📹" },
-  { v:"teams", label:"Microsoft Teams",  icon:"💼" },
-  { v:"phone", label:"هاتف / Phone",     icon:"📞" },
+  { v:"zoom",  label:"Zoom" },
+  { v:"meet",  label:"Google Meet" },
+  { v:"teams", label:"Microsoft Teams" },
+  { v:"phone", label:"هاتف / Phone" },
 ];
 
 const PROGRAMS = [
-  { icon:"💻", ar:"تدريب تقني", en:"Technical Training", desc_ar:"Front-End, Back-End, Flutter, AI, UI/UX", desc_en:"Front-End, Back-End, Flutter, AI, UI/UX" },
-  { icon:"👔", ar:"تدريب إداري", en:"Management Training", desc_ar:"HR, Soft Skills, القيادة, التصميم التعليمي", desc_en:"HR, Soft Skills, Leadership, Instructional Design" },
-  { icon:"🇬🇧", ar:"اللغة الإنجليزية", en:"English Language", desc_ar:"من المبتدئ حتى المتقدم + إنجليزي متخصص", desc_en:"Beginner to advanced + business English" },
-  { icon:"🧒", ar:"تدريب الأطفال", en:"Children Programs", desc_ar:"برمجة وإنجليزي للأطفال", desc_en:"Coding and English for children" },
-  { icon:"📊", ar:"الاستشارات التعليمية", en:"Educational Consulting", desc_ar:"تصميم برامج تدريبية مخصصة", desc_en:"Custom training program design" },
-  { icon:"🏆", ar:"شهادات معتمدة", en:"Certified Programs", desc_ar:"برامج بشهادات معترف بها", desc_en:"Internationally recognized certificates" },
+  { abbr:"TK", color:"#d91b5b", ar:"تدريب تقني", en:"Technical Training", desc_ar:"Front-End, Back-End, Flutter, AI, UI/UX", desc_en:"Front-End, Back-End, Flutter, AI, UI/UX" },
+  { abbr:"MG", color:"#faa633", ar:"تدريب إداري", en:"Management Training", desc_ar:"HR, Soft Skills, القيادة, التصميم التعليمي", desc_en:"HR, Soft Skills, Leadership, Instructional Design" },
+  { abbr:"EN", color:"#0ea5e9", ar:"اللغة الإنجليزية", en:"English Language", desc_ar:"من المبتدئ حتى المتقدم + إنجليزي متخصص", desc_en:"Beginner to advanced + business English" },
+  { abbr:"KD", color:"#10b981", ar:"تدريب الأطفال", en:"Children Programs", desc_ar:"برمجة وإنجليزي للأطفال", desc_en:"Coding and English for children" },
+  { abbr:"ED", color:"#672d86", ar:"الاستشارات التعليمية", en:"Educational Consulting", desc_ar:"تصميم برامج تدريبية مخصصة", desc_en:"Custom training program design" },
+  { abbr:"CT", color:"#faa633", ar:"شهادات معتمدة", en:"Certified Programs", desc_ar:"برامج بشهادات معترف بها", desc_en:"Internationally recognized certificates" },
 ];
 
 const initForm = { company:"", contact:"", phone:"", email:"", program:"", employees:"", platform:"meet", date:"", time:"", notes:"" };
@@ -84,7 +84,7 @@ export default function CorporatePage() {
         <div style={{position:"absolute",top:"-20%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.35),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:700}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
-            🏢 {lang==="ar" ? "حلول تدريب الشركات والمؤسسات" : "Corporate & Institutional Training Solutions"}
+            {lang==="ar" ? "حلول تدريب الشركات والمؤسسات" : "Corporate & Institutional Training Solutions"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
@@ -103,7 +103,7 @@ export default function CorporatePage() {
               style={{padding:"13px 28px",boxShadow:`0 8px 25px rgba(217,27,91,.44)`}}/>
             <a href={`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`} target="_blank" rel="noreferrer"
               style={{display:"inline-flex",alignItems:"center",gap:8,padding:"13px 22px",border:"1.5px solid #25d366",borderRadius:10,color:"#25d366",fontFamily:"'Cairo',sans-serif",fontWeight:700,fontSize:14,textDecoration:"none"}}>
-              💬 WhatsApp
+              WhatsApp
             </a>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function CorporatePage() {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:18}}>
           {PROGRAMS.map(p=>(
             <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22}}>
-              <div style={{fontSize:34,marginBottom:12}}>{p.icon}</div>
+              <div style={{width:44,height:44,borderRadius:12,background:`${p.color}22`,border:`1.5px solid ${p.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:p.color,marginBottom:12,letterSpacing:1}}>{p.abbr}</div>
               <div style={{fontWeight:800,fontSize:15,marginBottom:7}}>{lang==="ar"?p.ar:p.en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?p.desc_ar:p.desc_en}</div>
             </div>
@@ -184,7 +184,7 @@ export default function CorporatePage() {
 
           {done ? (
             <div style={{background:"rgba(16,185,129,.08)",border:"1px solid rgba(16,185,129,.25)",borderRadius:20,padding:40,textAlign:"center"}}>
-              <div style={{fontSize:60,marginBottom:16}}>🎉</div>
+              <div style={{width:60,height:60,borderRadius:"50%",background:"rgba(16,185,129,.15)",border:"2px solid rgba(16,185,129,.4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:22,fontWeight:900,color:"#10b981"}}>✓</div>
               <h3 style={{fontWeight:900,fontSize:20,marginBottom:10}}>{lang==="ar" ? "تم إرسال طلبك!" : "Request Sent!"}</h3>
               <p style={{color:C.muted,fontSize:13,marginBottom:24}}>
                 {lang==="ar"
@@ -228,7 +228,7 @@ export default function CorporatePage() {
                   {MEETING_PLATFORMS.map(mp=>(
                     <button key={mp.v} onClick={()=>setForm(p=>({...p,platform:mp.v}))}
                       style={{padding:"9px 16px",borderRadius:10,background:form.platform===mp.v?`${C.red}22`:"transparent",border:`1.5px solid ${form.platform===mp.v?C.red:C.border}`,color:form.platform===mp.v?C.red:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:6}}>
-                      {mp.icon} {mp.label}
+                      {mp.label}
                     </button>
                   ))}
                 </div>

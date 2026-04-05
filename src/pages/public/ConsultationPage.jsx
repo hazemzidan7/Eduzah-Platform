@@ -63,7 +63,7 @@ export default function ConsultationPage() {
         <div style={{position:"absolute",top:"-20%",right:"-10%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:660}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
-            💬 {lang==="ar" ? "استشارة مجانية" : "Free Consultation"}
+            {lang==="ar" ? "استشارة مجانية" : "Free Consultation"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
@@ -111,7 +111,7 @@ export default function ConsultationPage() {
 
           {done ? (
             <Card style={{padding:40,textAlign:"center"}}>
-              <div style={{fontSize:64,marginBottom:16}}>🎉</div>
+              <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(16,185,129,.15)",border:"2px solid rgba(16,185,129,.4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:24,fontWeight:900,color:"#10b981"}}>✓</div>
               <h3 style={{fontWeight:900,fontSize:22,marginBottom:10}}>
                 {lang==="ar" ? "تم إرسال طلبك!" : "Request Sent!"}
               </h3>
@@ -127,7 +127,7 @@ export default function ConsultationPage() {
               </div>
               <a href={`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`} target="_blank" rel="noreferrer"
                 style={{display:"block",marginTop:16,color:"#25d366",fontWeight:700,fontSize:13,textDecoration:"none"}}>
-                💬 {lang==="ar" ? "أو تواصل معنا مباشرة على واتساب" : "Or contact us directly on WhatsApp"}
+                {lang==="ar" ? "أو تواصل معنا مباشرة على واتساب" : "Or contact us directly on WhatsApp"}
               </a>
             </Card>
           ) : (

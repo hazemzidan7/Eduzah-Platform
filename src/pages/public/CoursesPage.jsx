@@ -8,13 +8,12 @@ import { useLang } from "../../context/LangContext";
 import { TRACKS } from "../../data";
 
 const TRAINING_TYPES = [
-  { v: "all", ar: "الكل", en: "All" },
-  { v: "recorded", ar: "مسجّل", en: "Recorded" },
-  { v: "online", ar: "أونلاين", en: "Live Online" },
-  { v: "offline", ar: "حضوري", en: "Offline" },
+  { v: "all",      ar: "الكل",      en: "All" },
+  { v: "recorded", ar: "مسجّل",     en: "Recorded" },
+  { v: "online",   ar: "أونلاين",   en: "Live Online" },
+  { v: "offline",  ar: "حضوري",     en: "Offline" },
 ];
 
-const TYPE_ICONS = { recorded: "🎥", online: "💻", offline: "🏢" };
 const TYPE_COLORS = { recorded: C.purple, online: "#0ea5e9", offline: "#10b981" };
 
 export default function CoursesPage() {
@@ -35,17 +34,16 @@ export default function CoursesPage() {
   }, [searchParams]);
 
   const filtered = courses.filter(c => {
-    const matchTrack = track === "all" || c.trackId === track;
-    const matchType  = type  === "all" || (c.trainingTypes || []).includes(type);
+    const matchTrack  = track === "all" || c.trackId === track;
+    const matchType   = type  === "all" || (c.trainingTypes || []).includes(type);
     const matchSearch = !search || c.title.toLowerCase().includes(search.toLowerCase()) || (c.title_en||"").toLowerCase().includes(search.toLowerCase());
     return matchTrack && matchType && matchSearch;
   });
 
-  const dir2 = lang === "ar" ? "rtl" : "ltr";
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
 
   return (
-    <div style={{padding:"clamp(24px,5vw,44px) 5%"}} dir={dir2}>
+    <div style={{padding:"clamp(24px,5vw,44px) 5%"}} dir={dir}>
       {/* Header */}
       <div style={{textAlign:"center",marginBottom:36}}>
         <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:8}}>
@@ -77,8 +75,8 @@ export default function CoursesPage() {
             {lang==="ar" ? "الكل" : "All"}
           </button>
           {TRACKS.map(tr=>(
-            <button key={tr.id} onClick={()=>setTrack(tr.id)} style={{padding:"7px 16px",borderRadius:50,background:track===tr.id?tr.color:"transparent",border:`1.5px solid ${track===tr.id?tr.color:C.border}`,color:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:6}}>
-              <span>{tr.icon}</span> {lang==="ar" ? tr.title_ar : tr.title_en}
+            <button key={tr.id} onClick={()=>setTrack(tr.id)} style={{padding:"7px 16px",borderRadius:50,background:track===tr.id?tr.color:"transparent",border:`1.5px solid ${track===tr.id?tr.color:C.border}`,color:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
+              {lang==="ar" ? tr.title_ar : tr.title_en}
             </button>
           ))}
         </div>
@@ -92,7 +90,6 @@ export default function CoursesPage() {
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {TRAINING_TYPES.map(t=>(
             <button key={t.v} onClick={()=>setType(t.v)} style={{padding:"6px 14px",borderRadius:50,background:type===t.v?"rgba(217,27,91,.2)":"transparent",border:`1.5px solid ${type===t.v?C.red:C.border}`,color:type===t.v?C.red:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
-              {t.v!=="all"&&<span style={{marginInlineEnd:5}}>{TYPE_ICONS[t.v]}</span>}
               {lang==="ar" ? t.ar : t.en}
             </button>
           ))}
@@ -106,8 +103,8 @@ export default function CoursesPage() {
           </div>
         : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
           {filtered.map(c=>{
-            const enrolled = currentUser?.enrolledCourses?.find(e=>e.courseId===c.id);
-            const prog = enrolled?.progress||0;
+            const enrolled  = currentUser?.enrolledCourses?.find(e=>e.courseId===c.id);
+            const prog      = enrolled?.progress||0;
             const trackData = TRACKS.find(tr=>tr.id===c.trackId);
             return (
               <div key={c.id}
@@ -118,33 +115,35 @@ export default function CoursesPage() {
 
                 {c.image
                   ? <img src={c.image} alt={c.title} style={{width:"100%",height:150,objectFit:"cover"}}/>
-                  : <div style={{height:150,background:`linear-gradient(135deg,${c.color},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:48,position:"relative"}}>
-                      {c.icon}
-                      {c.featured&&<div style={{position:"absolute",top:10,right:10,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"3px 10px",fontSize:10,fontWeight:700}}>⭐ {lang==="ar"?"مميز":"Featured"}</div>}
+                  : <div style={{height:150,background:`linear-gradient(135deg,${c.color||C.red},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                      <span style={{fontWeight:900,color:"rgba(255,255,255,.4)",fontSize:"0.8rem",textAlign:"center",padding:"0 16px",lineHeight:1.4}}>
+                        {lang==="ar"?c.title:(c.title_en||c.title)}
+                      </span>
+                      {c.featured&&<div style={{position:"absolute",top:10,right:10,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"3px 10px",fontSize:10,fontWeight:700}}>{lang==="ar"?"مميز":"Featured"}</div>}
                     </div>
                 }
                 <div style={{padding:"14px 16px 18px"}}>
                   {/* Track badge */}
                   {trackData&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${trackData.color}15`,color:trackData.color,border:`1px solid ${trackData.color}33`,borderRadius:50,padding:"2px 9px",fontSize:10,fontWeight:700,marginBottom:8}}>
-                    {trackData.icon} {lang==="ar" ? trackData.title_ar : trackData.title_en}
+                    {lang==="ar" ? trackData.title_ar : trackData.title_en}
                   </div>}
 
                   <div style={{fontWeight:800,fontSize:14,marginBottom:5}}>{lang==="ar"?c.title:(c.title_en||c.title)}</div>
                   <div style={{color:C.muted,fontSize:12,marginBottom:10,lineHeight:1.6}}>{(lang==="ar"?c.desc:(c.desc_en||c.desc)||"").slice(0,65)}...</div>
 
-                  {/* Training types */}
+                  {/* Training type badges */}
                   <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
                     {(c.trainingTypes||[]).map(tt=>(
                       <span key={tt} style={{background:`${TYPE_COLORS[tt]}18`,color:TYPE_COLORS[tt],border:`1px solid ${TYPE_COLORS[tt]}33`,borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700}}>
-                        {TYPE_ICONS[tt]} {lang==="ar" ? TRAINING_TYPES.find(x=>x.v===tt)?.ar : TRAINING_TYPES.find(x=>x.v===tt)?.en}
+                        {lang==="ar" ? TRAINING_TYPES.find(x=>x.v===tt)?.ar : TRAINING_TYPES.find(x=>x.v===tt)?.en}
                       </span>
                     ))}
                   </div>
 
                   <div style={{display:"flex",gap:12,marginBottom:10}}>
-                    <span style={{color:C.muted,fontSize:11}}>⏱ {dur(c.duration)}</span>
-                    <span style={{color:C.muted,fontSize:11}}>📚 {c.hours}h</span>
-                    {c.rating>0&&<span style={{color:C.orange,fontSize:11}}>⭐ {c.rating}</span>}
+                    <span style={{color:C.muted,fontSize:11}}>{dur(c.duration)}</span>
+                    <span style={{color:C.muted,fontSize:11}}>{c.hours}h</span>
+                    {c.rating>0&&<span style={{color:C.orange,fontSize:11}}>{c.rating} / 5</span>}
                   </div>
 
                   {enrolled&&<div style={{marginBottom:10}}><PBar value={prog} color={C.orange} h={4}/><div style={{color:C.muted,fontSize:11,marginTop:3}}>{prog}% {lang==="ar"?"مكتمل":"completed"}</div></div>}
@@ -152,7 +151,7 @@ export default function CoursesPage() {
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:`1px solid ${C.border}`,paddingTop:10}}>
                     <div>
                       <span style={{fontWeight:900,fontSize:16,color:C.red}}>{c.price.toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
-                      {c.installment>0&&<div style={{color:C.muted,fontSize:10}}>{lang==="ar"?"أو":"or"} {c.installment.toLocaleString()} EGP × 3</div>}
+                      {c.installment>0&&<div style={{color:C.muted,fontSize:10}}>{lang==="ar"?"أو":"or"} {c.installment.toLocaleString()} EGP &times; 3</div>}
                     </div>
                     <Btn children={enrolled?(lang==="ar"?"متابعة ▶":"Continue ▶"):(lang==="ar"?"سجّل الآن":"Enroll")} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${c.slug}`);}}/>
                   </div>

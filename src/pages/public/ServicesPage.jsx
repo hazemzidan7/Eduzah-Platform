@@ -5,37 +5,37 @@ import { useLang } from "../../context/LangContext";
 import { SITE } from "../../data";
 
 const SERVICES = [
-  { slug:"web-development",  icon:"🌐", color:C.red,
+  { slug:"web-development",  abbr:"WD", color:C.red,
     title_ar:"تطوير المواقع والتطبيقات", title_en:"Web Development",
     desc_ar:"مواقع وتطبيقات ويب احترافية بأحدث التقنيات — React, Next.js, Node.js.",
     desc_en:"Professional websites and web apps with modern tech — React, Next.js, Node.js.",
     tags:["React","Node.js","TypeScript","Next.js"],
   },
-  { slug:"mobile-apps",      icon:"📱", color:"#4a1f6e",
+  { slug:"mobile-apps",      abbr:"MA", color:"#4a1f6e",
     title_ar:"تطبيقات الموبايل", title_en:"Mobile Apps",
     desc_ar:"تطبيقات iOS & Android عالية الأداء باستخدام Flutter من كود واحد.",
     desc_en:"High-performance iOS & Android apps using Flutter from a single codebase.",
     tags:["Flutter","Dart","Firebase","iOS/Android"],
   },
-  { slug:"ai-solutions",     icon:"🤖", color:C.purple,
+  { slug:"ai-solutions",     abbr:"AI", color:C.purple,
     title_ar:"حلول الذكاء الاصطناعي", title_en:"AI Solutions",
     desc_ar:"Chatbots ذكية، نماذج ML، وتكامل OpenAI في منتجاتك لمضاعفة الكفاءة.",
     desc_en:"Smart chatbots, ML models, and OpenAI integration to multiply your efficiency.",
     tags:["Python","OpenAI","TensorFlow","LangChain"],
   },
-  { slug:"cybersecurity",    icon:"🔐", color:C.danger,
+  { slug:"cybersecurity",    abbr:"CS", color:C.danger,
     title_ar:"الأمن السيبراني", title_en:"Cybersecurity",
     desc_ar:"اختبارات اختراق، تدقيق أمني، وحماية شاملة من التهديدات الرقمية.",
     desc_en:"Penetration testing, security audits, and comprehensive digital threat protection.",
     tags:["OWASP","Pentest","Kali Linux","SIEM"],
   },
-  { slug:"ui-ux-design",     icon:"🎨", color:C.orange,
+  { slug:"ui-ux-design",     abbr:"UX", color:C.orange,
     title_ar:"تصميم UI/UX", title_en:"UI/UX Design",
     desc_ar:"تجارب مستخدم استثنائية تجمع الجمال البصري والسهولة الوظيفية بـ Figma.",
     desc_en:"Exceptional user experiences combining visual beauty and functional ease with Figma.",
     tags:["Figma","Prototyping","UX Research","Design Systems"],
   },
-  { slug:"cloud-devops",     icon:"☁️", color:C.success,
+  { slug:"cloud-devops",     abbr:"CD", color:C.success,
     title_ar:"الكلاود وـ DevOps", title_en:"Cloud & DevOps",
     desc_ar:"بنية تحتية سحابية موثوقة، CI/CD Pipelines، وإدارة Kubernetes.",
     desc_en:"Reliable cloud infrastructure, CI/CD Pipelines, and Kubernetes management.",
@@ -58,7 +58,7 @@ export default function ServicesPage() {
           <p style={{ color: C.muted, fontSize: 14, maxWidth: 560, margin: "0 auto 28px" }}>{t("servicesSub")}</p>
           <a href={`https://wa.me/${SITE.phone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
             style={{ background: "#25d366", color: "#fff", padding: "11px 24px", borderRadius: 10, fontFamily:"'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-            💬 {t("contactWA")}
+            {t("contactWA")}
           </a>
         </div>
       </div>
@@ -75,8 +75,8 @@ export default function ServicesPage() {
 
               {/* Icon + Title */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                  {svc.icon}
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: svc.color, flexShrink: 0, letterSpacing: 1 }}>
+                  {svc.abbr}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>{lang === "ar" ? svc.title_ar : svc.title_en}</div>
               </div>
@@ -98,8 +98,8 @@ export default function ServicesPage() {
                 <span style={{ color: svc.color, fontSize: 12, fontWeight: 700 }}>
                   {lang === "ar" ? "اعرف أكثر ←" : "Learn More →"}
                 </span>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-                  {svc.icon}
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: svc.color, letterSpacing: 0.5 }}>
+                  {svc.abbr}
                 </div>
               </div>
             </div>
@@ -120,12 +120,12 @@ export default function ServicesPage() {
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
             <a href={`https://wa.me/${SITE.phone.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
               style={{ background: "#25d366", color: "#fff", padding: "12px 26px", borderRadius: 10, fontFamily:"'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              💬 {t("contactWA")}
+              {t("contactWA")}
             </a>
             <Btn children={lang === "ar" ? "استعرض الكورسات" : "Browse Courses"} v="outline" onClick={() => navigate("/courses")} style={{ padding: "12px 26px" }} />
           </div>
           <div style={{ marginTop: 16, color: C.muted, fontSize: 11 }}>
-            {lang === "ar" ? "📞 استشارة مجانية · رد خلال 24 ساعة · بدون التزام" : "📞 Free consultation · 24h response · No commitment"}
+            {lang === "ar" ? "استشارة مجانية · رد خلال 24 ساعة · بدون التزام" : "Free consultation · 24h response · No commitment"}
           </div>
         </div>
       </div>
