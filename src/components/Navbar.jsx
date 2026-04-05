@@ -98,12 +98,16 @@ export default function Navbar() {
 
           {/* ── Logo ── */}
           <Link to="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
-            <img src="/logo.png" alt="Eduzah" style={{
-              height: 34, width: "auto", display: "block",
-              background: "#fff",
-              borderRadius: 8,
-              padding: "4px 10px",
-            }} />
+            <img
+              src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
+              alt="Eduzah"
+              style={{
+                height: 34, width: "auto", display: "block",
+                background: "#fff",
+                borderRadius: 8,
+                padding: "4px 10px",
+              }}
+            />
           </Link>
 
           {/* ── Desktop links ── */}
