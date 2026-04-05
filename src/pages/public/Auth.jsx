@@ -122,7 +122,7 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
         title={lang === "ar" ? "تسجيل الدخول — Eduzah" : "Login — Eduzah"}
         description={lang === "ar" ? "سجّل دخولك إلى منصة Eduzah للتدريب المهني." : "Sign in to the Eduzah professional training platform."}
@@ -235,7 +235,7 @@ export function RegisterPage() {
   );
 
   return (
-    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
         title={lang === "ar" ? "إنشاء حساب — Eduzah" : "Register — Eduzah"}
         description={lang === "ar" ? "أنشئ حساباً على Eduzah للتدريب المهني والكورسات." : "Create your Eduzah account for professional training and courses."}
@@ -330,7 +330,7 @@ export function ForgotPasswordPage() {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
-    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
         title={lang === "ar" ? "استعادة كلمة المرور — Eduzah" : "Forgot password — Eduzah"}
         description={lang === "ar" ? "استعد الوصول إلى حسابك على Eduzah." : "Recover access to your Eduzah account."}
@@ -408,7 +408,7 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
         title={lang === "ar" ? "إعادة تعيين كلمة المرور — Eduzah" : "Reset password — Eduzah"}
         description={lang === "ar" ? "عيّن كلمة مرور جديدة لحساب Eduzah." : "Set a new password for your Eduzah account."}

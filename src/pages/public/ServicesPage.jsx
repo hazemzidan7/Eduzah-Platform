@@ -47,8 +47,9 @@ export default function ServicesPage() {
   const navigate = useNavigate();
   const { lang, t } = useLang();
 
+  const dir = lang === "ar" ? "rtl" : "ltr";
   return (
-    <div>
+    <div dir={dir}>
       {/* Hero */}
       <div style={{ background: gHero, padding: "clamp(40px,7vw,70px) 5%", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "-20%", right: "-5%", width: 400, height: 400, background: "radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />

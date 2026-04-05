@@ -123,9 +123,10 @@ export default function ServiceDetail() {
   const sub     = lang === "ar" ? svc.sub_ar      : svc.sub_en;
   const offers  = lang === "ar" ? svc.offers_ar   : svc.offers_en;
   const whyUs   = lang === "ar" ? svc.whyUs_ar    : ["5+ years of experience","On-time delivery","Clean, scalable code","Free 3-month support","100% client satisfaction","Expert certified team"];
+  const dir     = lang === "ar" ? "rtl" : "ltr";
 
   return (
-    <div>
+    <div dir={dir}>
       {/* Hero */}
       <div style={{
         background: `linear-gradient(135deg,#1a0a2e 0%,#321d3d 45%,${svc.color}33 100%)`,
