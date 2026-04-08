@@ -106,17 +106,27 @@ export default function InstructorDashboard() {
       type: "truefalse", dueDate: "", duration: "30", description: "",
     });
     const [questions, setQuestions] = useState([]);
-    const [qText, setQText] = useState("");
+    // True/False state
+    const [qText, setQText]     = useState("");
     const [qAnswer, setQAnswer] = useState("true");
+    // MCQ state
+    const [mcqText,    setMcqText]    = useState("");
+    const [mcqChoices, setMcqChoices] = useState(["", "", "", ""]);
+    const [mcqCorrect, setMcqCorrect] = useState(0);
 
-    const addQ = () => {
+    const addTFQuestion = () => {
       if (!qText.trim()) return;
-      if (f.type === "truefalse") {
-        setQuestions(p => [...p, { q: qText, answer: qAnswer === "true" }]);
-      } else {
-        setQuestions(p => [...p, { q: qText }]);
-      }
+      setQuestions(p => [...p, { q: qText, answer: qAnswer === "true" }]);
       setQText(""); setQAnswer("true");
+    };
+
+    const addMCQQuestion = () => {
+      if (!mcqText.trim()) { showT(tx("اكتب نص السؤال", "Enter question text"), "error"); return; }
+      const filled = mcqChoices.filter(c => c.trim());
+      if (filled.length < 2) { showT(tx("أضف اختيارين على الأقل", "Add at least 2 choices"), "error"); return; }
+      if (!mcqChoices[mcqCorrect]?.trim()) { showT(tx("اختر الإجابة الصحيحة", "Select correct answer"), "error"); return; }
+      setQuestions(p => [...p, { q: mcqText, choices: mcqChoices, correct: mcqCorrect }]);
+      setMcqText(""); setMcqChoices(["", "", "", ""]); setMcqCorrect(0);
     };
 
     const submit = () => {
@@ -126,13 +136,15 @@ export default function InstructorDashboard() {
       setModal(null);
     };
 
+    const choiceLabels = ["A", "B", "C", "D"];
+
     return (
       <Modal title={tx("إنشاء امتحان جديد", "Create new exam")} onClose={() => setModal(null)}>
         <Input label={tx("عنوان الامتحان *", "Exam title *")} value={f.title} onChange={v => setF(p => ({ ...p, title: v }))} placeholder={tx("امتحان الوحدة الأولى", "Unit 1 exam")} />
         <Select label={tx("الكورس *", "Course *")} value={f.courseId} onChange={v => setF(p => ({ ...p, courseId: v }))}
           options={myCourses.map(c => ({ v: c.id, l: c.title }))} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Select label={tx("نوع الامتحان", "Exam type")} value={f.type} onChange={v => setF(p => ({ ...p, type: v }))}
+          <Select label={tx("نوع الامتحان", "Exam type")} value={f.type} onChange={v => { setF(p => ({ ...p, type: v })); setQuestions([]); }}
             options={[
               { v: "truefalse", l: tx("صح / خطأ", "True / False") },
               { v: "essay",     l: tx("مقالي", "Essay") },
@@ -141,32 +153,89 @@ export default function InstructorDashboard() {
             ]} />
           <Input label={tx("الموعد النهائي *", "Due date *")} value={f.dueDate} onChange={v => setF(p => ({ ...p, dueDate: v }))} type="date" />
         </div>
+
         {(f.type === "task" || f.type === "essay") && (
           <Input label={tx("وصف المهمة / تعليمات", "Task / instructions")} value={f.description} onChange={v => setF(p => ({ ...p, description: v }))} placeholder={tx("اكتب تعليمات الامتحان هنا...", "Exam instructions...")} rows={3} />
         )}
-        {(f.type === "truefalse" || f.type === "mcq") && (
+
+        {/* True/False questions */}
+        {f.type === "truefalse" && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 8 }}>{tx("إضافة أسئلة", "Add questions")}</div>
             <Input label={tx("نص السؤال", "Question")} value={qText} onChange={v => setQText(v)} placeholder={tx("اكتب السؤال هنا...", "Type the question...")} />
-            {f.type === "truefalse" && (
-              <Select label={tx("الإجابة الصحيحة", "Correct answer")} value={qAnswer} onChange={v => setQAnswer(v)}
-                options={[{ v: "true", l: tx("صح", "True") }, { v: "false", l: tx("خطأ", "False") }]} />
-            )}
-            <Btn children={tx("+ إضافة السؤال", "+ Add question")} sm v="outline" onClick={addQ} style={{ marginTop: 4 }} />
-            {questions.length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{questions.length} {tx("سؤال مضاف:", "question(s) added:")}</div>
-                {questions.map((q, i) => (
-                  <div key={i} style={{ fontSize: 11, padding: "5px 9px", background: "rgba(255,255,255,.05)", borderRadius: 7, marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
-                    <span>{i + 1}. {q.q.slice(0, 40)}</span>
-                    {f.type === "truefalse" && <Badge color={q.answer ? C.success : C.danger}>{q.answer ? tx("صح", "T") : tx("خطأ", "F")}</Badge>}
-                    <span style={{ color: C.danger, cursor: "pointer" }} onClick={() => setQuestions(p => p.filter((_, j) => j !== i))}>✕</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Select label={tx("الإجابة الصحيحة", "Correct answer")} value={qAnswer} onChange={v => setQAnswer(v)}
+              options={[{ v: "true", l: tx("صح", "True") }, { v: "false", l: tx("خطأ", "False") }]} />
+            <Btn children={tx("+ إضافة السؤال", "+ Add question")} sm v="outline" onClick={addTFQuestion} style={{ marginTop: 4 }} />
           </div>
         )}
+
+        {/* MCQ questions */}
+        {f.type === "mcq" && (
+          <div style={{ marginBottom: 12, background: "rgba(255,255,255,.03)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 14px 10px" }}>
+            <div style={{ fontSize: 12, color: C.orange, fontWeight: 700, marginBottom: 10 }}>{tx("إضافة سؤال اختيار متعدد", "Add MCQ question")}</div>
+            <Input label={tx("نص السؤال *", "Question text *")} value={mcqText} onChange={v => setMcqText(v)} placeholder={tx("اكتب السؤال هنا...", "Type the question...")} />
+
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, margin: "8px 0 6px" }}>{tx("الاختيارات", "Choices")}</div>
+            {mcqChoices.map((ch, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                {/* correct radio */}
+                <div
+                  onClick={() => setMcqCorrect(i)}
+                  title={tx("صح", "Correct")}
+                  style={{
+                    width: 18, height: 18, borderRadius: "50%", flexShrink: 0, cursor: "pointer",
+                    border: `2px solid ${mcqCorrect === i ? C.success : C.border}`,
+                    background: mcqCorrect === i ? C.success : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                  {mcqCorrect === i && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
+                </div>
+                <div style={{ width: 22, height: 22, borderRadius: 6, background: mcqCorrect === i ? `${C.success}22` : "rgba(255,255,255,.07)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: mcqCorrect === i ? C.success : C.muted, flexShrink: 0 }}>
+                  {choiceLabels[i]}
+                </div>
+                <input
+                  value={ch}
+                  onChange={e => { const n = [...mcqChoices]; n[i] = e.target.value; setMcqChoices(n); }}
+                  placeholder={tx(`الاختيار ${choiceLabels[i]}`, `Choice ${choiceLabels[i]}`)}
+                  style={{ flex: 1, background: "rgba(255,255,255,.06)", border: `1.5px solid ${mcqCorrect === i ? C.success : C.border}`, borderRadius: 8, padding: "7px 10px", color: "#fff", fontFamily: "inherit", fontSize: 12, outline: "none" }}
+                />
+              </div>
+            ))}
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 8 }}>
+              {tx("اضغط على الدائرة لتحديد الإجابة الصحيحة", "Click the circle to mark the correct answer")}
+            </div>
+            <Btn children={tx("+ إضافة السؤال", "+ Add question")} sm v="outline" onClick={addMCQQuestion} />
+          </div>
+        )}
+
+        {/* Questions list */}
+        {(f.type === "truefalse" || f.type === "mcq") && questions.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{questions.length} {tx("سؤال مضاف:", "question(s) added:")}</div>
+            {questions.map((q, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,.05)", borderRadius: 9, padding: "8px 11px", marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{i + 1}. {q.q}</div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                    {f.type === "truefalse" && <Badge color={q.answer ? C.success : C.danger}>{q.answer ? tx("صح", "True") : tx("خطأ", "False")}</Badge>}
+                    {f.type === "mcq" && <Badge color={C.success}>{choiceLabels[q.correct]}: {q.choices[q.correct]?.slice(0, 20)}</Badge>}
+                    <span style={{ color: C.danger, cursor: "pointer", fontSize: 13 }} onClick={() => setQuestions(p => p.filter((_, j) => j !== i))}>✕</span>
+                  </div>
+                </div>
+                {f.type === "mcq" && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                    {q.choices.filter(c => c.trim()).map((c, ci) => (
+                      <span key={ci} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: ci === q.correct ? `${C.success}22` : "rgba(255,255,255,.06)", color: ci === q.correct ? C.success : C.muted, border: `1px solid ${ci === q.correct ? C.success : "transparent"}` }}>
+                        {choiceLabels[ci]}. {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <Btn children={tx("إنشاء الامتحان", "Create exam")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
