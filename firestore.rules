@@ -22,8 +22,13 @@ service cloud.firestore {
         && userDoc().role == 'instructor';
     }
 
+    /** Must not call get() if user doc is missing — otherwise the whole rule fails (permission denied). */
     function userEnrolledCourseIds() {
-      let d = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      if (!exists(path)) {
+        return [];
+      }
+      let d = get(path).data;
       return d.enrolledCourseIds != null ? d.enrolledCourseIds : [];
     }
 
