@@ -548,19 +548,35 @@ export default function AdminDashboard() {
   const AddExamModal = () => {
     const [f, setF] = useState({ title:"", courseId: courses[0]?.id || "", type:"mcq", dueDate:"", duration:"45", description:"" });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+    const [questions,  setQuestions]  = useState([]);
+    const [mcqText,    setMcqText]    = useState("");
+    const [mcqChoices, setMcqChoices] = useState(["", "", "", ""]);
+    const [mcqCorrect, setMcqCorrect] = useState(0);
+    const choiceLabels = ["A", "B", "C", "D"];
+
+    const addMCQQuestion = () => {
+      if (!mcqText.trim()) { showT(tx("اكتب نص السؤال","Enter question text"), "error"); return; }
+      if (mcqChoices.filter(c => c.trim()).length < 2) { showT(tx("أضف اختيارين على الأقل","Add at least 2 choices"), "error"); return; }
+      if (!mcqChoices[mcqCorrect]?.trim()) { showT(tx("اختر الإجابة الصحيحة","Select correct answer"), "error"); return; }
+      setQuestions(p => [...p, { q: mcqText, choices: mcqChoices, correct: mcqCorrect }]);
+      setMcqText(""); setMcqChoices(["", "", "", ""]); setMcqCorrect(0);
+    };
+
     const submit = () => {
       if (!f.title || !f.courseId || !f.dueDate) { showT(tx("أكمل البيانات الأساسية","Fill in the required fields"), "error"); return; }
-      addExam(f);
+      addExam({ ...f, questions });
       showT(tx("تم إضافة الامتحان بنجاح","Exam added successfully"));
       setModal(null);
     };
+
     return (
       <Modal title={tx("إضافة امتحان / تاسك جديد","Add Exam / Task")} onClose={() => setModal(null)}>
         <Input label="عنوان الامتحان *" value={f.title} onChange={v => set("title", v)} placeholder="امتحان HTML & CSS الأول" />
         <Select label="الكورس *" value={f.courseId} onChange={v => set("courseId", v)}
           options={courses.map(c => ({ v: c.id, l: c.title }))} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Select label="النوع" value={f.type} onChange={v => set("type", v)}
+          <Select label="النوع" value={f.type} onChange={v => { set("type", v); setQuestions([]); }}
             options={[{v:"mcq",l:"MCQ"},{v:"task",l:"Task"}]} />
           <Input label="الموعد النهائي *" value={f.dueDate} onChange={v => set("dueDate", v)} placeholder="15 أبريل 2025" />
         </div>
@@ -570,6 +586,56 @@ export default function AdminDashboard() {
         {f.type === "task" && (
           <Input label="وصف المهمة" value={f.description} onChange={v => set("description", v)} placeholder="ابني صفحة Landing Page باستخدام..." rows={3} />
         )}
+
+        {/* MCQ question builder */}
+        {f.type === "mcq" && (
+          <div style={{ marginBottom: 12, background: "rgba(255,255,255,.03)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 14px 10px" }}>
+            <div style={{ fontSize: 12, color: C.orange, fontWeight: 700, marginBottom: 10 }}>{tx("إضافة سؤال اختيار متعدد","Add MCQ question")}</div>
+            <Input label={tx("نص السؤال *","Question text *")} value={mcqText} onChange={v => setMcqText(v)} placeholder={tx("اكتب السؤال هنا...","Type the question...")} />
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, margin: "8px 0 6px" }}>{tx("الاختيارات","Choices")}</div>
+            {mcqChoices.map((ch, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                <div onClick={() => setMcqCorrect(i)} style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: `2px solid ${mcqCorrect === i ? C.success : C.border}`, background: mcqCorrect === i ? C.success : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {mcqCorrect === i && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
+                </div>
+                <div style={{ width: 22, height: 22, borderRadius: 6, background: mcqCorrect === i ? `${C.success}22` : "rgba(255,255,255,.07)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: mcqCorrect === i ? C.success : C.muted, flexShrink: 0 }}>
+                  {choiceLabels[i]}
+                </div>
+                <input value={ch} onChange={e => { const n = [...mcqChoices]; n[i] = e.target.value; setMcqChoices(n); }}
+                  placeholder={tx(`الاختيار ${choiceLabels[i]}`,`Choice ${choiceLabels[i]}`)}
+                  style={{ flex: 1, background: "rgba(255,255,255,.06)", border: `1.5px solid ${mcqCorrect === i ? C.success : C.border}`, borderRadius: 8, padding: "7px 10px", color: "#fff", fontFamily: "inherit", fontSize: 12, outline: "none" }} />
+              </div>
+            ))}
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 8 }}>{tx("اضغط على الدائرة لتحديد الإجابة الصحيحة","Click the circle to mark the correct answer")}</div>
+            <Btn children={tx("+ إضافة السؤال","+ Add question")} sm v="outline" onClick={addMCQQuestion} />
+          </div>
+        )}
+
+        {/* Questions list */}
+        {f.type === "mcq" && questions.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>{questions.length} {tx("سؤال مضاف","question(s) added")}</div>
+            {questions.map((q, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,.05)", borderRadius: 9, padding: "8px 11px", marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{i + 1}. {q.q}</div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                    <Badge color={C.success}>{choiceLabels[q.correct]}: {q.choices[q.correct]?.slice(0, 20)}</Badge>
+                    <span style={{ color: C.danger, cursor: "pointer", fontSize: 13 }} onClick={() => setQuestions(p => p.filter((_, j) => j !== i))}>✕</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                  {q.choices.filter(c => c.trim()).map((c, ci) => (
+                    <span key={ci} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 5, background: ci === q.correct ? `${C.success}22` : "rgba(255,255,255,.06)", color: ci === q.correct ? C.success : C.muted, border: `1px solid ${ci === q.correct ? C.success : "transparent"}` }}>
+                      {choiceLabels[ci]}. {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <Btn children={tx("إضافة الامتحان","Add Exam")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
     );
