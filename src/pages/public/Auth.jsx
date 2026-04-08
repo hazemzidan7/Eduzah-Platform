@@ -99,11 +99,13 @@ const PassField = ({ label, value, onChange, error, placeholder, lang }) => {
 /* ══════════════════════════════════════════
    LOGIN PAGE
 ══════════════════════════════════════════ */
-const loginErr = (code, lang) => {
-  if (code === "BAD_CREDENTIALS") return lang === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password";
-  if (code === "PENDING") return lang === "ar" ? "حسابك قيد المراجعة من الإدارة" : "Your account is pending admin approval";
-  if (code === "REJECTED") return lang === "ar" ? "تم رفض حسابك. تواصل مع الإدارة" : "Your account was rejected. Contact support";
-  return lang === "ar" ? "تعذر تسجيل الدخول" : "Login failed";
+const loginErr = (code, lang, msg) => {
+  if (code === "BAD_CREDENTIALS") return lang === "ar" ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : "Invalid email or password";
+  if (code === "PENDING")         return lang === "ar" ? "حسابك قيد المراجعة من الإدارة. انتظر الموافقة." : "Your account is pending admin approval";
+  if (code === "REJECTED")        return lang === "ar" ? "تم رفض حسابك. تواصل مع الإدارة." : "Your account was rejected. Contact support";
+  if (code === "NO_PROFILE")      return lang === "ar" ? "الحساب موجود لكن بياناتك غير مكتملة. تواصل مع الإدارة." : "Account exists but profile missing. Contact support";
+  if (code === "FIREBASE_ERROR")  return lang === "ar" ? `خطأ في الاتصال: ${msg}` : `Connection error: ${msg}`;
+  return lang === "ar" ? "تعذر تسجيل الدخول، حاول مرة أخرى" : "Login failed, please try again";
 };
 
 export function LoginPage() {
@@ -117,7 +119,7 @@ export function LoginPage() {
   const submit = async () => {
     if (!email || !pass) { setErr(lang === "ar" ? "أدخل البريد وكلمة المرور" : "Enter email and password"); return; }
     const r = await login(email, pass);
-    if (!r.ok) { setErr(loginErr(r.code, lang)); return; }
+    if (!r.ok) { setErr(loginErr(r.code, lang, r.msg)); return; }
     navigate("/dashboard");
   };
 

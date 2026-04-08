@@ -27,15 +27,25 @@ export function AuthProvider({ children }) {
   // ── Listen to Firebase auth state ────────────────────
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (snap.exists()) {
-          setCU({ id: firebaseUser.uid, ...snap.data() });
+      try {
+        if (firebaseUser) {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (snap.exists()) {
+            setCU({ id: firebaseUser.uid, ...snap.data() });
+          } else {
+            // Auth account exists but no Firestore doc — sign out
+            await signOut(auth);
+            setCU(null);
+          }
+        } else {
+          setCU(null);
         }
-      } else {
+      } catch (err) {
+        console.error("Auth state error:", err);
         setCU(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsub;
   }, []);
@@ -84,14 +94,23 @@ export function AuthProvider({ children }) {
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
       const snap = await getDoc(doc(db, "users", cred.user.uid));
-      if (!snap.exists()) return { ok: false, code: "BAD_CREDENTIALS" };
+      if (!snap.exists()) {
+        await signOut(auth);
+        return { ok: false, code: "NO_PROFILE" };
+      }
       const u = snap.data();
       if (u.status === "pending")  { await signOut(auth); return { ok: false, code: "PENDING" }; }
       if (u.status === "rejected") { await signOut(auth); return { ok: false, code: "REJECTED" }; }
       setCU({ id: cred.user.uid, ...u });
       return { ok: true, role: u.role };
-    } catch {
-      return { ok: false, code: "BAD_CREDENTIALS" };
+    } catch (err) {
+      console.error("Login error:", err.code, err.message);
+      if (err.code === "auth/invalid-credential" ||
+          err.code === "auth/wrong-password" ||
+          err.code === "auth/user-not-found") {
+        return { ok: false, code: "BAD_CREDENTIALS" };
+      }
+      return { ok: false, code: "FIREBASE_ERROR", msg: err.message };
     }
   };
 
