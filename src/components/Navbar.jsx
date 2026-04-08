@@ -147,7 +147,7 @@ export default function Navbar() {
             {!mobile && (
               !currentUser ? (
                 <>
-                  <Btn children={lang==="ar" ? "دخول"  : "Login"}    v="outline" sm onClick={() => navigate("/login")} />
+                  <Btn children={lang==="ar" ? "دخول"  : "Login"}    sm onClick={() => navigate("/login")} />
                   <Btn children={lang==="ar" ? "سجّل"  : "Register"} sm          onClick={() => navigate("/register")} />
                 </>
               ) : (
