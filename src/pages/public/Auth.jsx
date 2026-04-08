@@ -116,9 +116,9 @@ export function LoginPage() {
   const [pass,  setPass]  = useState("");
   const [err,   setErr]   = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     if (!email || !pass) { setErr(lang === "ar" ? "أدخل البريد وكلمة المرور" : "Enter email and password"); return; }
-    const r = login(email, pass);
+    const r = await login(email, pass);
     if (!r.ok) { setErr(loginErr(r.code, lang, r.msg)); return; }
     navigate("/dashboard");
   };
