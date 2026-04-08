@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { confirmPasswordReset } from "firebase/auth";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { auth } from "../../firebase";
 import { C, gHero, font } from "../../theme";
-import { Btn, Select } from "../../components/UI";
+import { Btn } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { Seo } from "../../components/Seo";
@@ -187,7 +189,7 @@ export function RegisterPage() {
   const { lang }     = useLang();
   const navigate     = useNavigate();
 
-  const [f,    setF]    = useState({ name: "", email: "", pass: "", confirm: "", phone: "", role: "student" });
+  const [f,    setF]    = useState({ name: "", email: "", pass: "", confirm: "", phone: "" });
   const [errs, setErrs] = useState({});
   const [ok,   setOk]   = useState(false);
 
@@ -205,11 +207,11 @@ export function RegisterPage() {
     return e;
   };
 
-  const submit = () => {
+  const submit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrs(e); return; }
     setErrs({});
-    const r = register(f);
+    const r = await register(f);
     if (!r.ok) {
       if (r.code === "EMAIL_EXISTS") {
         setErrs({ email: lang === "ar" ? "هذا البريد مسجل مسبقاً" : "This email is already registered" });
@@ -281,15 +283,12 @@ export function RegisterPage() {
             placeholder="••••••••" error={errs.confirm} lang={lang} />
         </div>
 
-        <Select label={lang === "ar" ? "نوع الحساب" : "Account Type"}
-          value={f.role} onChange={v => set("role", v)}
-          options={[
-            { v: "student",    l: lang === "ar" ? "طالب"      : "Student" },
-            { v: "instructor", l: lang === "ar" ? "مدرب"      : "Instructor" },
-          ]} />
-
         <div style={{ background: `${C.orange}18`, border: `1px solid ${C.orange}33`, borderRadius: 9, padding: "9px 12px", fontSize: 12, color: C.orange, marginBottom: 14 }}>
-          {lang === "ar" ? "سيتم مراجعة حسابك من Admin خلال 24 ساعة" : "Your account will be reviewed by Admin within 24 hours"}
+          {lang === "ar"
+            ? "التسجيل كطالب فقط. لتسجيل حساب مدرب، تواصل مع الإدارة بعد إنشاء حسابك."
+            : "Student accounts only. For instructor access, contact the team after registering."}
+          {" "}
+          {lang === "ar" ? "سيتم مراجعة حسابك من الإدارة خلال 24 ساعة." : "Your account will be reviewed within 24 hours."}
         </div>
 
         <Btn children={lang === "ar" ? "إنشاء الحساب" : "Create Account"} full onClick={submit}
@@ -307,7 +306,9 @@ export function RegisterPage() {
 }
 
 /* ══════════════════════════════════════════
-   FORGOT PASSWORD (demo: token in UI — production uses email)
+   FORGOT / RESET PASSWORD (Firebase)
+   Configure Firebase Console → Auth → Templates → Action URL to:
+   https://YOUR_DOMAIN/reset-password
 ══════════════════════════════════════════ */
 export function ForgotPasswordPage() {
   const { requestPasswordReset } = useAuth();
@@ -315,21 +316,24 @@ export function ForgotPasswordPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
-  const [token, setToken] = useState(null);
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     setErr("");
     if (!email.trim() || !email.includes("@")) {
       setErr(lang === "ar" ? "أدخل بريداً صالحاً" : "Enter a valid email");
       return;
     }
-    const r = requestPasswordReset(email);
+    setLoading(true);
+    const r = await requestPasswordReset(email);
+    setLoading(false);
+    if (!r.ok) {
+      setErr(lang === "ar" ? "تعذر إرسال الرسالة. حاول لاحقاً." : "Could not send email. Try again later.");
+      return;
+    }
     setDone(true);
-    setToken(r.token || null);
   };
-
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
@@ -341,36 +345,24 @@ export function ForgotPasswordPage() {
         <h1 style={{ fontSize: 20, marginBottom: 8 }}>{lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}</h1>
         <p style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
           {lang === "ar"
-            ? "أدخل بريدك المسجل. في الإصدار الحالي (بدون خادم بريد) سيظهر رابط الاستعادة أدناه للتجربة."
-            : "Enter your registered email. In this demo (no mail server), a recovery link appears below for testing."}
+            ? "أدخل بريدك المسجل. ستصلك رسالة من Firebase تحتوي رابط إعادة التعيين (تحقق من البريد غير المرغوب)."
+            : "Enter your registered email. Firebase will send a reset link (check spam)."}
         </p>
         {!done ? (
           <>
             <Field label={lang === "ar" ? "البريد الإلكتروني" : "Email"}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputSx(!!err)} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputSx(!!err)} disabled={loading} />
             </Field>
             {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{err}</div>}
-            <Btn children={lang === "ar" ? "متابعة" : "Continue"} full onClick={submit} />
+            <Btn children={loading ? "…" : (lang === "ar" ? "متابعة" : "Continue")} full onClick={submit} />
           </>
         ) : (
           <div>
             <p style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>
               {lang === "ar"
-                ? "إذا كان البريد مسجلاً لدينا، يمكنك استخدام الرابط التالي (تجريبي):"
-                : "If the email is registered, use this link (demo only):"}
+                ? "إذا كان البريد مسجلاً لدينا، ستصلك رابط إعادة التعيين قريباً."
+                : "If the email is registered, you will receive a reset link shortly."}
             </p>
-            {token ? (
-              <div>
-                <Link to={`/reset-password?token=${encodeURIComponent(token)}`} style={{ color: C.orange, fontWeight: 700 }}>
-                  {lang === "ar" ? "→ افتح صفحة تعيين كلمة المرور" : "→ Open password reset page"}
-                </Link>
-                <p style={{ fontSize: 11, color: C.muted, marginTop: 10, wordBreak: "break-all", userSelect: "all" }}>
-                  {`${origin}/reset-password?token=${encodeURIComponent(token)}`}
-                </p>
-              </div>
-            ) : (
-              <p style={{ fontSize: 13 }}>{lang === "ar" ? "لم يُعثر على حساب بهذا البريد." : "No account found for this email."}</p>
-            )}
           </div>
         )}
         <div style={{ marginTop: 18 }}>
@@ -384,29 +376,36 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
-  const { resetPasswordWithToken } = useAuth();
   const { lang } = useLang();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const oobCode = searchParams.get("oobCode") || "";
 
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errs, setErrs] = useState({});
   const [ok, setOk] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     const e = {};
     const rules = validatePassword(pass);
     if (rules.some(r => !r.ok)) e.pass = lang === "ar" ? "كلمة المرور لا تستوفي الشروط" : "Password doesn't meet requirements";
     if (pass !== confirm) e.confirm = lang === "ar" ? "غير متطابقة" : "Passwords don't match";
     if (Object.keys(e).length) { setErrs(e); return; }
-    const r = resetPasswordWithToken(token, pass);
-    if (!r.ok) {
-      setErrs({ pass: lang === "ar" ? "الرابط منتهي أو غير صالح" : "Invalid or expired link" });
+    if (!oobCode) {
+      setErrs({ pass: lang === "ar" ? "رابط غير صالح" : "Invalid link" });
       return;
     }
-    setOk(true);
+    setSubmitting(true);
+    try {
+      await confirmPasswordReset(auth, oobCode, pass);
+      setOk(true);
+    } catch {
+      setErrs({ pass: lang === "ar" ? "الرابط منتهي أو غير صالح" : "Invalid or expired link" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -416,8 +415,8 @@ export function ResetPasswordPage() {
         description={lang === "ar" ? "عيّن كلمة مرور جديدة لحساب Eduzah." : "Set a new password for your Eduzah account."}
       />
       <div style={{ background: "rgba(50,29,61,.92)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 400 }}>
-        {!token ? (
-          <p style={{ color: C.danger }}>{lang === "ar" ? "رابط غير صالح." : "Invalid reset link."}</p>
+        {!oobCode ? (
+          <p style={{ color: C.danger }}>{lang === "ar" ? "رابط غير صالح. افتح الرابط من البريد الإلكتروني." : "Invalid link. Open the link from your email."}</p>
         ) : ok ? (
           <>
             <h1 style={{ fontSize: 20, marginBottom: 12 }}>{lang === "ar" ? "تم التحديث" : "Password updated"}</h1>
@@ -431,7 +430,7 @@ export function ResetPasswordPage() {
             <div style={{ marginTop: 10 }}>
               <PassField label={lang === "ar" ? "تأكيد" : "Confirm"} value={confirm} onChange={setConfirm} error={errs.confirm} placeholder="••••••••" lang={lang} />
             </div>
-            <Btn children={lang === "ar" ? "حفظ" : "Save"} full onClick={submit} style={{ marginTop: 16 }} />
+            <Btn children={submitting ? "…" : (lang === "ar" ? "حفظ" : "Save")} full onClick={submit} style={{ marginTop: 16 }} disabled={submitting} />
           </>
         )}
       </div>

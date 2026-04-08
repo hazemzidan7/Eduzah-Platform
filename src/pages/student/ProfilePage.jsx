@@ -24,7 +24,6 @@ export default function ProfilePage() {
   const [form,    setForm]    = useState({
     name:  currentUser?.name  || "",
     phone: currentUser?.phone || "",
-    email: currentUser?.email || "",
   });
 
   if (!currentUser) { navigate("/login"); return null; }
@@ -57,7 +56,7 @@ export default function ProfilePage() {
 
   const saveProfile = () => {
     if (!form.name.trim()) return;
-    updateProfile({ name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() });
+    updateProfile({ name: form.name.trim(), phone: form.phone.trim() });
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -150,7 +149,7 @@ export default function ProfilePage() {
             {editing ? (
               <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                 <Btn children={lang==="ar" ? "حفظ" : "Save"} v="success" sm onClick={saveProfile} />
-                <Btn children={lang==="ar" ? "إلغاء" : "Cancel"} v="outline" sm onClick={() => { setEditing(false); setForm({ name: currentUser.name, phone: currentUser.phone || "", email: currentUser.email }); }} />
+                <Btn children={lang==="ar" ? "إلغاء" : "Cancel"} v="outline" sm onClick={() => { setEditing(false); setForm({ name: currentUser.name, phone: currentUser.phone || "" }); }} />
               </div>
             ) : (
               <Btn children={lang==="ar" ? "تعديل البيانات" : "Edit Profile"} v="outline" full onClick={() => setEditing(true)} />
@@ -170,9 +169,19 @@ export default function ProfilePage() {
                 {lang==="ar" ? "البيانات الشخصية" : "Personal Info"}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginBottom: 5 }}>
+                    {lang==="ar" ? "البريد الإلكتروني" : "Email"}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: currentUser.email ? "#fff" : C.muted }}>
+                    {currentUser.email || (lang==="ar" ? "غير محدد" : "Not set")}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>
+                    {lang==="ar" ? "لتغيير البريد، تواصل مع الإدارة أو استخدم إعدادات حساب Google/Firebase." : "To change email, contact support or use your account provider settings."}
+                  </div>
+                </div>
                 {[
-                  { label: lang==="ar" ? "البريد الإلكتروني" : "Email",  key: "email", type: "email" },
-                  { label: lang==="ar" ? "رقم الهاتف"        : "Phone",  key: "phone", type: "tel"   },
+                  { label: lang==="ar" ? "رقم الهاتف" : "Phone",  key: "phone", type: "tel"   },
                 ].map(({ label, key, type }) => (
                   <div key={key}>
                     <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginBottom: 5 }}>{label}</div>

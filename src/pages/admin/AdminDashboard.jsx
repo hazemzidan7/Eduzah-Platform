@@ -323,7 +323,12 @@ export default function AdminDashboard() {
   };
 
   const EditUserModal = ({ user }) => {
-    const [f, setF] = useState({ name: user.name, email: user.email, phone: user.phone || "" });
+    const [f, setF] = useState({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      role: user.role || "student",
+    });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const submit = () => {
       if (!f.name.trim() || !f.email.includes("@")) {
@@ -335,7 +340,12 @@ export default function AdminDashboard() {
         showT(tx("البريد مستخدم من قبل مستخدم آخر", "Email already used by another user"), "error");
         return;
       }
-      adminUpdateUser(user.id, { name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() });
+      adminUpdateUser(user.id, {
+        name: f.name.trim(),
+        email: f.email.trim(),
+        phone: f.phone.trim(),
+        ...(user.role !== "admin" && { role: f.role }),
+      });
       showT(tx("تم تحديث المستخدم", "User updated"));
       setModal(null);
     };
@@ -344,6 +354,17 @@ export default function AdminDashboard() {
         <Input label={tx("الاسم", "Name")} value={f.name} onChange={v => set("name", v)} />
         <Input label="Email" value={f.email} onChange={v => set("email", v)} />
         <Input label={tx("الهاتف", "Phone")} value={f.phone} onChange={v => set("phone", v)} />
+        {user.role !== "admin" && (
+          <Select
+            label={tx("نوع الحساب", "Account type")}
+            value={f.role}
+            onChange={v => set("role", v)}
+            options={[
+              { v: "student", l: tx("طالب", "Student") },
+              { v: "instructor", l: tx("مدرب", "Instructor") },
+            ]}
+          />
+        )}
         <Btn children={tx("حفظ", "Save")} full onClick={submit} style={{ marginTop: 10 }} />
       </Modal>
     );

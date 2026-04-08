@@ -5,99 +5,105 @@ import {
   signOut,
   onAuthStateChanged,
   updatePassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
-  doc, setDoc, getDoc, updateDoc, collection, getDocs,
+  doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where,
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { courseIdsFromEnrolled } from "../utils/enrollment";
 
 const AuthCtx = createContext(null);
 
-// ── Seed admin account once on first run ──────────────
-async function seedAdminIfNeeded() {
-  try {
-    // Try signing in — if it works, admin already exists, sign back out
-    await signInWithEmailAndPassword(auth, "admin@eduzah.com", "admin123");
-    await signOut(auth);
-  } catch (err) {
-    if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-      // Admin doesn't exist — create them
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, "admin@eduzah.com", "admin123");
-        await setDoc(doc(db, "users", cred.user.uid), {
-          name: "Admin Eduzah",
-          email: "admin@eduzah.com",
-          role: "admin",
-          status: "approved",
-          avatar: "A",
-          phone: "",
-          enrolledCourses: [],
-          assignedCourses: [],
-          createdAt: new Date().toISOString(),
-        });
-        await signOut(auth);
-        console.log("Admin account created successfully");
-      } catch (createErr) {
-        console.error("Failed to create admin:", createErr.message);
-      }
-    }
-    // any other error (wrong-password etc.) = account exists with different pw, skip
-  }
-}
+export { courseIdsFromEnrolled };
 
 export function AuthProvider({ children }) {
   const [currentUser, setCU]  = useState(null);
   const [users,       setUsers] = useState([]);
   const [loading,   setLoading] = useState(true);
 
-  // ── Seed admin + listen to auth state ────────────────
   useEffect(() => {
-    // Seed admin on first load before subscribing
-    seedAdminIfNeeded().finally(() => {
-      const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-        try {
-          if (firebaseUser) {
-            const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-            if (snap.exists()) {
-              setCU({ id: firebaseUser.uid, ...snap.data() });
-            } else {
-              await signOut(auth);
-              setCU(null);
-            }
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            setCU({ id: firebaseUser.uid, ...data });
           } else {
+            await signOut(auth);
             setCU(null);
           }
-        } catch (err) {
-          console.error("Auth state error:", err);
+        } else {
           setCU(null);
-        } finally {
-          setLoading(false);
         }
-      });
-      return unsub;
+      } catch (err) {
+        console.error("Auth state error:", err);
+        setCU(null);
+      } finally {
+        setLoading(false);
+      }
     });
+    return unsub;
   }, []);
 
-  // ── Fetch all users (admin) ───────────────────────────
+  /* One-time backfill of enrolledCourseIds for profiles created before this field existed. */
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const ec = currentUser.enrolledCourses;
+    if (!ec?.length || (currentUser.enrolledCourseIds && currentUser.enrolledCourseIds.length > 0)) return;
+    const ids = courseIdsFromEnrolled(ec);
+    if (ids.length) updateDoc(doc(db, "users", currentUser.id), { enrolledCourseIds: ids }).catch(() => {});
+  }, [currentUser?.id, currentUser?.enrolledCourses, currentUser?.enrolledCourseIds]);
+
+  /* Load directory users for admin (all) or instructor (students only). */
+  useEffect(() => {
+    if (!currentUser) {
+      setUsers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        if (currentUser.role === "admin") {
+          const snap = await getDocs(collection(db, "users"));
+          if (!cancelled) setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } else if (currentUser.role === "instructor") {
+          const q = query(collection(db, "users"), where("role", "==", "student"));
+          const snap = await getDocs(q);
+          if (!cancelled) setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } else {
+          setUsers([]);
+        }
+      } catch (e) {
+        console.error("Users list load failed:", e);
+        if (!cancelled) setUsers([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id, currentUser?.role]);
+
   const fetchUsers = async () => {
     const snap = await getDocs(collection(db, "users"));
-    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     setUsers(list);
     return list;
   };
 
-  // ── Register ──────────────────────────────────────────
+  /** New accounts are always students; instructors are promoted by an admin. */
   const register = async (d) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, d.email.trim(), d.pass);
+      const enrolledCourses = [];
       await setDoc(doc(db, "users", cred.user.uid), {
         name: d.name,
         email: d.email.trim().toLowerCase(),
-        role: d.role || "student",
+        role: "student",
         status: "pending",
         avatar: d.name[0].toUpperCase(),
         phone: d.phone || "",
-        enrolledCourses: [],
+        enrolledCourses,
+        enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
         assignedCourses: [],
         createdAt: new Date().toISOString(),
       });
@@ -109,7 +115,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ── Login ─────────────────────────────────────────────
   const login = async (email, pass) => {
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
@@ -127,92 +132,96 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ── Logout ────────────────────────────────────────────
   const logout = () => signOut(auth).then(() => setCU(null));
 
-  // ── Admin: approve / reject ───────────────────────────
   const approveUser = async (id) => {
     await updateDoc(doc(db, "users", id), { status: "approved" });
-    setUsers(p => p.map(u => u.id === id ? { ...u, status: "approved" } : u));
+    setUsers((p) => p.map((u) => (u.id === id ? { ...u, status: "approved" } : u)));
   };
   const rejectUser = async (id) => {
     await updateDoc(doc(db, "users", id), { status: "rejected" });
-    setUsers(p => p.map(u => u.id === id ? { ...u, status: "rejected" } : u));
+    setUsers((p) => p.map((u) => (u.id === id ? { ...u, status: "rejected" } : u)));
   };
 
-  // ── Admin: edit user ──────────────────────────────────
   const adminUpdateUser = async (id, patch) => {
     const clean = {
       ...(patch.name  != null && { name:  String(patch.name).trim()  }),
-      ...(patch.email != null && { email: String(patch.email).trim() }),
+      ...(patch.email != null && { email: String(patch.email).trim().toLowerCase() }),
       ...(patch.phone != null && { phone: String(patch.phone).trim() }),
+      ...(patch.role != null && ["student", "instructor"].includes(patch.role) && { role: patch.role }),
     };
     await updateDoc(doc(db, "users", id), clean);
-    setUsers(p => p.map(u => u.id === id ? { ...u, ...clean } : u));
-    if (currentUser?.id === id) setCU(prev => ({ ...prev, ...clean }));
+    setUsers((p) => p.map((u) => (u.id === id ? { ...u, ...clean } : u)));
+    if (currentUser?.id === id) setCU((prev) => ({ ...prev, ...clean }));
   };
 
-  // ── Enroll / remove enrollment ────────────────────────
   const enrollUser = async (uid, cid) => {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return;
     const u = snap.data();
-    if ((u.enrolledCourses || []).find(e => e.courseId === cid)) return;
+    if ((u.enrolledCourses || []).find((e) => e.courseId === cid)) return;
     const updated = [...(u.enrolledCourses || []), {
       courseId: cid, progress: 0, completedLessons: [],
       enrollDate: new Date().toLocaleDateString("ar-EG"),
     }];
-    await updateDoc(doc(db, "users", uid), { enrolledCourses: updated });
-    setUsers(p => p.map(u => u.id === uid ? { ...u, enrolledCourses: updated } : u));
-    if (currentUser?.id === uid) setCU(prev => ({ ...prev, enrolledCourses: updated }));
+    const enrolledCourseIds = courseIdsFromEnrolled(updated);
+    await updateDoc(doc(db, "users", uid), { enrolledCourses: updated, enrolledCourseIds });
+    setUsers((p) => p.map((u) => (u.id === uid ? { ...u, enrolledCourses: updated, enrolledCourseIds } : u)));
+    if (currentUser?.id === uid) setCU((prev) => ({ ...prev, enrolledCourses: updated, enrolledCourseIds }));
   };
 
   const removeEnroll = async (uid, cid) => {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return;
-    const updated = (snap.data().enrolledCourses || []).filter(e => e.courseId !== cid);
-    await updateDoc(doc(db, "users", uid), { enrolledCourses: updated });
-    setUsers(p => p.map(u => u.id === uid ? { ...u, enrolledCourses: updated } : u));
-    if (currentUser?.id === uid) setCU(prev => ({ ...prev, enrolledCourses: updated }));
+    const updated = (snap.data().enrolledCourses || []).filter((e) => e.courseId !== cid);
+    const enrolledCourseIds = courseIdsFromEnrolled(updated);
+    await updateDoc(doc(db, "users", uid), { enrolledCourses: updated, enrolledCourseIds });
+    setUsers((p) => p.map((u) => (u.id === uid ? { ...u, enrolledCourses: updated, enrolledCourseIds } : u)));
+    if (currentUser?.id === uid) setCU((prev) => ({ ...prev, enrolledCourses: updated, enrolledCourseIds }));
   };
 
-  // ── Assign instructor ─────────────────────────────────
   const assignInstructor = async (uid, cid) => {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return;
     const assigned = [...new Set([...(snap.data().assignedCourses || []), cid])];
     await updateDoc(doc(db, "users", uid), { assignedCourses: assigned });
-    setUsers(p => p.map(u => u.id === uid ? { ...u, assignedCourses: assigned } : u));
+    setUsers((p) => p.map((u) => (u.id === uid ? { ...u, assignedCourses: assigned } : u)));
   };
 
-  // ── Update own profile ────────────────────────────────
   const updateProfile = async (updates) => {
     if (!currentUser) return;
-    await updateDoc(doc(db, "users", currentUser.id), updates);
-    setCU(prev => ({ ...prev, ...updates }));
+    const allowed = ["name", "phone", "avatar", "avatarImg"];
+    const patch = {};
+    for (const k of allowed) {
+      if (Object.prototype.hasOwnProperty.call(updates, k)) patch[k] = updates[k];
+    }
+    if (Object.keys(patch).length === 0) return;
+    await updateDoc(doc(db, "users", currentUser.id), patch);
+    setCU((prev) => ({ ...prev, ...patch }));
   };
 
-  // ── Mark lesson complete ──────────────────────────────
   const markLesson = async (cid, idx, total) => {
     if (!currentUser) return;
     const snap = await getDoc(doc(db, "users", currentUser.id));
     if (!snap.exists()) return;
-    const ec = (snap.data().enrolledCourses || []).map(e => {
+    const ec = (snap.data().enrolledCourses || []).map((e) => {
       if (e.courseId !== cid) return e;
       const done = e.completedLessons.includes(idx) ? e.completedLessons : [...e.completedLessons, idx];
       return { ...e, completedLessons: done, progress: Math.round((done.length / total) * 100) };
     });
-    await updateDoc(doc(db, "users", currentUser.id), { enrolledCourses: ec });
-    setCU(prev => ({ ...prev, enrolledCourses: ec }));
+    const enrolledCourseIds = courseIdsFromEnrolled(ec);
+    await updateDoc(doc(db, "users", currentUser.id), { enrolledCourses: ec, enrolledCourseIds });
+    setCU((prev) => ({ ...prev, enrolledCourses: ec, enrolledCourseIds }));
   };
 
-  // ── Password reset ────────────────────────────────────
   const requestPasswordReset = async (email) => {
     try {
-      const { sendPasswordResetEmail } = await import("firebase/auth");
       await sendPasswordResetEmail(auth, email.trim());
-    } catch {}
-    return { ok: true };
+      return { ok: true };
+    } catch (err) {
+      if (err.code === "auth/user-not-found") return { ok: true };
+      return { ok: false, code: err.code || "unknown" };
+    }
   };
 
   const changePassword = async (newPassword) => {

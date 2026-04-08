@@ -10,6 +10,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { useAuth } from "./AuthContext";
 import {
   COURSES as INIT_COURSES,
   NEWS as INIT_NEWS,
@@ -35,6 +36,7 @@ async function seedCollection(colName, items) {
 }
 
 export function DataProvider({ children }) {
+  const { currentUser } = useAuth();
   const [courses,      setCourses]      = useState(INIT_COURSES);
   const [news,         setNews]         = useState(INIT_NEWS);
   const [exams,        setExams]        = useState(INIT_EXAMS);
@@ -43,14 +45,33 @@ export function DataProvider({ children }) {
   const [testimonials, setTestimonials] = useState(INIT_TESTIMONIALS);
   const [team,         setTeam]         = useState(INIT_TEAM);
   const [vodafoneCash, setVodafoneCashState] = useState(SITE.vodafoneCash);
-  const [seeded,       setSeeded]       = useState(false);
 
-  // ── Seed & subscribe to Firestore ────────────────────
+  // Real-time listeners (public read per firestore.rules)
   useEffect(() => {
-    let unsubs = [];
+    const unsubs = [
+      onSnapshot(collection(db, "courses"),      s => setCourses(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "news"),         s => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "exams"),        s => setExams(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "trainers"),     s => setTrainers(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "programs"),     s => setPrograms(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "testimonials"), s => setTestimonials(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      onSnapshot(collection(db, "team"),         s => setTeam(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+    ];
+    return () => unsubs.forEach(u => u());
+  }, []);
 
-    const init = async () => {
-      // Seed initial data on first run
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "vodafoneCash"), (snap) => {
+      if (snap.exists()) setVodafoneCashState(snap.data().value ?? SITE.vodafoneCash);
+    });
+    return () => unsub();
+  }, []);
+
+  // Seed empty collections only when an admin is signed in (Firestore rules require admin writes).
+  useEffect(() => {
+    if (currentUser?.role !== "admin") return;
+    let cancelled = false;
+    (async () => {
       await Promise.all([
         seedCollection("courses",      INIT_COURSES.map(c => ({ ...c, id: c.slug || c.id }))),
         seedCollection("news",         INIT_NEWS.map(n => ({ ...n, id: String(n.id) }))),
@@ -60,21 +81,9 @@ export function DataProvider({ children }) {
         seedCollection("testimonials", INIT_TESTIMONIALS),
         seedCollection("team",         INIT_TEAM),
       ]);
-      setSeeded(true);
-
-      // Real-time listeners
-      unsubs.push(onSnapshot(collection(db, "courses"),      s => setCourses(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "news"),         s => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "exams"),        s => setExams(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "trainers"),     s => setTrainers(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "programs"),     s => setPrograms(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "testimonials"), s => setTestimonials(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-      unsubs.push(onSnapshot(collection(db, "team"),         s => setTeam(s.docs.map(d => ({ id: d.id, ...d.data() })))));
-    };
-
-    init();
-    return () => unsubs.forEach(u => u());
-  }, []);
+    })().catch((e) => { if (!cancelled) console.warn("Seed failed (expected if rules deny or DB not empty):", e); });
+    return () => { cancelled = true; };
+  }, [currentUser?.id, currentUser?.role]);
 
   // ── COURSES ──────────────────────────────────────────
   const addCourse = async (form) => {
