@@ -154,7 +154,7 @@ export default function Navbar() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ textAlign: lang === "ar" ? "right" : "left" }}>
                     <div style={{ fontSize: 12, fontWeight: 700 }}>{currentUser.name.split(" ")[0]}</div>
-                    <div style={{ fontSize: 10, color: C.muted }}>
+                    <div style={{ fontSize: 10, color: "#6b7280" }}>
                       {role === "admin" ? (lang==="ar" ? "مدير" : "Admin")
                         : role === "instructor" ? (lang==="ar" ? "مدرب" : "Trainer")
                         : (lang==="ar" ? "طالب" : "Student")}
@@ -167,7 +167,7 @@ export default function Navbar() {
                       ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : currentUser.avatar}
                   </div>
-                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} />
+                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} style={{ color: "#374151", border: "1px solid #e5e7eb" }} />
                 </div>
               )
             )}
@@ -211,7 +211,7 @@ export default function Navbar() {
               {!currentUser ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn children={lang==="ar" ? "دخول"  : "Login"}
-                    v="outline" sm onClick={() => { navigate("/login"); setOpen(false); }} />
+                    sm onClick={() => { navigate("/login"); setOpen(false); }} />
                   <Btn children={lang==="ar" ? "سجّل"  : "Register"}
                     sm onClick={() => { navigate("/register"); setOpen(false); }} />
                 </div>
@@ -226,7 +226,7 @@ export default function Navbar() {
                   </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700 }}>{currentUser.name}</div>
-                      <div style={{ fontSize: 11, color: C.muted }}>
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>
                         {role === "admin"
                           ? (lang === "ar" ? "مدير" : "Admin")
                           : role === "instructor"
