@@ -73,9 +73,9 @@ export default function Navbar() {
     display: "block",
     padding: isMobile ? "11px 14px" : "6px 12px",
     borderRadius: 8,
-    background: isActive(path) ? "rgba(217,27,91,.18)" : "transparent",
-    border: isActive(path) ? `1px solid ${C.red}44` : "1px solid transparent",
-    color: isActive(path) ? C.red : C.muted,
+    background: isActive(path) ? "rgba(217,27,91,.10)" : "transparent",
+    border: isActive(path) ? `1px solid ${C.red}33` : "1px solid transparent",
+    color: isActive(path) ? C.red : "#374151",
     fontFamily: font, fontSize: isMobile ? 14 : 12, fontWeight: 600,
     textDecoration: "none", whiteSpace: "nowrap",
     transition: "all .2s",
@@ -85,8 +85,9 @@ export default function Navbar() {
     <>
       <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} style={{
         position: "sticky", top: 0, zIndex: 200,
-        background: "rgba(26,15,36,.97)", backdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${C.border}`,
+        background: "#fff",
+        borderBottom: "1px solid #e5e7eb",
+        boxShadow: "0 1px 8px rgba(0,0,0,.08)",
         direction: lang === "ar" ? "rtl" : "ltr",
       }}>
         <div style={{
@@ -101,12 +102,7 @@ export default function Navbar() {
             <img
               src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
               alt="Eduzah"
-              style={{
-                height: 34, width: "auto", display: "block",
-                background: "#fff",
-                borderRadius: 8,
-                padding: "4px 10px",
-              }}
+              style={{ height: 40, width: "auto", display: "block" }}
             />
           </Link>
 
@@ -117,13 +113,13 @@ export default function Navbar() {
                 <Link key={path} to={path} style={linkSx(path)}
                   onMouseEnter={e => {
                     if (!isActive(path)) {
-                      e.currentTarget.style.color = "#fff";
-                      e.currentTarget.style.background = "rgba(255,255,255,.06)";
+                      e.currentTarget.style.color = C.red;
+                      e.currentTarget.style.background = "rgba(217,27,91,.06)";
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isActive(path)) {
-                      e.currentTarget.style.color = C.muted;
+                      e.currentTarget.style.color = "#374151";
                       e.currentTarget.style.background = "transparent";
                     }
                   }}
@@ -138,10 +134,10 @@ export default function Navbar() {
             <button type="button" onClick={toggle}
               aria-label={lang === "ar" ? "التبديل إلى الإنجليزية" : "Switch to Arabic"}
               style={{
-                background: "rgba(255,255,255,.07)",
-                border: `1.5px solid ${C.border}`,
+                background: "#f3f4f6",
+                border: "1.5px solid #e5e7eb",
                 borderRadius: 8, padding: "5px 12px",
-                color: "#fff", fontFamily: font, fontWeight: 800,
+                color: "#374151", fontFamily: font, fontWeight: 800,
                 fontSize: 11, cursor: "pointer", letterSpacing: 0.5,
               }}>
               {lang === "ar" ? "EN" : "عر"}
@@ -184,9 +180,9 @@ export default function Navbar() {
                 aria-expanded={open}
                 style={{
                   background: "transparent",
-                  border: `1.5px solid ${C.border}`,
+                  border: "1.5px solid #e5e7eb",
                   borderRadius: 8, padding: "7px 9px",
-                  color: "#fff", cursor: "pointer",
+                  color: "#374151", cursor: "pointer",
                   display: "flex", alignItems: "center",
                 }}>
                 {open ? <CloseIcon /> : <MenuIcon />}
@@ -198,8 +194,8 @@ export default function Navbar() {
         {/* ── Mobile menu ── */}
         {mobile && open && (
           <div style={{
-            borderTop: `1px solid ${C.border}`,
-            background: "rgba(20,10,30,.99)",
+            borderTop: "1px solid #e5e7eb",
+            background: "#fff",
             padding: "10px 4% 20px",
             direction: lang === "ar" ? "rtl" : "ltr",
           }}>
@@ -211,7 +207,7 @@ export default function Navbar() {
             </div>
 
             {/* Divider */}
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+            <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
               {!currentUser ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn children={lang==="ar" ? "دخول"  : "Login"}
