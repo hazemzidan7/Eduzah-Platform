@@ -1,4 +1,15 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import {
+  collection,
+  doc,
+  getDocs,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../firebase";
 import {
   COURSES as INIT_COURSES,
   NEWS as INIT_NEWS,
@@ -12,6 +23,17 @@ import {
 
 const DataCtx = createContext(null);
 
+// Helper: seed a Firestore collection from local data if it's empty
+async function seedCollection(colName, items) {
+  const snap = await getDocs(collection(db, colName));
+  if (snap.empty && items.length > 0) {
+    for (const item of items) {
+      const { id, ...rest } = item;
+      await setDoc(doc(db, colName, String(id)), rest);
+    }
+  }
+}
+
 export function DataProvider({ children }) {
   const [courses,      setCourses]      = useState(INIT_COURSES);
   const [news,         setNews]         = useState(INIT_NEWS);
@@ -20,13 +42,45 @@ export function DataProvider({ children }) {
   const [programs,     setPrograms]     = useState(INIT_PROGRAMS);
   const [testimonials, setTestimonials] = useState(INIT_TESTIMONIALS);
   const [team,         setTeam]         = useState(INIT_TEAM);
-  const [vodafoneCash, setVodafoneCash] = useState(SITE.vodafoneCash);
+  const [vodafoneCash, setVodafoneCashState] = useState(SITE.vodafoneCash);
+  const [seeded,       setSeeded]       = useState(false);
+
+  // ── Seed & subscribe to Firestore ────────────────────
+  useEffect(() => {
+    let unsubs = [];
+
+    const init = async () => {
+      // Seed initial data on first run
+      await Promise.all([
+        seedCollection("courses",      INIT_COURSES.map(c => ({ ...c, id: c.slug || c.id }))),
+        seedCollection("news",         INIT_NEWS.map(n => ({ ...n, id: String(n.id) }))),
+        seedCollection("exams",        INIT_EXAMS.map(e => ({ ...e, id: String(e.id) }))),
+        seedCollection("trainers",     INIT_TRAINERS),
+        seedCollection("programs",     INIT_PROGRAMS),
+        seedCollection("testimonials", INIT_TESTIMONIALS),
+        seedCollection("team",         INIT_TEAM),
+      ]);
+      setSeeded(true);
+
+      // Real-time listeners
+      unsubs.push(onSnapshot(collection(db, "courses"),      s => setCourses(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "news"),         s => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "exams"),        s => setExams(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "trainers"),     s => setTrainers(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "programs"),     s => setPrograms(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "testimonials"), s => setTestimonials(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+      unsubs.push(onSnapshot(collection(db, "team"),         s => setTeam(s.docs.map(d => ({ id: d.id, ...d.data() })))));
+    };
+
+    init();
+    return () => unsubs.forEach(u => u());
+  }, []);
 
   // ── COURSES ──────────────────────────────────────────
-  const addCourse = (form) => {
-    const slug = form.title.toLowerCase().trim().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const addCourse = async (form) => {
+    const slug = form.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const nc = {
-      id: slug, slug,
+      slug,
       title: form.title, title_en: form.title_en || form.title,
       trackId: form.trackId || "technology", subtracks: [],
       cat: form.cat || "tech",
@@ -50,170 +104,156 @@ export function DataProvider({ children }) {
       instructorId: form.instructorId || null,
       presentationUrl: null,
     };
-    setCourses(p => [...p, nc]);
+    await setDoc(doc(db, "courses", slug), nc);
     return slug;
   };
 
-  const updateCourse = (id, updates) =>
-    setCourses(p => p.map(c => c.id === id ? { ...c, ...updates } : c));
+  const updateCourse = async (id, updates) => {
+    await updateDoc(doc(db, "courses", id), updates);
+  };
 
-  const toggleFeatured = (id) =>
-    setCourses(p => p.map(c => c.id === id ? { ...c, featured: !c.featured } : c));
+  const toggleFeatured = async (id) => {
+    const c = courses.find(x => x.id === id);
+    if (c) await updateDoc(doc(db, "courses", id), { featured: !c.featured });
+  };
 
-  const deleteCourse = (id) =>
-    setCourses(p => p.filter(c => c.id !== id));
+  const deleteCourse = async (id) => {
+    await deleteDoc(doc(db, "courses", id));
+  };
 
   // ── NEWS ─────────────────────────────────────────────
-  const addNews = (form) => {
-    const tagEnMap = {
-      إعلان: "Announcement",
-      إنجاز: "Achievement",
-      شراكة: "Partnership",
-      تحديث: "Update",
-      حدث: "Event",
-    };
+  const addNews = async (form) => {
+    const tagEnMap = { إعلان: "Announcement", إنجاز: "Achievement", شراكة: "Partnership", تحديث: "Update", حدث: "Event" };
     const tag = form.tag || "إعلان";
     const nn = {
-      id: Date.now(),
-      title: form.title,
-      title_en: form.title_en || form.title,
-      tag,
-      tag_en: form.tag_en || tagEnMap[tag] || tag,
-      icon: null,
-      images: form.images || [],
-      excerpt: form.excerpt,
-      excerpt_en: form.excerpt_en || form.excerpt,
+      title: form.title, title_en: form.title_en || form.title,
+      tag, tag_en: form.tag_en || tagEnMap[tag] || tag,
+      icon: null, images: form.images || [],
+      excerpt: form.excerpt, excerpt_en: form.excerpt_en || form.excerpt,
       dateIso: form.dateIso || new Date().toISOString().slice(0, 10),
       date: new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" }),
       featured: form.featured || false,
     };
-    setNews(p => [...p, nn]);
+    await addDoc(collection(db, "news"), nn);
   };
 
-  const deleteNews = (id) => setNews(p => p.filter(n => n.id !== id));
+  const deleteNews = async (id) => {
+    await deleteDoc(doc(db, "news", String(id)));
+  };
 
   // ── EXAMS ────────────────────────────────────────────
-  const addExam = (form) => {
-    const lessonIndex =
-      form.lessonIndex != null && form.lessonIndex !== ""
-        ? Number(form.lessonIndex)
-        : null;
+  const addExam = async (form) => {
+    const lessonIndex = form.lessonIndex != null && form.lessonIndex !== "" ? Number(form.lessonIndex) : null;
     const ne = {
-      id: Date.now(),
-      title: form.title,
-      courseId: form.courseId,
-      type: form.type || "mcq",
-      dueDate: form.dueDate,
+      title: form.title, courseId: form.courseId,
+      type: form.type || "mcq", dueDate: form.dueDate,
       duration: Number(form.duration) || 45,
       description: form.description || "",
       questions: Array.isArray(form.questions) ? form.questions : [],
       submissions: [],
       ...(lessonIndex != null && !Number.isNaN(lessonIndex) ? { lessonIndex } : {}),
     };
-    setExams(p => [...p, ne]);
+    await addDoc(collection(db, "exams"), ne);
   };
 
-  const deleteExam = (id) => setExams(p => p.filter(e => e.id !== id));
+  const deleteExam = async (id) => {
+    await deleteDoc(doc(db, "exams", String(id)));
+  };
 
   // ── TRAINERS ─────────────────────────────────────────
-  const addTrainer = (form) => {
+  const addTrainer = async (form) => {
     const nt = {
-      id: `t${Date.now()}`,
       name: form.name, name_en: form.name_en || form.name,
-      username: form.username, password: form.password,
+      username: form.username,
       specialty_ar: form.specialty_ar || "", specialty_en: form.specialty_en || "",
       bio_ar: form.bio_ar || "", bio_en: form.bio_en || "",
       avatar: form.name?.[0] || "T",
       courses: [], image: form.image || null,
     };
-    setTrainers(p => [...p, nt]);
+    await addDoc(collection(db, "trainers"), nt);
   };
 
-  const updateTrainer = (id, updates) =>
-    setTrainers(p => p.map(t => t.id === id ? { ...t, ...updates } : t));
+  const updateTrainer = async (id, updates) => {
+    await updateDoc(doc(db, "trainers", id), updates);
+  };
 
-  const deleteTrainer = (id) =>
-    setTrainers(p => p.filter(t => t.id !== id));
+  const deleteTrainer = async (id) => {
+    await deleteDoc(doc(db, "trainers", id));
+  };
 
   // ── PROGRAMS ─────────────────────────────────────────
-  const addProgram = (form) => {
+  const addProgram = async (form) => {
     const np = {
-      id: `prog-${Date.now()}`,
       title_ar: form.title_ar || form.title_en,
       title_en: form.title_en || form.title_ar,
-      desc_ar: form.desc_ar || "",
-      desc_en: form.desc_en || "",
-      image: form.image || null,
-      featured: form.featured || false,
+      desc_ar: form.desc_ar || "", desc_en: form.desc_en || "",
+      image: form.image || null, featured: form.featured || false,
     };
-    setPrograms(p => [...p, np]);
+    await addDoc(collection(db, "programs"), np);
   };
 
-  const updateProgram = (id, updates) =>
-    setPrograms(p => p.map(pr => pr.id === id ? { ...pr, ...updates } : pr));
+  const updateProgram = async (id, updates) => {
+    await updateDoc(doc(db, "programs", id), updates);
+  };
 
-  const deleteProgram = (id) =>
-    setPrograms(p => p.filter(pr => pr.id !== id));
+  const deleteProgram = async (id) => {
+    await deleteDoc(doc(db, "programs", id));
+  };
 
   // ── TESTIMONIALS ─────────────────────────────────────
-  const addTestimonial = (form) => {
+  const addTestimonial = async (form) => {
     const nt = {
-      id: `te-${Date.now()}`,
       name: form.name, name_en: form.name_en || form.name,
       course_ar: form.course_ar || "", course_en: form.course_en || "",
       comment_ar: form.comment_ar || form.comment || "",
       comment_en: form.comment_en || form.comment || "",
       rating: Number(form.rating) || 5,
-      image: form.image || null,
-      avatar: form.name?.[0] || "?",
+      image: form.image || null, avatar: form.name?.[0] || "?",
     };
-    setTestimonials(p => [...p, nt]);
+    await addDoc(collection(db, "testimonials"), nt);
   };
 
-  const deleteTestimonial = (id) =>
-    setTestimonials(p => p.filter(t => t.id !== id));
+  const deleteTestimonial = async (id) => {
+    await deleteDoc(doc(db, "testimonials", String(id)));
+  };
 
   // ── TEAM ─────────────────────────────────────────────
-  const addTeamMember = (form) => {
+  const addTeamMember = async (form) => {
     const nm = {
-      id: `tm-${Date.now()}`,
       name: form.name, name_en: form.name_en || form.name,
       role_ar: form.role_ar || "", role_en: form.role_en || "",
       bio_ar: form.bio_ar || "", bio_en: form.bio_en || "",
-      email: form.email || "",
-      linkedin: form.linkedin || "",
-      image: form.image || null,
-      avatar: form.name?.[0] || "?",
+      email: form.email || "", linkedin: form.linkedin || "",
+      image: form.image || null, avatar: form.name?.[0] || "?",
       order: team.length + 1,
     };
-    setTeam(p => [...p, nm]);
+    await addDoc(collection(db, "team"), nm);
   };
 
-  const updateTeamMember = (id, updates) =>
-    setTeam(p => p.map(m => m.id === id ? { ...m, ...updates } : m));
+  const updateTeamMember = async (id, updates) => {
+    await updateDoc(doc(db, "team", id), updates);
+  };
 
-  const deleteTeamMember = (id) =>
-    setTeam(p => p.filter(m => m.id !== id));
+  const deleteTeamMember = async (id) => {
+    await deleteDoc(doc(db, "team", id));
+  };
+
+  // ── Vodafone Cash setting ─────────────────────────────
+  const setVodafoneCash = async (val) => {
+    setVodafoneCashState(val);
+    await setDoc(doc(db, "settings", "vodafoneCash"), { value: val });
+  };
 
   return (
     <DataCtx.Provider value={{
-      // data
       courses, news, exams, trainers, programs, testimonials, team, vodafoneCash,
-      // courses
       addCourse, updateCourse, toggleFeatured, deleteCourse,
-      // news
       addNews, deleteNews,
-      // exams
       addExam, deleteExam,
-      // trainers
       addTrainer, updateTrainer, deleteTrainer,
-      // programs
       addProgram, updateProgram, deleteProgram,
-      // testimonials
       addTestimonial, deleteTestimonial,
-      // team
       addTeamMember, updateTeamMember, deleteTeamMember,
-      // settings
       setVodafoneCash,
     }}>
       {children}
