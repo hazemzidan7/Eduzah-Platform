@@ -9,12 +9,11 @@ import { TRACKS } from "../../data";
 
 const TRAINING_TYPES = [
   { v: "all",      ar: "الكل",      en: "All" },
-  { v: "recorded", ar: "مسجّل",     en: "Recorded" },
   { v: "online",   ar: "أونلاين",   en: "Live Online" },
-  { v: "offline",  ar: "حضوري",     en: "Offline" },
+  { v: "offline",  ar: "حضوري (فرع)", en: "Offline (branch)" },
 ];
 
-const TYPE_COLORS = { recorded: C.purple, online: "#0ea5e9", offline: "#10b981" };
+const TYPE_COLORS = { online: "#0ea5e9", offline: "#10b981" };
 
 export default function CoursesPage() {
   const navigate = useNavigate();

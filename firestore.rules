@@ -56,7 +56,8 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.auth.uid == userId
         && (
-          (request.resource.data.role == 'student' && request.resource.data.status == 'pending')
+          ((request.resource.data.role == 'student' || request.resource.data.role == 'user')
+            && request.resource.data.status == 'pending')
           || bootstrapAdminEnabled()
         );
       allow update: if isSignedIn() && (
@@ -116,6 +117,14 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() || bootstrapAdminEnabled();
       allow delete: if isAdmin() || bootstrapAdminEnabled();
+    }
+
+    /* Enrollment notifications — written when a learner completes course registration (guest or logged-in). */
+    match /enrollmentRequests/{id} {
+      allow create: if request.resource.data.keys().hasAll(['courseId', 'courseTitle', 'studentName', 'studentEmail', 'createdAt'])
+        && request.resource.data.courseId is string
+        && request.resource.data.studentEmail is string;
+      allow read, delete: if isAdmin();
     }
 
     match /{document=**} { allow read, write: if false; }

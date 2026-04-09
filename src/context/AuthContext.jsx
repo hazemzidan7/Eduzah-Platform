@@ -10,8 +10,10 @@ import {
 import {
   doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where,
 } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { auth, db, app } from "../firebase";
 import { courseIdsFromEnrolled } from "../utils/enrollment";
+import { isSuperAdminEmail } from "../config/superAdmin";
 
 const AuthCtx = createContext(null);
 
@@ -73,7 +75,7 @@ export function AuthProvider({ children }) {
           const snap = await getDocs(collection(db, "users"));
           if (!cancelled) setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         } else if (currentUser.role === "instructor") {
-          const q = query(collection(db, "users"), where("role", "==", "student"));
+          const q = query(collection(db, "users"), where("role", "in", ["student", "user"]));
           const snap = await getDocs(q);
           if (!cancelled) setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         } else {
@@ -94,21 +96,26 @@ export function AuthProvider({ children }) {
     return list;
   };
 
-  /** New accounts are always students; instructors are promoted by an admin. */
+  /**
+   * Public registration → role `user` (registered, not enrolled until they take a course).
+   * Optional pendingEnrollmentCourseId: applied when admin approves (course checkout with new account).
+   */
   const register = async (d) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, d.email.trim(), d.pass);
       const enrolledCourses = [];
+      const pendingCourseId = d.pendingEnrollmentCourseId || null;
       await setDoc(doc(db, "users", cred.user.uid), {
         name: d.name,
         email: d.email.trim().toLowerCase(),
-        role: "student",
+        role: "user",
         status: "pending",
-        avatar: d.name[0].toUpperCase(),
+        avatar: (d.name && d.name[0]) ? d.name[0].toUpperCase() : "?",
         phone: d.phone || "",
         enrolledCourses,
         enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
         assignedCourses: [],
+        ...(pendingCourseId ? { pendingEnrollmentCourseId: pendingCourseId } : {}),
         createdAt: new Date().toISOString(),
       });
       await signOut(auth);
@@ -139,8 +146,50 @@ export function AuthProvider({ children }) {
   const logout = () => signOut(auth).then(() => setCU(null));
 
   const approveUser = async (id) => {
+    const snap = await getDoc(doc(db, "users", id));
+    if (!snap.exists()) return;
+    const u = snap.data();
+    const pendingCid = u.pendingEnrollmentCourseId;
+
+    if (pendingCid && !(u.enrolledCourses || []).find((e) => e.courseId === pendingCid)) {
+      const updated = [...(u.enrolledCourses || []), {
+        courseId: pendingCid,
+        progress: 0,
+        completedLessons: [],
+        enrollDate: new Date().toLocaleDateString("ar-EG"),
+      }];
+      const enrolledCourseIds = courseIdsFromEnrolled(updated);
+      const roleNext = u.role === "user" || u.role === "student" ? "student" : u.role;
+      await updateDoc(doc(db, "users", id), {
+        status: "approved",
+        enrolledCourses: updated,
+        enrolledCourseIds,
+        pendingEnrollmentCourseId: null,
+        ...(roleNext !== u.role ? { role: roleNext } : {}),
+      });
+      setUsers((p) => p.map((usr) => (usr.id === id ? {
+        ...usr,
+        status: "approved",
+        enrolledCourses: updated,
+        enrolledCourseIds,
+        pendingEnrollmentCourseId: null,
+        role: roleNext,
+      } : usr)));
+      if (currentUser?.id === id) {
+        setCU((prev) => (prev ? {
+          ...prev,
+          status: "approved",
+          enrolledCourses: updated,
+          enrolledCourseIds,
+          pendingEnrollmentCourseId: null,
+          role: roleNext,
+        } : prev));
+      }
+      return;
+    }
+
     await updateDoc(doc(db, "users", id), { status: "approved" });
-    setUsers((p) => p.map((u) => (u.id === id ? { ...u, status: "approved" } : u)));
+    setUsers((p) => p.map((usr) => (usr.id === id ? { ...usr, status: "approved" } : usr)));
   };
   const rejectUser = async (id) => {
     await updateDoc(doc(db, "users", id), { status: "rejected" });
@@ -152,7 +201,7 @@ export function AuthProvider({ children }) {
       ...(patch.name  != null && { name:  String(patch.name).trim()  }),
       ...(patch.email != null && { email: String(patch.email).trim().toLowerCase() }),
       ...(patch.phone != null && { phone: String(patch.phone).trim() }),
-      ...(patch.role != null && ["student", "instructor"].includes(patch.role) && { role: patch.role }),
+      ...(patch.role != null && ["user", "student", "instructor"].includes(patch.role) && { role: patch.role }),
     };
     await updateDoc(doc(db, "users", id), clean);
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, ...clean } : u)));
@@ -169,9 +218,14 @@ export function AuthProvider({ children }) {
       enrollDate: new Date().toLocaleDateString("ar-EG"),
     }];
     const enrolledCourseIds = courseIdsFromEnrolled(updated);
-    await updateDoc(doc(db, "users", uid), { enrolledCourses: updated, enrolledCourseIds });
-    setUsers((p) => p.map((u) => (u.id === uid ? { ...u, enrolledCourses: updated, enrolledCourseIds } : u)));
-    if (currentUser?.id === uid) setCU((prev) => ({ ...prev, enrolledCourses: updated, enrolledCourseIds }));
+    const roleNext = u.role === "user" ? "student" : u.role;
+    await updateDoc(doc(db, "users", uid), {
+      enrolledCourses: updated,
+      enrolledCourseIds,
+      ...(roleNext !== u.role ? { role: roleNext } : {}),
+    });
+    setUsers((p) => p.map((usr) => (usr.id === uid ? { ...usr, enrolledCourses: updated, enrolledCourseIds, role: roleNext } : usr)));
+    if (currentUser?.id === uid) setCU((prev) => ({ ...prev, enrolledCourses: updated, enrolledCourseIds, role: roleNext }));
   };
 
   const removeEnroll = async (uid, cid) => {
@@ -237,6 +291,23 @@ export function AuthProvider({ children }) {
     }
   };
 
+  /** Super Admin only — requires deployed Cloud Function `createAdminAccount`. */
+  const createAdminAccount = async ({ name, email, password }) => {
+    if (!isSuperAdminEmail(currentUser?.email)) {
+      return { ok: false, code: "FORBIDDEN" };
+    }
+    try {
+      const functions = getFunctions(app, "us-central1");
+      const callable = httpsCallable(functions, "createAdminAccount");
+      await callable({ name: String(name).trim(), email: String(email).trim().toLowerCase(), password: String(password) });
+      await fetchUsers();
+      return { ok: true };
+    } catch (err) {
+      const code = err.code || err.message;
+      return { ok: false, code: code === "functions/not-found" ? "NOT_DEPLOYED" : code };
+    }
+  };
+
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1a0f24" }}>
       <div style={{ width: 36, height: 36, border: "3px solid rgba(217,27,91,.3)", borderTopColor: "#d91b5b", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
@@ -251,6 +322,7 @@ export function AuthProvider({ children }) {
       approveUser, rejectUser, enrollUser, removeEnroll,
       assignInstructor, markLesson, updateProfile, adminUpdateUser,
       requestPasswordReset, changePassword,
+      createAdminAccount,
     }}>
       {children}
     </AuthCtx.Provider>

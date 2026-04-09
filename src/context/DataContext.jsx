@@ -122,7 +122,9 @@ export function DataProvider({ children }) {
       outcomes_en: form.outcomes_en ? form.outcomes_en.split("\n").filter(Boolean) : [],
       techStack: [], curriculum: [], reviews: [],
       instructorId: form.instructorId || null,
-      presentationUrl: null,
+      presentationUrl: form.presentationUrl || null,
+      introVideoUrl: form.introVideoUrl || null,
+      notifyEmails: Array.isArray(form.notifyEmails) ? form.notifyEmails : [],
     };
     await setDoc(doc(db, "courses", slug), nc);
     return slug;

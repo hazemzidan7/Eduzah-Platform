@@ -10,14 +10,14 @@ const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
   { q:"إيه طريقة التدريس؟",            a:"تدريب مباشر Online مع مدرب، مع تسجيلات لكل الجلسات. تقدر تشوف أي درس وقت ما تحب." },
   { q:"هل في شهادة في الآخر؟",          a:"أيوه، بتاخد شهادة معتمدة من Eduzah عند إتمام الدبلومة بنجاح." },
-  { q:"إيه طرق الدفع المتاحة؟",         a:"كارت بنكي، Vodafone Cash، فوري، أو نظام 3 أقساط مريحة." },
+  { q:"إيه طرق الدفع المتاحة؟",         a:"الدفع عبر InstaPay على الرقم المعلن، مع خيار الدفع الكامل (خصم 5%) أو بالأقساط." },
   { q:"هل فيه دعم بعد انتهاء الكورس؟", a:"أيوه، بتنضم لمجتمع خريجي Eduzah ومتاح لك دعم التوظيف وربطك بالشركات." },
 ];
 const FAQ_EN = [
   { q:"Do I need prior experience?",          a:"No, the diploma starts from scratch and takes you to a professional level. All you need is motivation and commitment." },
   { q:"What is the teaching method?",         a:"Live online training with an instructor, plus recordings of all sessions. You can watch any lesson whenever you want." },
   { q:"Is there a certificate at the end?",   a:"Yes, you receive an Eduzah-accredited certificate upon successfully completing the diploma." },
-  { q:"What payment methods are available?",  a:"Bank card, Vodafone Cash, Fawry, or a convenient 3-installment plan." },
+  { q:"What payment methods are available?",  a:"InstaPay to the published wallet number, with full payment (5% discount) or installments." },
   { q:"Is there support after the course?",   a:"Yes, you join the Eduzah alumni community with access to career support and company connections." },
 ];
 
@@ -41,6 +41,15 @@ function stripLessonPrefix(l) {
 
 function isProjectLesson(l) {
   return l.startsWith("Project:");
+}
+
+function toEmbedIntro(url) {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&modestbranding=1`;
+  const vim = url.match(/vimeo\.com\/(\d+)/);
+  if (vim) return `https://player.vimeo.com/video/${vim[1]}`;
+  return url;
 }
 
 export default function CourseLanding() {
@@ -82,8 +91,30 @@ export default function CourseLanding() {
     navigate(`/learn/${slug}`);
   };
 
+  const openCurriculumPresentation = () => {
+    const url = course.presentationUrl?.trim();
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const introEmbed = course.introVideoUrl ? toEmbedIntro(course.introVideoUrl) : null;
+
   return (
     <div style={{ paddingBottom: 70 }} dir={dir}>
+
+      {/* ── Course cover (full width) ── */}
+      {course.image && (
+        <div style={{ width: "100%", maxHeight: "min(48vh, 420px)", overflow: "hidden", borderBottom: `1px solid ${C.border}` }}>
+          <img
+            src={course.image}
+            alt={lang === "ar" ? course.title : (course.title_en || course.title)}
+            style={{ width: "100%", height: "min(48vh, 420px)", objectFit: "cover", objectPosition: "center", display: "block" }}
+          />
+        </div>
+      )}
 
       {/* ── HERO ── */}
       <div style={{ background: "linear-gradient(135deg,#1a0a2e 0%,#321d3d 45%,#4a1f6e 100%)", padding: "clamp(40px,7vw,64px) 4%", display: "flex", alignItems: "center", gap: 36, flexWrap: "wrap", position: "relative", overflow: "hidden" }}>
@@ -133,7 +164,7 @@ export default function CourseLanding() {
               : <Btn children={lang === "ar" ? "سجّل الآن" : "Enroll Now"} onClick={handleEnroll} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, animation: "pulse 2s infinite" }} />
             }
             <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline"
-              onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={openCurriculumPresentation}
               style={{ padding: "13px 22px", fontSize: 14, borderRadius: 12 }} />
           </div>
         </div>
@@ -170,7 +201,7 @@ export default function CourseLanding() {
                 ? <Btn children={lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶"} full onClick={goLearn} style={{ marginBottom: 8 }} />
                 : <Btn children={lang === "ar" ? "سجّل الآن" : "Enroll Now"} full onClick={handleEnroll} style={{ marginBottom: 8, animation: "pulse 2s infinite" }} />
               }
-              <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline" full onClick={() => document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" })} style={{ fontSize: 12 }} />
+              <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline" full onClick={openCurriculumPresentation} style={{ fontSize: 12 }} />
               <div style={{ textAlign: "center", marginTop: 10, color: C.muted, fontSize: 10 }}>
                 {lang === "ar" ? "ضمان استرداد 14 يوم" : "14-day money-back guarantee"}
               </div>
@@ -178,6 +209,29 @@ export default function CourseLanding() {
           </div>
         </div>
       </div>
+
+      {/* ── Intro video (only if Admin set introVideoUrl) ── */}
+      {introEmbed && (
+        <div style={{ background: "#1a0f24", padding: "clamp(24px,5vw,48px) 4%", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ maxWidth: 920, margin: "0 auto" }}>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8, textAlign: "center" }}>
+              {lang === "ar" ? "مقدمة عن البرنامج" : "COURSE INTRO"}
+            </div>
+            <h2 style={{ fontSize: "clamp(1.1rem,2.5vw,1.5rem)", fontWeight: 900, marginBottom: 16, textAlign: "center" }}>
+              {lang === "ar" ? "فيديو تعريفي" : "Intro video"}
+            </h2>
+            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, borderRadius: 14, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 12px 40px rgba(0,0,0,.35)" }}>
+              <iframe
+                title={lang === "ar" ? "فيديو تعريفي" : "Course intro"}
+                src={introEmbed}
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── WHO IS THIS FOR ── */}
       <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }}>

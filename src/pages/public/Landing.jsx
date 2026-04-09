@@ -88,16 +88,23 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Team photo */}
-        <div style={{flex:"0 1 380px",position:"relative",zIndex:2}}>
-          <div style={{borderRadius:20,overflow:"hidden",border:`2px solid ${C.border}`,boxShadow:`0 20px 60px rgba(0,0,0,.4)`}}>
+        {/* Team photo — larger on desktop, scales down on small screens */}
+        <div style={{ flex: "1 1 400px", maxWidth: "min(100%, 560px)", minWidth: 280, position: "relative", zIndex: 2, marginInline: "auto" }}>
+          <div style={{ borderRadius: 20, overflow: "hidden", border: `2px solid ${C.border}`, boxShadow: `0 20px 60px rgba(0,0,0,.4)` }}>
             <img
               src="/images/team-office.webp"
               srcSet="/images/team-office-small.webp 500w, /images/team-office.webp 900w"
-              sizes="(max-width:600px) 500px, 900px"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 45vw, 560px"
               alt="Eduzah Team"
               loading="eager"
-              style={{width:"100%",height:290,objectFit:"cover",display:"block"}}
+              style={{
+                width: "100%",
+                height: "clamp(220px, 32vw, 420px)",
+                maxHeight: "min(55vh, 440px)",
+                objectFit: "cover",
+                objectPosition: "center 28%",
+                display: "block",
+              }}
             />
             <div style={{background:"rgba(26,15,36,.92)",padding:"14px 18px"}}>
               <div style={{fontWeight:800,fontSize:13,marginBottom:2}}>
@@ -165,7 +172,7 @@ export default function Landing() {
                 onClick={()=>navigate("/courses")}
                 style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
                 {p.image
-                  ? <img src={p.image} alt={p.title_ar} style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
+                  ? <img src={p.image} alt={p.title_ar} style={{width:"100%",height:"clamp(160px, 22vw, 220px)",objectFit:"cover",display:"block"}}/>
                   : <div style={{height:140,background:`linear-gradient(135deg,#321d3d,#4a1f6e)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
                       <span style={{color:C.muted,fontWeight:900,fontSize:13,textAlign:"center",padding:"0 16px"}}>{lang==="ar"?p.title_ar:p.title_en}</span>
                     </div>

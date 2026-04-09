@@ -4,6 +4,7 @@ import { C, font, gRed, gOr, gPur } from "../theme";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import { Btn } from "./UI";
+import { isSuperAdminEmail } from "../config/superAdmin";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -93,7 +94,7 @@ export default function Navbar() {
         <div style={{
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 4%", height: 60,
+          padding: "0 4%", minHeight: 60,
           maxWidth: 1400, margin: "0 auto",
         }}>
 
@@ -108,7 +109,7 @@ export default function Navbar() {
 
           {/* ── Desktop links ── */}
           {!mobile && (
-            <div style={{ display: "flex", gap: 2, flex: 1, justifyContent: "center", padding: "0 12px", overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 2, flex: 1, justifyContent: "center", padding: "0 8px 0 12px", overflow: "hidden", minWidth: 0 }}>
               {links.map(([path, label]) => (
                 <Link key={path} to={path} style={linkSx(path)}
                   onMouseEnter={e => {
@@ -152,12 +153,30 @@ export default function Navbar() {
                 </>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ textAlign: lang === "ar" ? "right" : "left" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>{currentUser.name.split(" ")[0]}</div>
-                    <div style={{ fontSize: 10, color: "#6b7280" }}>
-                      {role === "admin" ? (lang==="ar" ? "مدير" : "Admin")
-                        : role === "instructor" ? (lang==="ar" ? "مدرب" : "Trainer")
-                        : (lang==="ar" ? "طالب" : "Student")}
+                  <div style={{ textAlign: lang === "ar" ? "right" : "left", minWidth: 0, paddingInlineEnd: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.25 }}>{currentUser.name.split(" ")[0]}</div>
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      marginTop: 3,
+                      display: "inline-block",
+                      padding: "3px 8px",
+                      borderRadius: 6,
+                      maxWidth: "100%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      ...(role === "admin"
+                        ? { background: "#111827", color: "#fbbf24", border: "1px solid rgba(251,191,36,.35)" }
+                        : { color: "#6b7280", background: "transparent", border: "none", fontWeight: 600 }),
+                    }}>
+                      {role === "admin"
+                        ? (isSuperAdminEmail(currentUser.email)
+                          ? (lang === "ar" ? "مدير — Super Admin" : "Admin — Super Admin")
+                          : (lang === "ar" ? "مدير / Admin" : "Admin"))
+                        : role === "instructor" ? (lang === "ar" ? "مدرب" : "Trainer")
+                          : role === "user" ? (lang === "ar" ? "مستخدم" : "User")
+                            : (lang === "ar" ? "طالب" : "Student")}
                     </div>
                   </div>
                   <div onClick={() => navigate("/profile")}
@@ -224,14 +243,28 @@ export default function Navbar() {
                       ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : currentUser.avatar}
                   </div>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700 }}>{currentUser.name}</div>
-                      <div style={{ fontSize: 11, color: "#6b7280" }}>
+                      <div style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        marginTop: 4,
+                        display: "inline-block",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        ...(role === "admin"
+                          ? { background: "#111827", color: "#fbbf24" }
+                          : { color: "#6b7280" }),
+                      }}>
                         {role === "admin"
-                          ? (lang === "ar" ? "مدير" : "Admin")
+                          ? (isSuperAdminEmail(currentUser.email)
+                            ? (lang === "ar" ? "مدير — Super Admin" : "Admin — Super Admin")
+                            : (lang === "ar" ? "مدير / Admin" : "Admin"))
                           : role === "instructor"
                             ? (lang === "ar" ? "مدرب" : "Trainer")
-                            : (lang === "ar" ? "طالب" : "Student")}
+                            : role === "user"
+                              ? (lang === "ar" ? "مستخدم" : "User")
+                              : (lang === "ar" ? "طالب" : "Student")}
                       </div>
                     </div>
                   </div>

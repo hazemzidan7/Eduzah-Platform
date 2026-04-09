@@ -225,13 +225,15 @@ export function RegisterPage() {
 
   if (ok) return (
     <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", maxWidth: 420 }}>
         <div style={{ width: 70, height: 70, borderRadius: "50%", background: `${C.success}22`, border: `2px solid ${C.success}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28 }}>✓</div>
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>
-          {lang === "ar" ? "تم إنشاء حسابك!" : "Account Created!"}
+          {lang === "ar" ? "تم التسجيل بنجاح" : "Registration successful"}
         </h2>
-        <p style={{ color: C.muted, marginBottom: 24 }}>
-          {lang === "ar" ? "في انتظار موافقة الـ Admin خلال 24 ساعة." : "Awaiting Admin approval within 24 hours."}
+        <p style={{ color: C.muted, marginBottom: 24, lineHeight: 1.75, fontSize: 14 }}>
+          {lang === "ar"
+            ? "تم التسجيل بنجاح، سيتم مراجعة بياناتك من قبل الإدارة. بعد الموافقة يمكنك تسجيل الدخول."
+            : "Your registration was successful. The administration will review your details. You can sign in after approval."}
         </p>
         <Btn children={lang === "ar" ? "تسجيل الدخول" : "Login"} onClick={() => navigate("/login")} />
       </div>

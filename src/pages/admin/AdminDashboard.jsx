@@ -6,6 +6,7 @@ import AddSessionModal from "../../components/AddSessionModal";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import { isSuperAdminEmail } from "../../config/superAdmin";
 
 /* ─── small helpers ─── */
 function formatNewsDateAdmin(n, lang) {
@@ -33,7 +34,7 @@ const Row = ({ label, children }) => (
 );
 
 export default function AdminDashboard() {
-  const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser } = useAuth();
+  const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser, createAdminAccount, currentUser } = useAuth();
   const {
     courses, news, exams, trainers, programs, testimonials, team,
     vodafoneCash, setVodafoneCash,
@@ -57,9 +58,13 @@ export default function AdminDashboard() {
 
   const showT = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 2800); };
 
-  const pending     = users.filter(u => u.status === "pending");
-  const students    = users.filter(u => u.role === "student");
-  const instructors = users.filter(u => u.role === "instructor");
+  const pending      = users.filter(u => u.status === "pending");
+  const adminsList   = users.filter(u => u.role === "admin");
+  const instructors  = users.filter(u => u.role === "instructor");
+  const studentsEnr  = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved" && (u.enrolledCourses || []).length > 0);
+  const usersOnly    = users.filter(u => (u.role === "user" || u.role === "student") && u.status === "approved" && !(u.enrolledCourses || []).length);
+  const approvedLearners = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved");
+  const superAdmin   = isSuperAdminEmail(currentUser?.email);
 
   const tabs = ar
     ? [
@@ -94,12 +99,16 @@ export default function AdminDashboard() {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
+      presentationUrl:"", introVideoUrl:"", notifyEmailsStr:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
-      addCourse(f);
+      addCourse({
+        ...f,
+        notifyEmails: f.notifyEmailsStr.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(e => e.includes("@")),
+      });
       showT("تم إضافة الكورس بنجاح!");
       setModal(null);
     };
@@ -142,6 +151,9 @@ export default function AdminDashboard() {
             <Input label="Key points — English (one per line)" value={f.bullets_en} onChange={v => set("bullets_en", v)} placeholder={"Point 1\nPoint 2"} rows={3} />
             <Input label="المهارات — عربي (سطر لكل مهارة)" value={f.outcomes} onChange={v => set("outcomes", v)} placeholder={"مهارة 1\nمهارة 2"} rows={2} />
             <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
+            <Input label={tx("رابط عرض المنهج (PDF)", "Curriculum presentation URL")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
+            <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <Input label={tx("إيميلات إشعار التسجيل (فاصلة)", "Notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="a@x.com, b@x.com" rows={2} />
           </div>
         </div>
         <Btn children={tx("إضافة الكورس", "Add Course")} full onClick={submit} style={{ marginTop: 8 }} />
@@ -167,6 +179,9 @@ export default function AdminDashboard() {
       outcomes: (c.outcomes || []).join("\n"),
       outcomes_en: (c.outcomes_en || []).join("\n"),
       image: c.image || null,
+      presentationUrl: c.presentationUrl || "",
+      introVideoUrl: c.introVideoUrl || "",
+      notifyEmailsStr: (Array.isArray(c.notifyEmails) ? c.notifyEmails : []).join(", "),
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
@@ -190,6 +205,9 @@ export default function AdminDashboard() {
         outcomes: f.outcomes.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes_en: f.outcomes_en.split("\n").map(s => s.trim()).filter(Boolean),
         image: f.image,
+        presentationUrl: f.presentationUrl?.trim() || null,
+        introVideoUrl: f.introVideoUrl?.trim() || null,
+        notifyEmails: f.notifyEmailsStr.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(e => e.includes("@")),
       });
       showT(tx("تم تحديث الكورس", "Course updated"));
       setModal(null);
@@ -231,9 +249,43 @@ export default function AdminDashboard() {
             <Input label="Bullets EN" value={f.bullets_en} onChange={v => set("bullets_en", v)} rows={3} />
             <Input label="Outcomes AR" value={f.outcomes} onChange={v => set("outcomes", v)} rows={2} />
             <Input label="Outcomes EN" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} rows={2} />
+            <Input label={tx("رابط عرض المنهج (PDF أو رابط)", "Curriculum presentation URL (PDF or link)")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
+            <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <Input label={tx("إيميلات إشعار التسجيل (مفصولة بفاصلة)", "Enrollment notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="admin@example.com, team@example.com" rows={2} />
           </div>
         </div>
         <Btn children={tx("حفظ التعديلات", "Save Changes")} full onClick={submit} style={{ marginTop: 8 }} />
+      </Modal>
+    );
+  };
+
+  const CreateAdminModal = () => {
+    const [f, setF] = useState({ name: "", email: "", password: "" });
+    const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const submit = async () => {
+      if (!f.name.trim() || !f.email.includes("@") || f.password.length < 8) {
+        showT(tx("أدخل اسماً وبريداً صالحاً وكلمة مرور 8 أحرف على الأقل", "Enter name, valid email, and password (min 8 chars)"), "error");
+        return;
+      }
+      const r = await createAdminAccount(f);
+      if (!r.ok) {
+        showT(r.code === "NOT_DEPLOYED"
+          ? tx("فعّل Cloud Functions (createAdminAccount) من Firebase", "Deploy Cloud Functions (createAdminAccount) in Firebase")
+          : tx("تعذر إنشاء الحساب", "Could not create account"), "error");
+        return;
+      }
+      showT(tx("تم إنشاء حساب المدير", "Admin account created"));
+      setModal(null);
+    };
+    return (
+      <Modal title={tx("إضافة مدير جديد", "Create Admin Account")} onClose={() => setModal(null)}>
+        <p style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+          {tx("يُنشئ حساباً بصلاحيات مدير كاملة. يتطلب نشر دالة createAdminAccount على Firebase.", "Creates a full-permission admin account. Requires the createAdminAccount Cloud Function to be deployed.")}
+        </p>
+        <Input label={tx("الاسم الكامل", "Full name")} value={f.name} onChange={v => set("name", v)} />
+        <Input label="Email" value={f.email} onChange={v => set("email", v)} />
+        <Input label={tx("كلمة المرور", "Password")} value={f.password} onChange={v => set("password", v)} type="password" />
+        <Btn children={tx("إنشاء المدير", "Create Admin")} full onClick={submit} style={{ marginTop: 12 }} />
       </Modal>
     );
   };
@@ -360,6 +412,7 @@ export default function AdminDashboard() {
             value={f.role}
             onChange={v => set("role", v)}
             options={[
+              { v: "user", l: tx("مستخدم (بدون كورس)", "User (no course yet)") },
               { v: "student", l: tx("طالب", "Student") },
               { v: "instructor", l: tx("مدرب", "Instructor") },
             ]}
@@ -695,7 +748,7 @@ export default function AdminDashboard() {
             <h2 style={{ fontWeight: 900, fontSize: 20, marginBottom: 20 }}>{tx("نظرة عامة", "Dashboard overview")}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
               {[
-                { l: tx("الطلاب", "Students"),     v: students.length,    c: C.red },
+                { l: tx("الطلاب", "Students"),     v: studentsEnr.length, c: C.red },
                 { l: tx("المدربين", "Instructors"), v: instructors.length, c: C.purple },
                 { l: tx("الكورسات", "Courses"),     v: courses.length,     c: C.orange },
                 { l: tx("الطلبات", "Requests"),     v: pending.length,     c: C.warning },
@@ -738,34 +791,60 @@ export default function AdminDashboard() {
         {/* ── Users ── */}
         {tab === "users" && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("إدارة المستخدمين", "User management")}</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              {users.filter(u => u.role !== "admin").map(u => (
-                <Card key={u.id} style={{ padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 9 }}>
-                    <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.role === "instructor" ? "linear-gradient(135deg,#672d86,#321d3d)" : "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{u.avatar}</div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{u.name}</div>
-                        <div style={{ color: C.muted, fontSize: 11 }}>{u.email}</div>
-                        <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
-                          <Badge color={u.role === "instructor" ? C.purple : C.orange}>{u.role}</Badge>
-                          <Badge color={u.status === "approved" ? C.success : u.status === "pending" ? C.warning : C.danger}>{u.status}</Badge>
-                          {u.enrolledCourses.length > 0 && <Badge color={C.muted}>{u.enrolledCourses.length} {tx("كورسات","courses")}</Badge>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة المستخدمين", "User management")}</h2>
+              {superAdmin && (
+                <Btn children={tx("إضافة مدير", "Create Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
+              )}
+            </div>
+
+            {[
+              [tx("المدراء", "Admins"), adminsList],
+              [tx("المدربون", "Instructors"), instructors],
+              [tx("الطلاب (مسجّلون في كورسات)", "Students (enrolled)"), studentsEnr],
+              [tx("المستخدمون (مسجّلون دون تسجيل كورس)", "Users (registered, not enrolled)"), usersOnly],
+            ].map(([sectionTitle, list]) => (
+              <div key={String(sectionTitle)} style={{ marginBottom: 28 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: C.orange, marginBottom: 10, letterSpacing: 0.5 }}>{sectionTitle}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                  {list.length === 0 && (
+                    <Card style={{ padding: 16 }}><div style={{ color: C.muted, fontSize: 12 }}>{tx("لا يوجد", "None")}</div></Card>
+                  )}
+                  {list.map(u => (
+                    <Card key={u.id} style={{ padding: "12px 14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 9 }}>
+                        <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.role === "instructor" ? "linear-gradient(135deg,#672d86,#321d3d)" : "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{u.avatar}</div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>{u.name}</div>
+                            <div style={{ color: C.muted, fontSize: 11 }}>{u.email}</div>
+                            <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
+                              <Badge color={u.role === "instructor" ? C.purple : u.role === "admin" ? C.orange : C.red}>{u.role}</Badge>
+                              <Badge color={u.status === "approved" ? C.success : u.status === "pending" ? C.warning : C.danger}>{u.status}</Badge>
+                              {(u.enrolledCourses || []).length > 0 && <Badge color={C.muted}>{u.enrolledCourses.length} {tx("كورسات", "courses")}</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                          {u.role !== "admin" && <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={() => setModal({ type: "edit-user", user: u })} aria-label={tx("تعديل المستخدم", "Edit user")} />}
+                          {u.status === "pending" && u.role !== "admin" && (
+                            <>
+                              <Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم القبول", "Approved")); }} aria-label={tx("قبول", "Approve")} />
+                              <Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} aria-label={tx("رفض", "Reject")} />
+                            </>
+                          )}
+                          {u.status === "rejected" && u.role !== "admin" && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم التفعيل", "Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
+                          {(u.role === "student" || u.role === "user") && u.status === "approved" && (
+                            <Btn children={tx("كورسات", "Courses")} v="orange" sm onClick={() => setModal({ type: "enroll", user: u })} />
+                          )}
+                          {u.role === "instructor" && u.status === "approved" && <Btn children={tx("تعيين", "Assign")} v="purple" sm onClick={() => setModal({ type: "assign", user: u })} />}
                         </div>
                       </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                      <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={() => setModal({ type: "edit-user", user: u })} aria-label={tx("تعديل المستخدم", "Edit user")} />
-                      {u.status === "pending"   && <><Btn children="✅" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم القبول", "Approved")); }} aria-label={tx("قبول", "Approve")} /><Btn children="❌" v="danger" sm onClick={() => { rejectUser(u.id); showT(tx("تم الرفض", "Rejected"), "error"); }} aria-label={tx("رفض", "Reject")} /></>}
-                      {u.status === "rejected"  && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم التفعيل", "Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
-                      {u.role === "student"     && u.status === "approved" && <Btn children={tx("كورسات", "Courses")} v="orange"  sm onClick={() => setModal({ type: "enroll", user: u })} />}
-                      {u.role === "instructor"  && u.status === "approved" && <Btn children={tx("تعيين", "Assign")}  v="purple"  sm onClick={() => setModal({ type: "assign", user: u })} />}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -1078,6 +1157,7 @@ export default function AdminDashboard() {
         />
       )}
       {modal?.type === "edit-course"     && modal.course && <EditCourseModal course={modal.course} />}
+      {modal?.type === "create-admin"    && <CreateAdminModal />}
       {modal?.type === "edit-user"       && modal.user && <EditUserModal user={modal.user} />}
       {modal?.type === "add-news"        && <AddNewsModal />}
       {modal?.type === "add-exam"        && <AddExamModal />}
@@ -1110,7 +1190,7 @@ export default function AdminDashboard() {
       {modal?.type === "enroll-course" && (
         <Modal title={`${tx("تسجيل طلاب في","Enroll students in")}: ${modal.course.title}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {students.filter(u => u.status === "approved").map(u => {
+            {approvedLearners.map(u => {
               const isE = !!u.enrolledCourses.find(e => e.courseId === modal.course.id);
               return (
                 <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>

@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { addDoc, collection } from "firebase/firestore";
 import { C } from "../../theme";
 import { Btn, Input, Select } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
+import { db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
+const INSTAPAY_PHONE = "01044222881";
 
 const TRAINING_TYPES = [
-  { v:"recorded", ar:"مسجّل (أونلاين في أي وقت)", en:"Recorded (watch anytime)" },
-  { v:"online",   ar:"أونلاين مباشر (Live)",       en:"Live Online" },
-  { v:"offline",  ar:"حضوري (في المقر)",            en:"Offline (at HQ)" },
+  { v: "online", ar: "أونلاين مباشر (Live)", en: "Live Online" },
+  { v: "offline", ar: "حضوري في فرع الشركة (Offline)", en: "Offline at company branch" },
 ];
 
 export default function CourseRegister() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
-  const { courses, vodafoneCash } = useData();
+  const { courses } = useData();
   const { currentUser, enrollUser, register } = useAuth();
   const { lang } = useLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -26,8 +28,9 @@ export default function CourseRegister() {
 
   const course = courses.find(c => c.slug === slug);
 
-  const [step,   setStep]   = useState(1);
-  const [method, setMethod] = useState("vodafone");
+  const [step, setStep] = useState(1);
+  /** full = one payment with 5% discount; installments = 3× course.installment */
+  const [paymentPlan, setPaymentPlan] = useState("full");
   const [form,   setForm]   = useState({
     fname: currentUser?.name?.split(" ")[0] || "",
     lname: currentUser?.name?.split(" ").slice(1).join(" ") || "",
@@ -43,6 +46,13 @@ export default function CourseRegister() {
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  const fullPayDiscounted = useMemo(
+    () => Math.max(0, Math.round((Number(course?.price) || 0) * 0.95)),
+    [course?.price],
+  );
+
+  const amountQuoted = paymentPlan === "full" ? fullPayDiscounted : (course?.installment ?? 0);
+
   const next2 = () => {
     if (!form.fname || !form.email || !form.phone) { setErr(ar ? "كمّل الاسم والإيميل والهاتف" : "Complete name, email and phone"); return; }
     if (!form.email.includes("@")) { setErr(ar ? "البريد غير صحيح" : "Invalid email"); return; }
@@ -50,71 +60,78 @@ export default function CourseRegister() {
     setErr(""); setStep(2);
   };
 
-  const confirm = () => {
-    if (currentUser) {
-      enrollUser(currentUser.id, course.id);
-    } else if (form.createAccount) {
-      const r = register({ name: `${form.fname} ${form.lname}`.trim(), email: form.email, pass: form.pass, phone: form.phone, role: "student" });
-      if (!r.ok) { setErr(r.msg); setStep(1); return; }
+  const confirm = async () => {
+    setErr("");
+    try {
+      if (currentUser) {
+        await enrollUser(currentUser.id, course.id);
+      } else if (form.createAccount) {
+        const r = await register({
+          name: `${form.fname} ${form.lname}`.trim(),
+          email: form.email,
+          pass: form.pass,
+          phone: form.phone,
+          pendingEnrollmentCourseId: course.id,
+        });
+        if (!r.ok) {
+          setErr(r.code === "EMAIL_EXISTS" ? (ar ? "هذا البريد مسجل مسبقاً" : "Email already registered") : (ar ? "تعذر إنشاء الحساب" : "Registration failed"));
+          setStep(1);
+          return;
+        }
+      }
+
+      await submitToSheet("enrollment", {
+        name: `${form.fname} ${form.lname}`.trim(),
+        phone: form.phone,
+        email: form.email,
+        course: course?.title || "",
+        trainingType: form.trainingType || "",
+        payment: "instapay",
+        paymentPlan,
+        amountQuoted,
+        price: course?.price ?? "",
+      });
+
+      await addDoc(collection(db, "enrollmentRequests"), {
+        courseId: course.id,
+        courseTitle: course.title,
+        studentName: `${form.fname} ${form.lname}`.trim(),
+        studentEmail: form.email,
+        studentPhone: form.phone,
+        trainingType: form.trainingType || "",
+        paymentMethod: "instapay",
+        paymentPlan,
+        amountQuoted,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error(e);
+      setErr(ar ? "حدث خطأ أثناء الحفظ. حاول مرة أخرى." : "Something went wrong. Please try again.");
+      return;
     }
-    submitToSheet("enrollment", {
-      name:         `${form.fname} ${form.lname}`.trim(),
-      phone:        form.phone,
-      email:        form.email,
-      course:       course?.title || "",
-      trainingType: form.trainingType || "",
-      payment:      method,
-      price:        course?.price || "",
-    });
     setStep(3);
   };
 
-  const PayFields = {
-    card: (
-      <div style={{ background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textAlign: "center" }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>💳</div>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>
-          {ar ? "الدفع بالبطاقة قريباً" : "Card payment coming soon"}
-        </div>
-        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-          {ar
-            ? "جاري تفعيل خدمة الدفع الإلكتروني. في الوقت الحالي استخدم Vodafone Cash أو Fawry."
-            : "Online card payment is being activated. Use Vodafone Cash or Fawry for now."}
-        </div>
+  const instapayInstructions = (
+    <div style={{ background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.25)", borderRadius: 12, padding: 16, fontSize: 13, lineHeight: 2, color: "rgba(255,255,255,.9)" }}>
+      <strong>{ar ? "الدفع عبر InstaPay على الرقم:" : "Pay via InstaPay to:"}</strong>
+      <div style={{ fontSize: 22, fontWeight: 900, color: C.orange, margin: "10px 0", letterSpacing: 1 }}>{INSTAPAY_PHONE}</div>
+      <div style={{ marginBottom: 8 }}>
+        {paymentPlan === "full"
+          ? (ar
+            ? <>المبلغ المستحق بعد خصم 5%: <strong>{fullPayDiscounted.toLocaleString()} EGP</strong></>
+            : <>Amount due (5% discount applied): <strong>{fullPayDiscounted.toLocaleString()} EGP</strong></>)
+          : (ar
+            ? <>القسط الأول الآن: <strong>{course.installment.toLocaleString()} EGP</strong> — ثم قسطان بنفس المبلغ لاحقاً حسب الاتفاق.</>
+            : <>First installment now: <strong>{course.installment.toLocaleString()} EGP</strong> — two more installments as agreed.</>)}
       </div>
-    ),
-    vodafone: (
-      <div style={{background:"rgba(217,27,91,.07)",border:"1px solid rgba(217,27,91,.2)",borderRadius:12,padding:16,fontSize:13,lineHeight:2,color:"rgba(255,255,255,.85)"}}>
-        <strong>{ar ? "ابعت المبلغ على رقم Vodafone Cash:" : "Send the amount to Vodafone Cash:"}</strong><br/>
-        <div style={{fontSize:22,fontWeight:900,color:C.orange,margin:"8px 0"}}>{vodafoneCash}</div>
-        {ar
-          ? <>واكتب اسمك في رسالة التحويل، وابعت صورة التحويل على واتساب<br/></>
-          : <>Write your name in the transfer note, then send the receipt on WhatsApp<br/></>}
-        <a href={`https://wa.me/${SITE_PHONE}`} target="_blank" rel="noreferrer" style={{color:"#25d366",fontWeight:700,textDecoration:"none"}}>WhatsApp</a>
-      </div>
-    ),
-    installment: (
-      <div>
-        <div style={{ background: "rgba(250,166,51,.08)", border: "1px solid rgba(250,166,51,.22)", borderRadius: 10, padding: 13, fontSize: 13, lineHeight: 1.9, color: "rgba(255,255,255,.8)", marginBottom: 12 }}>
-          <strong>{ar ? "3 أقساط متساوية:" : "3 equal installments:"}</strong><br />
-          • {ar ? "قسط 1:" : "Payment 1:"} <strong style={{ color: C.orange }}>{course.installment.toLocaleString()} EGP</strong> {ar ? "عند التسجيل" : "upon enrollment"}<br />
-          • {ar ? "قسط 2:" : "Payment 2:"} <strong style={{ color: C.orange }}>{course.installment.toLocaleString()} EGP</strong> {ar ? "بعد شهر" : "after 1 month"}<br />
-          • {ar ? "قسط 3:" : "Payment 3:"} <strong style={{ color: C.orange }}>{course.installment.toLocaleString()} EGP</strong> {ar ? "بعد شهرين" : "after 2 months"}
-        </div>
-        <div style={{ background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: C.muted }}>
-          {ar ? "سيتم تفعيل الدفع الإلكتروني للأقساط قريباً. تواصل معنا على واتساب لترتيب القسط." : "Installment card payment coming soon. Contact us on WhatsApp to arrange."}
-          <br /><a href={`https://wa.me/${SITE_PHONE}`} target="_blank" rel="noreferrer" style={{ color: "#25d366", fontWeight: 700 }}>WhatsApp</a>
-        </div>
-      </div>
-    ),
-    fawry: (
-      <div style={{ background: "rgba(255,255,255,.05)", borderRadius: 10, padding: 16, fontSize: 13, color: C.muted, lineHeight: 2 }}>
-        {ar ? "روح أقرب فرع فوري وادفع:" : "Go to the nearest Fawry outlet and pay:"}<br />
-        <strong style={{ color: "#fff", fontSize: 17 }}>{course.price.toLocaleString()} EGP</strong><br />
-        {ar ? "كود:" : "Code:"} <strong style={{ color: C.orange, fontSize: 15 }}>EDZ-{course.slug.toUpperCase()}-2025</strong>
-      </div>
-    ),
-  };
+      {ar
+        ? <>اكتب اسمك في رسالة التحويل وأرسل إيصال التحويل على واتساب للتأكيد.</>
+        : <>Put your name in the transfer note and send the receipt on WhatsApp for confirmation.</>}
+      <br />
+      <a href={`https://wa.me/${SITE_PHONE}`} target="_blank" rel="noreferrer" style={{ color: "#25d366", fontWeight: 700, textDecoration: "none" }}>WhatsApp</a>
+    </div>
+  );
 
   return (
     <div dir={dir} style={{ background: "linear-gradient(135deg,#1a0a2e,#321d3d,#4a1f6e)", minHeight: "calc(100vh - 58px)", padding: "36px 4%", display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -234,24 +251,28 @@ export default function CourseRegister() {
             </p>
 
             {/* Summary */}
-            <div style={{ background: "rgba(250,166,51,.07)", border: "1px solid rgba(250,166,51,.22)", borderRadius: 11, padding: "12px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "rgba(250,166,51,.07)", border: "1px solid rgba(250,166,51,.22)", borderRadius: 11, padding: "12px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13 }}>{ar ? course.title : (course.title_en || course.title)}</div>
                 <div style={{ color: C.muted, fontSize: 11 }}>{course.duration} · {course.hours}h</div>
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{course.price.toLocaleString()} EGP</div>
+              <div style={{ textAlign: ar ? "left" : "right" }}>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{ar ? "المستحق الآن" : "Due now"}</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{amountQuoted.toLocaleString()} EGP</div>
+                {paymentPlan === "full" && (
+                  <div style={{ fontSize: 10, color: C.success, fontWeight: 600 }}>{ar ? "شامل خصم 5%" : "Includes 5% discount"}</div>
+                )}
+              </div>
             </div>
 
-            {/* Payment methods */}
+            <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: C.muted }}>{ar ? "خطة الدفع" : "Payment plan"}</div>
             {[
-              ["card",        ar ? "بطاقة بنكية"  : "Bank Card",     "Visa / Mastercard / Meeza"],
-              ["vodafone",    "Vodafone Cash",                         ar ? "محفظة موبايل" : "Mobile wallet"],
-              ["installment", ar ? "3 أقساط"      : "3 Installments", `3 × ${course.installment.toLocaleString()} EGP`],
-              ["fawry",       ar ? "فوري"          : "Fawry",          ar ? "في أقرب منفذ" : "Nearest outlet"],
+              ["full", ar ? "دفع كامل (خصم 5%)" : "Full payment (5% off)", ar ? `بدل ${course.price.toLocaleString()} → ${fullPayDiscounted.toLocaleString()} EGP` : `${course.price.toLocaleString()} → ${fullPayDiscounted.toLocaleString()} EGP`],
+              ["installments", ar ? "أقساط" : "Installments", ar ? `3 × ${course.installment.toLocaleString()} EGP` : `3 × ${course.installment.toLocaleString()} EGP`],
             ].map(([k, label, sub]) => (
-              <div key={k} onClick={() => setMethod(k)}
-                style={{ border: `1.5px solid ${method === k ? C.red : C.border}`, borderRadius: 10, padding: "10px 12px", cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 10, marginBottom: 8, background: method === k ? `${C.red}08` : "transparent" }}>
-                <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${method === k ? C.red : C.border}`, background: method === k ? C.red : "transparent", flexShrink: 0, transition: "all .2s" }} />
+              <div key={k} onClick={() => setPaymentPlan(k)}
+                style={{ border: `1.5px solid ${paymentPlan === k ? C.red : C.border}`, borderRadius: 10, padding: "10px 12px", cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 10, marginBottom: 8, background: paymentPlan === k ? `${C.red}08` : "transparent" }}>
+                <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${paymentPlan === k ? C.red : C.border}`, background: paymentPlan === k ? C.red : "transparent", flexShrink: 0, transition: "all .2s" }} />
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 12 }}>{label}</div>
                   <div style={{ color: C.muted, fontSize: 10 }}>{sub}</div>
@@ -259,7 +280,8 @@ export default function CourseRegister() {
               </div>
             ))}
 
-            <div style={{ marginTop: 12 }}>{PayFields[method]}</div>
+            <div style={{ fontWeight: 700, fontSize: 12, margin: "14px 0 8px", color: C.muted }}>{ar ? "طريقة الدفع" : "Payment method"}</div>
+            <div style={{ marginTop: 4 }}>{instapayInstructions}</div>
 
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <Btn children={ar ? "← رجوع" : "← Back"} v="outline" onClick={() => setStep(1)} style={{ padding: "11px 18px" }} />
@@ -277,9 +299,13 @@ export default function CourseRegister() {
             <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(16,185,129,.15)", border: "2px solid rgba(16,185,129,.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28, fontWeight: 900, color: "#10b981" }}>✓</div>
             <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{ar ? "تم التسجيل بنجاح!" : "Enrollment Successful!"}</h2>
             <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.8, marginBottom: 20 }}>
-              {currentUser
-                ? (ar ? "تم تسجيلك في الكورس. هيتواصل معاك فريق Eduzah خلال 24 ساعة." : "You have been enrolled. The Eduzah team will contact you within 24 hours.")
-                : (ar ? "استلمنا بياناتك. هيتواصل معاك فريق Eduzah خلال 24 ساعة لتأكيد التسجيل." : "We received your details. The Eduzah team will contact you within 24 hours to confirm enrollment.")}
+              {form.createAccount && !currentUser
+                ? (ar
+                  ? "تم التسجيل بنجاح، سيتم مراجعة بياناتك من قبل الإدارة. بعد الموافقة يمكنك تسجيل الدخول ومتابعة الكورس."
+                  : "Registration saved successfully. The administration will review your details. After approval you can sign in and access the course.")
+                : currentUser
+                  ? (ar ? "تم تسجيلك في الكورس. هيتواصل معاك فريق Eduzah خلال 24 ساعة." : "You have been enrolled. The Eduzah team will contact you within 24 hours.")
+                  : (ar ? "استلمنا بياناتك. هيتواصل معاك فريق Eduzah خلال 24 ساعة لتأكيد التسجيل." : "We received your details. The Eduzah team will contact you within 24 hours to confirm enrollment.")}
             </p>
             <div style={{ background: "rgba(16,185,129,.07)", border: "1px solid rgba(16,185,129,.22)", borderRadius: 14, padding: 16, marginBottom: 20, textAlign: ar ? "right" : "left" }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "#10b981" }}>
@@ -335,7 +361,9 @@ export default function CourseRegister() {
           </div>
 
           <div style={{ fontSize: 22, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{course.price.toLocaleString()} EGP</div>
-          <div style={{ color: C.muted, fontSize: 10, marginBottom: 14 }}>{ar ? "أو 3 ×" : "or 3 ×"} {course.installment.toLocaleString()} EGP</div>
+          <div style={{ color: C.muted, fontSize: 10, marginBottom: 14 }}>
+            {ar ? "دفع كامل بخصم 5%:" : "Full payment −5%:"} {Math.round(course.price * 0.95).toLocaleString()} EGP · {ar ? "أو 3 ×" : "or 3 ×"} {course.installment.toLocaleString()}
+          </div>
           <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, marginBottom: 14 }} />
 
           {/* Features */}
