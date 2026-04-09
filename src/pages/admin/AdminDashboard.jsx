@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { isSuperAdminEmail } from "../../config/superAdmin";
+import { exportCourseStudents } from "../../utils/exportExcel";
 
 /* ─── small helpers ─── */
 function formatNewsDateAdmin(n, lang) {
@@ -52,11 +53,32 @@ export default function AdminDashboard() {
   const dir = ar ? "rtl" : "ltr";
   const tx = (a, e) => (ar ? a : e);
 
-  const [tab,   setTab]   = useState("overview");
-  const [modal, setModal] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [tab,        setTab]       = useState("overview");
+  const [modal,      setModal]     = useState(null);
+  const [toast,      setToast]     = useState(null);
+  const [exportingId, setExportingId] = useState(null); // course id being exported
 
   const showT = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 2800); };
+
+  const handleExport = useCallback(async (course) => {
+    setExportingId(course.id);
+    try {
+      const result = await exportCourseStudents(course, users);
+      if (result.ok) {
+        showT(ar
+          ? `تم تصدير ${result.count} طالب → ${result.fileName}`
+          : `Exported ${result.count} students → ${result.fileName}`
+        );
+      } else {
+        showT(result.msg || (ar ? "لا يوجد بيانات للتصدير" : "No data to export"), "error");
+      }
+    } catch (err) {
+      console.error("Export error:", err);
+      showT(ar ? "حدث خطأ أثناء التصدير" : "Export failed", "error");
+    } finally {
+      setExportingId(null);
+    }
+  }, [users, ar]);
 
   const pending      = users.filter(u => u.status === "pending");
   const adminsList   = users.filter(u => u.role === "admin");
@@ -947,6 +969,25 @@ export default function AdminDashboard() {
                         <Btn children={tx("تسجيل", "Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
                         <Btn children={tx("مدرب", "Instructor")}               sm v="outline" onClick={() => setModal({ type: "assign-course", course: c })} />
                         <Btn children={c.featured ? tx("إلغاء التمييز", "Unfeature") : tx("تمييز", "Feature")} sm v={c.featured ? "orange" : "outline"} onClick={() => { toggleFeatured(c.id); showT(c.featured ? tx("تم إلغاء التمييز", "Unfeatured") : tx("تم التمييز", "Featured")); }} />
+                        {/* ── Excel Export ── */}
+                        <Btn
+                          sm
+                          disabled={exportingId === c.id}
+                          onClick={() => handleExport(c)}
+                          style={{ background: exportingId === c.id ? "#555" : "#1D6F42", color: "#fff", border: "none", display: "flex", alignItems: "center", gap: 5 }}
+                          children={
+                            exportingId === c.id
+                              ? (ar ? "جاري التصدير..." : "Exporting...")
+                              : (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>
+                                  </svg>
+                                  {ar ? "Excel" : "Excel"}
+                                </>
+                              )
+                          }
+                        />
                         <Btn children="🗑"                     sm v="danger"  onClick={() => { deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
