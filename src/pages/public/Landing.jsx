@@ -52,7 +52,7 @@ export default function Landing() {
   return (
     <div dir={dir}>
       <Seo
-        title={lang === "ar" ? "Eduzah — شركة التدريب الاحترافي" : "Eduzah — Professional Training"}
+        title={lang === "ar" ? "Eduzah" : "Eduzah"}
         description={lang === "ar" ? SITE.tagline : (SITE.tagline_en || SITE.tagline)}
       />
       {/* ── Hero ── */}
