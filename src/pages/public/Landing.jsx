@@ -318,7 +318,9 @@ export default function Landing() {
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {tc.image
                     ? <img src={tc.image} alt={tc.name} style={{width:36,height:36,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
-                    : <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:15,flexShrink:0}}>{tc.avatar||tc.name?.[0]}</div>
+                    : <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:15,flexShrink:0}}>
+                        {lang==="ar" ? (tc.avatar||tc.name?.[0]) : (tc.name_en?.[0]||tc.name?.[0])}
+                      </div>
                   }
                   <div>
                     <div style={{fontWeight:700,fontSize:13}}>{lang==="ar"?tc.name:(tc.name_en||tc.name)}</div>

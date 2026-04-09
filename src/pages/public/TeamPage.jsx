@@ -71,7 +71,9 @@ function MemberCard({ member, lang }) {
   const name    = lang === "ar" ? member.name    : (member.name_en    || member.name);
   const role    = lang === "ar" ? member.role_ar : (member.role_en    || member.role_ar);
   const bio     = lang === "ar" ? member.bio_ar  : (member.bio_en     || member.bio_ar);
-  const initial = member.avatar || (member.name?.[0] || "?");
+  const initial = lang === "ar"
+    ? (member.avatar || member.name?.[0] || "?")
+    : (member.name_en?.[0] || member.avatar || member.name?.[0] || "?");
 
   return (
     <article style={{
