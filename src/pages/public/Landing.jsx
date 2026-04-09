@@ -321,8 +321,8 @@ export default function Landing() {
                     : <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:15,flexShrink:0}}>{tc.avatar||tc.name?.[0]}</div>
                   }
                   <div>
-                    <div style={{fontWeight:700,fontSize:13}}>{tc.name}</div>
-                    <div style={{color:C.muted,fontSize:11}}>{lang==="ar"?tc.course_ar:tc.course_en}</div>
+                    <div style={{fontWeight:700,fontSize:13}}>{lang==="ar"?tc.name:(tc.name_en||tc.name)}</div>
+                    <div style={{color:C.muted,fontSize:11}}>{lang==="ar"?tc.course_ar:(tc.course_en||tc.course_ar)}</div>
                   </div>
                 </div>
               </Card>
