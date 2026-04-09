@@ -248,7 +248,9 @@ export default function Landing() {
               ))}
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-              <Btn children={lang==="ar"?"تواصل معنا":"Contact Us"} onClick={()=>window.open(`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`)}>تواصل معنا</Btn>
+              <Btn onClick={()=>window.open(`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`)}>
+                {lang==="ar"?"تواصل معنا":"Contact Us"}
+              </Btn>
               <Btn children={lang==="ar"?"خدماتنا للشركات":"Corporate Services"} v="outline" onClick={()=>navigate("/corporate")}/>
             </div>
           </div>
