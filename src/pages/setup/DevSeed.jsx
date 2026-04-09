@@ -35,15 +35,12 @@ export default function DevSeed() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, u.email, u.pass);
       uid = cred.user.uid;
-      await signOut(auth);
       addLog(`✓ Created Firebase Auth: ${u.email}`);
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
-        // Already exists — sign in to get UID
         try {
           const cred = await signInWithEmailAndPassword(auth, u.email, u.pass);
           uid = cred.user.uid;
-          await signOut(auth);
           addLog(`ℹ Already exists in Auth: ${u.email}`);
         } catch {
           addLog(`✗ Cannot get UID for ${u.email} (wrong password?)`, false);
@@ -55,7 +52,7 @@ export default function DevSeed() {
       }
     }
 
-    // 2. Write Firestore profile (skip if already exists)
+    // 2. Write Firestore profile WHILE still signed in
     const ref  = doc(db, "users", uid);
     const snap = await getDoc(ref);
     if (snap.exists()) {
@@ -76,6 +73,9 @@ export default function DevSeed() {
       });
       addLog(`✓ Firestore profile created: ${u.email}`);
     }
+
+    // 3. Sign out after writing
+    await signOut(auth);
   };
 
   const run = async () => {
