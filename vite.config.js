@@ -65,7 +65,8 @@ export default defineConfig({
 
   // ── esbuild (default minifier) ─────────────────────────────────────────────
   esbuild: {
-    drop: ['console', 'debugger'],   // strip all console.* in production
-    legalComments: 'none',           // strip license comments → smaller bundles
+    // Only drop console/debugger in production builds (safe for all Node versions)
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    legalComments: 'none',
   },
 })
