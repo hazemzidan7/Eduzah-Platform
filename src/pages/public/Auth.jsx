@@ -135,7 +135,9 @@ export function LoginPage() {
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 380 }}>
 
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src="/logo-en.png" alt="Eduzah" style={{ height: 80, width: "auto", maxWidth: 220, objectFit: "contain", marginBottom: 8 }} />
+          <div style={{ display:"inline-block", background:"#fff", borderRadius:14, padding:"10px 20px", marginBottom:8 }}>
+              <img src="/logo-en.png" alt="Eduzah" style={{ height: 52, width: "auto", maxWidth: 200, objectFit: "contain", display:"block" }} />
+            </div>
           <div style={{ color: C.muted, fontSize: 13 }}>
             {lang === "ar" ? "مرحباً بعودتك" : "Welcome back"}
           </div>
@@ -248,7 +250,9 @@ export function RegisterPage() {
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 440 }}>
 
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <img src="/logo-en.png" alt="Eduzah" style={{ height: 80, width: "auto", maxWidth: 220, objectFit: "contain", marginBottom: 8 }} />
+          <div style={{ display:"inline-block", background:"#fff", borderRadius:14, padding:"10px 20px", marginBottom:8 }}>
+              <img src="/logo-en.png" alt="Eduzah" style={{ height: 52, width: "auto", maxWidth: 200, objectFit: "contain", display:"block" }} />
+            </div>
           <div style={{ color: C.muted, fontSize: 13 }}>
             {lang === "ar" ? "انضم لـ Eduzah" : "Join Eduzah"}
           </div>
