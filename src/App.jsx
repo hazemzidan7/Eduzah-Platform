@@ -7,6 +7,7 @@ import Navbar from "./components/Navbar";
 import Landing from "./pages/public/Landing";
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./pages/public/Auth";
 import BootstrapAdmin from "./pages/setup/BootstrapAdmin";
+import DevSeed from "./pages/setup/DevSeed";
 
 // Lazy loaded — only downloaded when needed
 const CoursesPage        = lazy(() => import("./pages/public/CoursesPage"));
@@ -98,6 +99,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password"  element={<ResetPasswordPage />} />
           <Route path="/setup-admin" element={<BootstrapAdmin />} />
+          <Route path="/dev-seed"   element={<DevSeed />} />
 
           {/* ── Course Landing + Register ──────── */}
           <Route path="/courses/:slug"          element={<CourseLanding />} />
