@@ -71,11 +71,15 @@ export default function CourseRegister() {
 
   const PayFields = {
     card: (
-      <div>
-        <Input label={ar ? "رقم البطاقة" : "Card number"} value="" onChange={() => {}} placeholder="1234 5678 9012 3456" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Input label={ar ? "تاريخ الانتهاء" : "Expiry"} value="" onChange={() => {}} placeholder="MM/YY" />
-          <Input label="CVV" value="" onChange={() => {}} placeholder="123" />
+      <div style={{ background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>💳</div>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>
+          {ar ? "الدفع بالبطاقة قريباً" : "Card payment coming soon"}
+        </div>
+        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
+          {ar
+            ? "جاري تفعيل خدمة الدفع الإلكتروني. في الوقت الحالي استخدم Vodafone Cash أو Fawry."
+            : "Online card payment is being activated. Use Vodafone Cash or Fawry for now."}
         </div>
       </div>
     ),
@@ -97,7 +101,10 @@ export default function CourseRegister() {
           • {ar ? "قسط 2:" : "Payment 2:"} <strong style={{ color: C.orange }}>{course.installment.toLocaleString()} EGP</strong> {ar ? "بعد شهر" : "after 1 month"}<br />
           • {ar ? "قسط 3:" : "Payment 3:"} <strong style={{ color: C.orange }}>{course.installment.toLocaleString()} EGP</strong> {ar ? "بعد شهرين" : "after 2 months"}
         </div>
-        <Input label={ar ? "رقم البطاقة للقسط الأول" : "Card number for first payment"} value="" onChange={() => {}} placeholder="1234 5678..." />
+        <div style={{ background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: C.muted }}>
+          {ar ? "سيتم تفعيل الدفع الإلكتروني للأقساط قريباً. تواصل معنا على واتساب لترتيب القسط." : "Installment card payment coming soon. Contact us on WhatsApp to arrange."}
+          <br /><a href={`https://wa.me/${SITE_PHONE}`} target="_blank" rel="noreferrer" style={{ color: "#25d366", fontWeight: 700 }}>WhatsApp</a>
+        </div>
       </div>
     ),
     fawry: (

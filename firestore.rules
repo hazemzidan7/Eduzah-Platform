@@ -2,12 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function userDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
@@ -22,19 +22,10 @@ service cloud.firestore {
         && userDoc().role == 'instructor';
     }
 
-    /** Must not call get() if user doc is missing — otherwise the whole rule fails (permission denied). */
     function userEnrolledCourseIds() {
       let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      if (!exists(path)) {
-        return [];
-      }
-      let d = get(path).data;
-      return d.enrolledCourseIds != null ? d.enrolledCourseIds : [];
-    }
-
-    function instructorOwnsCourse(courseId) {
-      return exists(/databases/$(database)/documents/courses/$(courseId))
-        && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
+      return !exists(path) ? [] :
+        (get(path).data.enrolledCourseIds != null ? get(path).data.enrolledCourseIds : []);
     }
 
     function userAssignedCourses() {
@@ -42,11 +33,15 @@ service cloud.firestore {
       return a != null ? a : [];
     }
 
+    function instructorOwnsCourse(courseId) {
+      return exists(/databases/$(database)/documents/courses/$(courseId))
+        && get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
+    }
+
     function instructorAssignedToCourse(courseId) {
       return courseId in userAssignedCourses();
     }
 
-    /** Set in Console: settings/bootstrap { enabled: true } — remove doc after first admin exists. */
     function bootstrapAdminEnabled() {
       return exists(/databases/$(database)/documents/settings/bootstrap)
         && get(/databases/$(database)/documents/settings/bootstrap).data.enabled == true;
@@ -55,122 +50,74 @@ service cloud.firestore {
     /* ── users ───────────────────────────────────────── */
     match /users/{userId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == userId
-        || isAdmin()
+        request.auth.uid == userId || isAdmin()
         || (isInstructor() && resource.data.role == 'student')
       );
-
       allow create: if isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.assignedCourses == []
-        && request.resource.data.enrolledCourses == []
-        && request.resource.data.keys().hasOnly([
-          'name', 'email', 'role', 'status', 'avatar', 'phone',
-          'enrolledCourses', 'assignedCourses', 'createdAt', 'enrolledCourseIds'
-        ])
         && (
-          (
-            request.resource.data.role == 'student'
-            && request.resource.data.status == 'pending'
-          )
-          || (
-            request.resource.data.role == 'admin'
-            && request.resource.data.status == 'approved'
-            && bootstrapAdminEnabled()
-          )
+          (request.resource.data.role == 'student' && request.resource.data.status == 'pending')
+          || (request.resource.data.role == 'admin' && request.resource.data.status == 'approved' && bootstrapAdminEnabled())
         );
-
       allow update: if isSignedIn() && (
         isAdmin()
-        || (
-          request.auth.uid == userId
-          && request.resource.data.keys().hasOnly([
-            'name', 'email', 'role', 'status', 'avatar', 'phone',
-            'enrolledCourses', 'assignedCourses', 'createdAt', 'enrolledCourseIds', 'avatarImg'
-          ])
+        || (request.auth.uid == userId
           && request.resource.data.role == resource.data.role
           && request.resource.data.status == resource.data.status
           && request.resource.data.email == resource.data.email
-          && request.resource.data.assignedCourses == resource.data.assignedCourses
-        )
+          && request.resource.data.assignedCourses == resource.data.assignedCourses)
       );
-
       allow delete: if isAdmin();
     }
 
-    /* ── courses (public catalog) ──────────────────────── */
+    /* ── courses ────────────────────────────────────── */
     match /courses/{courseId} {
       allow read: if true;
-      allow create: if isSignedIn() && (
-        isAdmin()
-        || (isInstructor() && request.resource.data.instructorId == request.auth.uid)
-      );
-      allow update, delete: if isSignedIn() && (
-        isAdmin()
-        || (isInstructor() && resource.data.instructorId == request.auth.uid)
-      );
+      allow create: if isAdmin() || (isInstructor() && request.resource.data.instructorId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isInstructor() && resource.data.instructorId == request.auth.uid);
     }
 
-    /* ── news, trainers, programs, testimonials, team ── */
-    match /news/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /trainers/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /programs/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /testimonials/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /team/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    /* ── exams ─────────────────────────────────────────── */
+    /* ── exams ──────────────────────────────────────── */
     match /exams/{examId} {
       allow read: if isSignedIn() && (
-        isAdmin()
-        || isInstructor()
+        isAdmin() || isInstructor()
         || resource.data.courseId in userEnrolledCourseIds()
       );
-      allow create: if isSignedIn() && (
-        isAdmin()
-        || (
-          isInstructor()
-          && (
-            instructorOwnsCourse(request.resource.data.courseId)
-            || instructorAssignedToCourse(request.resource.data.courseId)
-          )
-        )
-      );
-      allow update, delete: if isSignedIn() && (
-        isAdmin()
-        || (
-          isInstructor()
-          && (
-            instructorOwnsCourse(resource.data.courseId)
-            || instructorAssignedToCourse(resource.data.courseId)
-          )
-        )
-      );
+      allow create: if isAdmin() || (isInstructor() && (
+        instructorOwnsCourse(request.resource.data.courseId)
+        || instructorAssignedToCourse(request.resource.data.courseId)
+      ));
+      allow update, delete: if isAdmin() || (isInstructor() && (
+        instructorOwnsCourse(resource.data.courseId)
+        || instructorAssignedToCourse(resource.data.courseId)
+      ));
     }
 
-    /* ── settings (e.g. payment number, bootstrap flag) ─ */
-    match /settings/{docId} {
-      allow read: if true;
-      allow create, update: if isAdmin();
+    /* ── submissions ────────────────────────────────── */
+    match /submissions/{subId} {
+      allow read: if isSignedIn() && (
+        isAdmin() || isInstructor()
+        || resource.data.userId == request.auth.uid
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || isInstructor();
       allow delete: if isAdmin();
     }
 
-    match /{document=**} {
-      allow read, write: if false;
+    /* ── public collections ─────────────────────────── */
+    match /news/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /trainers/{id}     { allow read: if true; allow write: if isAdmin(); }
+    match /programs/{id}     { allow read: if true; allow write: if isAdmin(); }
+    match /testimonials/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /team/{id}         { allow read: if true; allow write: if isAdmin(); }
+
+    /* ── settings ───────────────────────────────────── */
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || bootstrapAdminEnabled();
+      allow delete: if isAdmin() || bootstrapAdminEnabled();
     }
+
+    match /{document=**} { allow read, write: if false; }
   }
 }

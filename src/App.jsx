@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 
 // Eagerly loaded (always needed)
 import Landing from "./pages/public/Landing";
+import NotFound from "./pages/public/NotFound";
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./pages/public/Auth";
 import BootstrapAdmin from "./pages/setup/BootstrapAdmin";
 import DevSeed from "./pages/setup/DevSeed";
@@ -24,6 +25,8 @@ const CourseRegister     = lazy(() => import("./pages/course/CourseRegister"));
 
 const StudentDashboard   = lazy(() => import("./pages/student/StudentDashboard"));
 const CourseViewer       = lazy(() => import("./pages/student/CourseViewer"));
+const ExamPage           = lazy(() => import("./pages/student/ExamPage"));
+const CertificatePage    = lazy(() => import("./pages/student/CertificatePage"));
 const ProfilePage        = lazy(() => import("./pages/student/ProfilePage"));
 
 const AdminDashboard     = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -110,6 +113,8 @@ export default function App() {
           <Route path="/my-courses" element={<RequireAuth><StudentDashboard /></RequireAuth>} />
           <Route path="/profile"    element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/learn/:slug" element={<RequireAuth><CourseViewer /></RequireAuth>} />
+          <Route path="/exam/:examId" element={<RequireAuth><ExamPage /></RequireAuth>} />
+          <Route path="/certificate/:slug" element={<RequireAuth><CertificatePage /></RequireAuth>} />
 
           {/* ── Admin ──────────────────────────── */}
           <Route path="/admin/*" element={<RequireAuth roles={["admin"]}><AdminDashboard /></RequireAuth>} />
@@ -118,7 +123,7 @@ export default function App() {
           <Route path="/instructor/*" element={<RequireAuth roles={["instructor"]}><InstructorDashboard /></RequireAuth>} />
 
           {/* ── Fallback ───────────────────────── */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
       </main>

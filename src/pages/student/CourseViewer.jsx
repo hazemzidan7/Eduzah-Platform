@@ -217,16 +217,22 @@ export default function CourseViewer() {
                   </div>
                 )}
                 {sessionExams.length > 0 && (
-                  <div style={{ marginBottom: 16, padding: "12px 14px", background: "rgba(103,45,134,.12)", borderRadius: 10, border: `1px solid ${C.border}` }}>
-                    <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>{ar ? "امتحان هذه الجلسة" : "Session exam"}</div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>{ar ? "امتحانات الجلسة" : "Session exams"}</div>
                     {sessionExams.map((ex) => (
-                      <div key={ex.id} style={{ fontSize: 13, marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600 }}>{ex.title}</span>
-                        <span style={{ color: C.muted, fontSize: 11, marginInlineStart: 8 }}>
-                          {ex.type === "task" ? (ar ? "مهمة" : "Task") : ex.type === "mcq" ? "MCQ" : ex.type}
-                          {" · "}
-                          {ex.dueDate}
-                        </span>
+                      <div key={ex.id} onClick={() => navigate(`/exam/${ex.id}`)}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(103,45,134,.15)", border: `1px solid ${C.purple}44`, borderRadius: 10, marginBottom: 8, cursor: "pointer", transition: "all .2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(103,45,134,.28)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(103,45,134,.15)"}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{ex.title}</div>
+                          <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>
+                            {ex.type === "mcq" ? "MCQ" : ex.type === "task" ? (ar ? "مهمة" : "Task") : ex.type}
+                            {ex.dueDate && ` · ${ar ? "آخر موعد" : "Due"}: ${ex.dueDate}`}
+                            {ex.questions?.length > 0 && ` · ${ex.questions.length} ${ar ? "سؤال" : "Q"}`}
+                          </div>
+                        </div>
+                        <span style={{ color: C.purple, fontWeight: 800, fontSize: 18 }}>←</span>
                       </div>
                     ))}
                   </div>

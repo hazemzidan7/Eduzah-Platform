@@ -91,9 +91,17 @@ export default function StudentDashboard() {
                 <div style={{ padding: "12px 14px" }}>
                   <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 3 }}>{c.title}</div>
                   <PBar value={prog} color={prog === 100 ? C.success : C.red} h={4} />
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 6 }}>
                     <span style={{ color: C.muted, fontSize: 11 }}>{prog}%</span>
-                    <span style={{ color: prog === 100 ? C.success : C.orange, fontSize: 11, fontWeight: 700 }}>{prog === 100 ? (ar ? "✓ مكتمل" : "✓ Complete") : ar ? "متابعة ▶" : "Continue ▶"}</span>
+                    {prog === 100 ? (
+                      <span
+                        onClick={e => { e.stopPropagation(); navigate(`/certificate/${c.slug || c.id}`); }}
+                        style={{ color: C.success, fontSize: 11, fontWeight: 700, cursor: "pointer", background: `${C.success}18`, border: `1px solid ${C.success}44`, borderRadius: 6, padding: "2px 8px" }}>
+                        {ar ? "الشهادة" : "Certificate"}
+                      </span>
+                    ) : (
+                      <span style={{ color: C.orange, fontSize: 11, fontWeight: 700 }}>{ar ? "متابعة ▶" : "Continue ▶"}</span>
+                    )}
                   </div>
                 </div>
               </div>
