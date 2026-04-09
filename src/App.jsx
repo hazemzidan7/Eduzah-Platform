@@ -3,12 +3,17 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 
-// Eagerly loaded (always needed)
-import Landing from "./pages/public/Landing";
+// Eagerly loaded — visible on first paint
+import Landing  from "./pages/public/Landing";
 import NotFound from "./pages/public/NotFound";
-import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./pages/public/Auth";
-import BootstrapAdmin from "./pages/setup/BootstrapAdmin";
-import DevSeed from "./pages/setup/DevSeed";
+
+// Lazy loaded — Auth pages are never needed on the initial render
+const LoginPage          = lazy(() => import("./pages/public/Auth").then(m => ({ default: m.LoginPage })));
+const RegisterPage       = lazy(() => import("./pages/public/Auth").then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/public/Auth").then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage  = lazy(() => import("./pages/public/Auth").then(m => ({ default: m.ResetPasswordPage })));
+const BootstrapAdmin     = lazy(() => import("./pages/setup/BootstrapAdmin"));
+const DevSeed            = lazy(() => import("./pages/setup/DevSeed"));
 
 // Lazy loaded — only downloaded when needed
 const CoursesPage        = lazy(() => import("./pages/public/CoursesPage"));

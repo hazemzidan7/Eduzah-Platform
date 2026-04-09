@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Btn, Card, Stars } from "../../components/UI";
@@ -7,7 +8,7 @@ import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { Seo } from "../../components/Seo";
 
-function CourseCard({ course, lang }) {
+const CourseCard = memo(function CourseCard({ course, lang }) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
@@ -21,7 +22,9 @@ function CourseCard({ course, lang }) {
       style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
       <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
         {course.image
-          ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          ? <img src={course.image} alt={title} loading="lazy" decoding="async"
+              width="400" height="160"
+              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
           : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`}}/>
         }
         {/* dim overlay + title at bottom */}
@@ -42,7 +45,7 @@ function CourseCard({ course, lang }) {
       </div>
     </div>
   );
-}
+});
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -97,9 +100,13 @@ export default function Landing() {
             <img
               src="/images/team-office.webp"
               srcSet="/images/team-office-small.webp 500w, /images/team-office.webp 900w"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 45vw, 560px"
+              sizes="(max-width: 767px) 100vw, (max-width: 1200px) 45vw, 560px"
               alt="Eduzah Team"
               loading="eager"
+              fetchpriority="high"
+              decoding="async"
+              width="900"
+              height="600"
               style={{
                 width: "100%",
                 height: "clamp(220px, 32vw, 420px)",

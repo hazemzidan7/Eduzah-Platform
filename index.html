@@ -10,11 +10,50 @@
     <meta property="og:title" content="Eduzah"/>
     <meta property="og:description" content="Eduzah — شركة سوفتوير متخصصة في تقديم التدريبات التقنية في مجالات تطوير البرمجيات والذكاء الاصطناعي"/>
     <meta property="og:type" content="website"/>
-    <link rel="preload" href="/images/team-office.webp" as="image" type="image/webp"/>
+
+    <!-- ── DNS prefetch / preconnect ─────────────────────────────────────── -->
+    <!-- Firebase services -->
+    <link rel="dns-prefetch" href="//firestore.googleapis.com"/>
+    <link rel="dns-prefetch" href="//identitytoolkit.googleapis.com"/>
+    <link rel="dns-prefetch" href="//securetoken.googleapis.com"/>
+    <link rel="dns-prefetch" href="//www.googleapis.com"/>
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/></noscript>
+
+    <!-- ── LCP image preload ──────────────────────────────────────────────── -->
+    <!-- fetchpriority=high tells browser to fetch this before everything else -->
+    <link rel="preload"
+          href="/images/team-office-small.webp"
+          as="image"
+          type="image/webp"
+          media="(max-width: 767px)"
+          fetchpriority="high"/>
+    <link rel="preload"
+          href="/images/team-office.webp"
+          as="image"
+          type="image/webp"
+          media="(min-width: 768px)"
+          fetchpriority="high"/>
+
+    <!-- ── Fonts ──────────────────────────────────────────────────────────── -->
+    <!-- Load non-blocking via print trick, swap to all once loaded (no FOIT) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
+          rel="stylesheet"
+          media="print"
+          onload="this.media='all'"/>
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+    </noscript>
+
+    <!-- ── Critical CSS (font-display: swap fallback) ─────────────────────── -->
+    <style>
+      /* Ensure no layout shift while Cairo loads — match metric-compatible fallback */
+      body { font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; margin: 0; background: #1a0a2e; color: #fff; }
+      #root { min-height: 100vh; }
+      /* Prevent CLS from spinner on initial paint */
+      .app-shell { min-height: 100vh; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
