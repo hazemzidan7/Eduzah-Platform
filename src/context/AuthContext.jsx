@@ -23,7 +23,11 @@ export function AuthProvider({ children }) {
   const [loading,   setLoading] = useState(true);
 
   useEffect(() => {
+    // Safety net: if Firebase doesn't respond in 8 s, unblock the UI
+    const timer = setTimeout(() => setLoading(false), 8000);
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(timer);
       try {
         if (firebaseUser) {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
@@ -44,7 +48,7 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     });
-    return unsub;
+    return () => { clearTimeout(timer); unsub(); };
   }, []);
 
   /* One-time backfill of enrolledCourseIds for profiles created before this field existed. */

@@ -46,16 +46,17 @@ export function DataProvider({ children }) {
   const [team,         setTeam]         = useState(INIT_TEAM);
   const [vodafoneCash, setVodafoneCashState] = useState(SITE.vodafoneCash);
 
-  // Real-time listeners (public read per firestore.rules)
+  // Real-time listeners — always add an error handler to avoid unhandled rejections
   useEffect(() => {
+    const snap = (col, setter) =>
+      onSnapshot(collection(db, col), s => setter(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
     const unsubs = [
-      onSnapshot(collection(db, "courses"),      s => setCourses(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "news"),         s => setNews(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "exams"),        s => setExams(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "trainers"),     s => setTrainers(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "programs"),     s => setPrograms(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "testimonials"), s => setTestimonials(s.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "team"),         s => setTeam(s.docs.map(d => ({ id: d.id, ...d.data() })))),
+      snap("courses",      setCourses),
+      snap("news",         setNews),
+      snap("trainers",     setTrainers),
+      snap("programs",     setPrograms),
+      snap("testimonials", setTestimonials),
+      snap("team",         setTeam),
     ];
     return () => unsubs.forEach(u => u());
   }, []);
@@ -63,9 +64,19 @@ export function DataProvider({ children }) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "vodafoneCash"), (snap) => {
       if (snap.exists()) setVodafoneCashState(snap.data().value ?? SITE.vodafoneCash);
-    });
+    }, () => {});
     return () => unsub();
   }, []);
+
+  // Exams require auth — subscribe only when signed in
+  useEffect(() => {
+    if (!currentUser) { setExams(INIT_EXAMS); return; }
+    const unsub = onSnapshot(collection(db, "exams"),
+      s => setExams(s.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {}
+    );
+    return () => unsub();
+  }, [currentUser?.id]);
 
   // Seed empty collections only when an admin is signed in (Firestore rules require admin writes).
   useEffect(() => {
