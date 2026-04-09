@@ -125,6 +125,7 @@ service cloud.firestore {
         && request.resource.data.courseId is string
         && request.resource.data.studentEmail is string;
       allow read, delete: if isAdmin();
+      allow update: if isAdmin(); // Admin confirms/unconfirms payment
     }
 
     match /{document=**} { allow read, write: if false; }

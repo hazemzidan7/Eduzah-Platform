@@ -49,19 +49,22 @@ export async function fetchCourseStudents(course, allUsers = []) {
     const profile    = allUsers.find(u => u.email?.toLowerCase() === key);
     const enrollment = profile?.enrolledCourses?.find(e => e.courseId === course.id);
     rows.push({
-      name:        r.studentName || profile?.name || "",
-      email:       r.studentEmail || "",
-      phone:       r.studentPhone || profile?.phone || "",
-      training:    fmtTraining(r.trainingType),
-      payMethod:   (r.paymentMethod || "InstaPay").toUpperCase(),
-      payPlan:     fmtPlan(r.paymentPlan),
-      amount:      r.amountQuoted ?? null,
-      level:       fmtLevel(r.level),
-      source:      r.source || "—",
-      status:      profile?.status || "no-account",
-      progress:    enrollment ? `${enrollment.progress || 0}%` : "—",
-      enrollDate:  enrollment?.enrollDate || fmtDate(r.createdAt),
-      requestedAt: fmtDate(r.createdAt),
+      docId:            r.id || null,           // Firestore doc ID for payment confirmation
+      name:             r.studentName || profile?.name || "",
+      email:            r.studentEmail || "",
+      phone:            r.studentPhone || profile?.phone || "",
+      training:         fmtTraining(r.trainingType),
+      payMethod:        (r.paymentMethod || "InstaPay").toUpperCase(),
+      payPlan:          fmtPlan(r.paymentPlan),
+      amount:           r.amountQuoted ?? null,
+      level:            fmtLevel(r.level),
+      source:           r.source || "—",
+      status:           profile?.status || "no-account",
+      progress:         enrollment ? `${enrollment.progress || 0}%` : "—",
+      enrollDate:       enrollment?.enrollDate || fmtDate(r.createdAt),
+      requestedAt:      fmtDate(r.createdAt),
+      paymentConfirmed: r.paymentConfirmed === true,
+      confirmedAt:      r.confirmedAt || null,
     });
   }
 
@@ -73,15 +76,18 @@ export async function fetchCourseStudents(course, allUsers = []) {
     if (seen.has(key)) continue;
     seen.add(key);
     rows.push({
-      name:        u.name || "",
-      email:       u.email || "",
-      phone:       u.phone || "",
-      training:    "—", payMethod: "—", payPlan: "—",
-      amount:      null, level: "—", source: "—",
-      status:      u.status || "",
-      progress:    `${enrollment.progress || 0}%`,
-      enrollDate:  enrollment.enrollDate || "",
-      requestedAt: u.createdAt ? fmtDate(u.createdAt) : "",
+      docId:            null,
+      name:             u.name || "",
+      email:            u.email || "",
+      phone:            u.phone || "",
+      training:         "—", payMethod: "—", payPlan: "—",
+      amount:           null, level: "—", source: "—",
+      status:           u.status || "",
+      progress:         `${enrollment.progress || 0}%`,
+      enrollDate:       enrollment.enrollDate || "",
+      requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
+      paymentConfirmed: false,
+      confirmedAt:      null,
     });
   }
 
