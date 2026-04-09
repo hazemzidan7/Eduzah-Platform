@@ -41,7 +41,7 @@ export function PBar({ value, color=C.red, h=6 }) {
 }
 
 export function Badge({ children, color=C.red }) {
-  return <span style={{background:color+"22",color,border:`1px solid ${color}44`,borderRadius:50,padding:"2px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{children}</span>;
+  return <span style={{background:color+"44",color:"#fff",border:`1px solid ${color}99`,borderRadius:50,padding:"3px 10px",fontSize:11,fontWeight:700,whiteSpace:"nowrap",letterSpacing:0.3}}>{children}</span>;
 }
 
 export function Stars({ n=5 }) {
