@@ -135,9 +135,7 @@ export function LoginPage() {
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 380 }}>
 
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontWeight: 900, fontSize: 26, marginBottom: 6 }}>
-            <span style={{ color: C.red }}>Edu</span><span style={{ color: C.orange }}>zah</span>
-          </div>
+          <img src="/logo-en.png" alt="Eduzah" style={{ height: 54, objectFit: "contain", marginBottom: 8 }} />
           <div style={{ color: C.muted, fontSize: 13 }}>
             {lang === "ar" ? "مرحباً بعودتك" : "Welcome back"}
           </div>
@@ -250,9 +248,7 @@ export function RegisterPage() {
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 440 }}>
 
         <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>
-            <span style={{ color: C.red }}>Edu</span><span style={{ color: C.orange }}>zah</span>
-          </div>
+          <img src="/logo-en.png" alt="Eduzah" style={{ height: 54, objectFit: "contain", marginBottom: 8 }} />
           <div style={{ color: C.muted, fontSize: 13 }}>
             {lang === "ar" ? "انضم لـ Eduzah" : "Join Eduzah"}
           </div>
