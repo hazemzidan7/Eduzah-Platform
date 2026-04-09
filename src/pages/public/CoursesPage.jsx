@@ -112,15 +112,17 @@ export default function CoursesPage() {
                 onClick={()=>navigate(`/courses/${c.slug}`)}
                 style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
 
-                {c.image
-                  ? <img src={c.image} alt={c.title} style={{width:"100%",height:150,objectFit:"cover"}}/>
-                  : <div style={{height:150,background:`linear-gradient(135deg,${c.color||C.red},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                      <span style={{fontWeight:900,color:"rgba(255,255,255,.4)",fontSize:"0.8rem",textAlign:"center",padding:"0 16px",lineHeight:1.4}}>
-                        {lang==="ar"?c.title:(c.title_en||c.title)}
-                      </span>
-                      {c.featured&&<div style={{position:"absolute",top:10,right:10,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"3px 10px",fontSize:10,fontWeight:700}}>{lang==="ar"?"مميز":"Featured"}</div>}
-                    </div>
-                }
+                <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
+                  {c.image
+                    ? <img src={c.image} alt={lang==="ar"?c.title:(c.title_en||c.title)} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                    : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${c.color||C.red},#321d3d)`}}/>
+                  }
+                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
+                  <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>
+                    {lang==="ar"?c.title:(c.title_en||c.title)}
+                  </span>
+                  {c.featured&&<div style={{position:"absolute",top:10,right:10,background:`${C.orange}dd`,borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang==="ar"?"مميز":"Featured"}</div>}
+                </div>
                 <div style={{padding:"14px 16px 18px"}}>
                   {/* Track badge */}
                   {trackData&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${trackData.color}15`,color:trackData.color,border:`1px solid ${trackData.color}33`,borderRadius:50,padding:"2px 9px",fontSize:10,fontWeight:700,marginBottom:8}}>

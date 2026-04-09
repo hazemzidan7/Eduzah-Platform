@@ -19,13 +19,16 @@ function CourseCard({ course, lang }) {
       onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}
       onClick={()=>navigate(`/courses/${course.slug}`)}
       style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
-      {course.image
-        ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:150,objectFit:"cover",display:"block"}}/>
-        : <div style={{height:150,background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-            <span style={{fontWeight:900,color:"rgba(255,255,255,.45)",fontSize:"0.85rem",position:"absolute",bottom:12,left:14,right:14,textAlign:"center",lineHeight:1.4}}>{title}</span>
-            {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.9)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700}}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
-          </div>
-      }
+      <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
+        {course.image
+          ? <img src={course.image} alt={title} loading="lazy" decoding="async" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`}}/>
+        }
+        {/* dim overlay + title at bottom */}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
+        <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{title}</span>
+        {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.92)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
+      </div>
       <div style={{padding:"14px 16px 16px"}}>
         <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{title}</div>
         <div style={{display:"flex",gap:10,marginBottom:10}}>

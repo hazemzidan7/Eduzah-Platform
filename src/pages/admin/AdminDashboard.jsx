@@ -128,17 +128,27 @@ export default function AdminDashboard() {
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
             options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
-            {/* Course image upload */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 6 }}>صورة الكورس</label>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(255,255,255,.05)", border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span style={{ fontSize: 12, color: "#aaa" }}>{f.image ? "تم رفع الصورة" : "اضغط لرفع صورة للكورس"}</span>
+            {/* ── Course cover image ── */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>صورة الغلاف (Cover Image)</label>
+              {/* Preview / drop zone */}
+              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
+                {f.image
+                  ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <span style={{ fontSize: 12, color: C.muted }}>اضغط لرفع صورة الكورس</span>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
+                    </div>
+                }
                 <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
               </label>
               {f.image && (
-                <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center" }}>
-                  <img src={f.image} alt="" style={{ width: 90, height: 55, objectFit: "cover", borderRadius: 8 }} />
+                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                    تغيير الصورة
+                    <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                  </label>
                   <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
                 </div>
               )}
@@ -228,15 +238,26 @@ export default function AdminDashboard() {
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
             options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 6 }}>صورة الكورس</label>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "rgba(255,255,255,.05)", border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
-                <span style={{ fontSize: 12, color: "#aaa" }}>{f.image ? "تم رفع الصورة" : "رفع صورة"}</span>
+            {/* ── Course cover image (edit) ── */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>صورة الغلاف (Cover Image)</label>
+              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
+                {f.image
+                  ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <span style={{ fontSize: 12, color: C.muted }}>اضغط لرفع صورة الكورس</span>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
+                    </div>
+                }
                 <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
               </label>
               {f.image && (
-                <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center" }}>
-                  <img src={f.image} alt="" style={{ width: 90, height: 55, objectFit: "cover", borderRadius: 8 }} />
+                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                    تغيير الصورة
+                    <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                  </label>
                   <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
                 </div>
               )}
@@ -367,10 +388,25 @@ export default function AdminDashboard() {
     );
   };
 
-  /* ─────────── readFile helper ─────────── */
+  /* ─────────── readFile helper — resizes to max 900px & 200KB ─────────── */
   const readFile = (file, cb) => {
     const r = new FileReader();
-    r.onloadend = () => cb(r.result);
+    r.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900;
+        let { width: w, height: h } = img;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        // Try quality 0.75 first, drop to 0.5 if still > 200 KB
+        let data = canvas.toDataURL("image/jpeg", 0.75);
+        if (data.length > 200_000) data = canvas.toDataURL("image/jpeg", 0.5);
+        cb(data);
+      };
+      img.src = r.result;
+    };
     r.readAsDataURL(file);
   };
 
