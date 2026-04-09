@@ -50,6 +50,75 @@ function Stat({ label, value, sub, color="#fff", accent=false }) {
   );
 }
 
+// ─── Editable amount cell ─────────────────────────────────────────────────────
+function AmountCell({ row, onSave, saving }) {
+  const [editing, setEditing] = useState(false);
+  const [val,     setVal]     = useState(row.amount != null ? String(row.amount) : "");
+
+  const commit = () => {
+    const num = val.trim() === "" ? null : Number(val);
+    if (isNaN(num) && val.trim() !== "") { setEditing(false); return; } // invalid
+    setEditing(false);
+    if (num !== row.amount) onSave(row, num);
+  };
+
+  if (editing) {
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+        <input
+          autoFocus
+          type="number"
+          value={val}
+          onChange={e => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key==="Enter") commit(); if (e.key==="Escape") setEditing(false); }}
+          style={{
+            width:90, padding:"4px 8px", borderRadius:7,
+            background:"rgba(255,255,255,.1)", border:`1.5px solid ${C.purple}`,
+            color:"#fff", fontFamily:font, fontSize:13, fontWeight:700,
+            outline:"none", textAlign:"right",
+          }}
+        />
+        <span style={{ fontSize:10, color:C.muted }}>EGP</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => { if (!saving) setEditing(true); }}
+      title="اضغط لتعديل المبلغ"
+      style={{
+        display:"inline-flex", alignItems:"center", gap:6,
+        cursor: saving ? "wait" : "pointer",
+        padding:"4px 8px", borderRadius:7,
+        border:`1.5px dashed ${row.amount != null ? "rgba(52,211,153,.3)" : "rgba(255,255,255,.18)"}`,
+        background: row.amount != null ? "rgba(52,211,153,.06)" : "rgba(255,255,255,.04)",
+        transition:"all .15s", minWidth:70,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.purple; e.currentTarget.style.background = "rgba(125,61,158,.12)"; }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = row.amount != null ? "rgba(52,211,153,.3)" : "rgba(255,255,255,.18)";
+        e.currentTarget.style.background  = row.amount != null ? "rgba(52,211,153,.06)" : "rgba(255,255,255,.04)";
+      }}>
+      {saving
+        ? <span style={{ width:12, height:12, border:"2px solid #34d399", borderTopColor:"transparent",
+            borderRadius:"50%", animation:"spin .6s linear infinite", display:"inline-block" }}/>
+        : row.amount != null
+          ? <span style={{ fontWeight:800, fontSize:13, color:"#34d399" }}>
+              {Number(row.amount).toLocaleString()}
+              <small style={{ fontSize:10, color:C.muted, fontWeight:400, marginRight:3 }}>EGP</small>
+            </span>
+          : <span style={{ fontSize:11, color:"rgba(255,255,255,.35)" }}>+ أضف مبلغ</span>
+      }
+      {!saving && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>}
+    </div>
+  );
+}
+
 // ─── Payment confirm button ───────────────────────────────────────────────────
 function PayConfirmBtn({ row, onToggle, loading }) {
   const confirmed = row.paymentConfirmed;
@@ -89,8 +158,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [filterPay,  setFilterPay]  = useState("all"); // all | confirmed | pending
   const [sortCol,    setSortCol]    = useState("requestedAt");
   const [sortDir,    setSortDir]    = useState("desc");
-  const [confirming, setConfirming] = useState(null); // docId being toggled
-  const [exporting,  setExporting]  = useState(false);
+  const [confirming,   setConfirming]   = useState(null); // docId being toggled
+  const [savingAmount, setSavingAmount] = useState(null); // docId being saved
+  const [exporting,    setExporting]    = useState(false);
 
   const loadRows = useCallback(() => {
     setLoading(true);
@@ -121,6 +191,24 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       console.error("Payment confirm error:", err);
     } finally {
       setConfirming(null);
+    }
+  };
+
+  // ── Save manual amount ────────────────────────────────────────────────────
+  const handleSaveAmount = async (row, newAmount) => {
+    if (!row.docId || savingAmount) return;
+    setSavingAmount(row.docId);
+    try {
+      await updateDoc(doc(db, "enrollmentRequests", row.docId), {
+        amountQuoted: newAmount,
+      });
+      setRows(prev => prev.map(r =>
+        r.docId === row.docId ? { ...r, amount: newAmount } : r
+      ));
+    } catch (err) {
+      console.error("Amount save error:", err);
+    } finally {
+      setSavingAmount(null);
     }
   };
 
@@ -191,10 +279,14 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         const color = r.payPlan.includes("كامل") ? "#34d399" : C.orange;
         return <Pill color={color}>{r.payPlan}</Pill>;
       }},
-    { key:"amount", label:"المبلغ", w:120,
-      render:(r) => r.amount != null
-        ? <span style={{fontWeight:800,fontSize:13,color:"#34d399"}}>{Number(r.amount).toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
-        : <span style={{color:C.muted}}>—</span> },
+    { key:"amount", label:"المبلغ ✎", w:140,
+      render:(r) => (
+        <AmountCell
+          row={r}
+          onSave={handleSaveAmount}
+          saving={savingAmount === r.docId}
+        />
+      )},
 
     // ── Payment Confirmation column ───────────────────────────────────────
     { key:"paymentConfirmed", label:"تأكيد الدفع", w:140,
