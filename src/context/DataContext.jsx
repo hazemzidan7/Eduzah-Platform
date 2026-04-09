@@ -35,6 +35,25 @@ async function seedCollection(colName, items) {
   }
 }
 
+// Helper: patch existing docs that are missing certain fields (one-time migration)
+async function patchMissingFields(colName, localItems, matchKey, fields) {
+  try {
+    const snap = await getDocs(collection(db, colName));
+    for (const d of snap.docs) {
+      const data = d.data();
+      const local = localItems.find(l => l[matchKey] === data[matchKey]);
+      if (!local) continue;
+      const missing = {};
+      for (const f of fields) {
+        if (!data[f] && local[f]) missing[f] = local[f];
+      }
+      if (Object.keys(missing).length > 0) {
+        await updateDoc(doc(db, colName, d.id), missing);
+      }
+    }
+  } catch (_) { /* silently ignore — non-critical */ }
+}
+
 export function DataProvider({ children }) {
   const { currentUser } = useAuth();
   const [courses,      setCourses]      = useState(INIT_COURSES);
@@ -91,8 +110,13 @@ export function DataProvider({ children }) {
         seedCollection("programs",     INIT_PROGRAMS),
         seedCollection("testimonials", INIT_TESTIMONIALS),
         seedCollection("team",         INIT_TEAM),
+        // ── one-time migration: patch missing bilingual fields ──────────────
+        patchMissingFields("testimonials", INIT_TESTIMONIALS, "name", ["name_en", "course_en", "comment_en"]),
+        patchMissingFields("trainers",     INIT_TRAINERS,     "name", ["name_en", "specialty_en", "bio_en"]),
+        patchMissingFields("team",         INIT_TEAM,         "name", ["name_en", "role_en", "bio_en"]),
+        patchMissingFields("news",         INIT_NEWS,         "title",["title_en", "excerpt_en", "tag_en"]),
       ]);
-    })().catch((e) => { if (!cancelled) console.warn("Seed failed (expected if rules deny or DB not empty):", e); });
+    })().catch((e) => { if (!cancelled) console.warn("Seed/patch failed:", e); });
     return () => { cancelled = true; };
   }, [currentUser?.id, currentUser?.role]);
 
