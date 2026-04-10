@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Card, Badge, Btn } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
+import { useData } from "../../context/DataContext";
 import { SITE } from "../../data";
 
 const SERVICES = [
@@ -46,6 +47,7 @@ const SERVICES = [
 export default function ServicesPage() {
   const navigate = useNavigate();
   const { lang, t } = useLang();
+  const { categoryIcons } = useData();
 
   const dir = lang === "ar" ? "rtl" : "ltr";
   return (
@@ -76,8 +78,11 @@ export default function ServicesPage() {
 
               {/* Icon + Title */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
-                  {svc.icon}
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, flexShrink: 0, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {categoryIcons?.[svc.slug]
+                    ? <img src={categoryIcons[svc.slug]} alt={svc.title_en} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <span style={{fontSize:24}}>{svc.icon}</span>
+                  }
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>{lang === "ar" ? svc.title_ar : svc.title_en}</div>
               </div>
@@ -99,8 +104,11 @@ export default function ServicesPage() {
                 <span style={{ color: svc.color, fontSize: 12, fontWeight: 700 }}>
                   {lang === "ar" ? "اعرف أكثر ←" : "Learn More →"}
                 </span>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>
-                  {svc.icon}
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {categoryIcons?.[svc.slug]
+                    ? <img src={categoryIcons[svc.slug]} alt={svc.title_en} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <span style={{fontSize:15}}>{svc.icon}</span>
+                  }
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Btn, Card } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
+import { useData } from "../../context/DataContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
 
@@ -27,6 +28,7 @@ const initForm = { company:"", contact:"", phone:"", email:"", program:"", emplo
 export default function CorporatePage() {
   const navigate = useNavigate();
   const { lang } = useLang();
+  const { categoryIcons } = useData();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [form,    setForm]    = useState(initForm);
@@ -137,17 +139,23 @@ export default function CorporatePage() {
           </h2>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:18}}>
-          {PROGRAMS.map(p=>(
-            <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22,transition:"all .25s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=p.color+"66";e.currentTarget.style.transform="translateY(-3px)";}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="";e.currentTarget.style.transform="";}}>
-              <div style={{width:54,height:54,borderRadius:14,background:`${p.color}18`,border:`1.5px solid ${p.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,marginBottom:14}}>
-                {p.icon}
+          {PROGRAMS.map(p=>{
+            const uploadedImg = categoryIcons?.[p.abbr];
+            return (
+              <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22,transition:"all .25s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=p.color+"66";e.currentTarget.style.transform="translateY(-3px)";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="";e.currentTarget.style.transform="";}}>
+                <div style={{width:60,height:60,borderRadius:14,background:`${p.color}18`,border:`1.5px solid ${p.color}44`,overflow:"hidden",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {uploadedImg
+                    ? <img src={uploadedImg} alt={p.en} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <span style={{fontSize:28}}>{p.icon}</span>
+                  }
+                </div>
+                <div style={{fontWeight:800,fontSize:15,marginBottom:7}}>{lang==="ar"?p.ar:p.en}</div>
+                <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?p.desc_ar:p.desc_en}</div>
               </div>
-              <div style={{fontWeight:800,fontSize:15,marginBottom:7}}>{lang==="ar"?p.ar:p.en}</div>
-              <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?p.desc_ar:p.desc_en}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

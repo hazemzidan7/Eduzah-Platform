@@ -63,7 +63,8 @@ export function DataProvider({ children }) {
   const [programs,     setPrograms]     = useState(INIT_PROGRAMS);
   const [testimonials, setTestimonials] = useState(INIT_TESTIMONIALS);
   const [team,         setTeam]         = useState(INIT_TEAM);
-  const [vodafoneCash, setVodafoneCashState] = useState(SITE.vodafoneCash);
+  const [vodafoneCash,   setVodafoneCashState] = useState(SITE.vodafoneCash);
+  const [categoryIcons,  setCategoryIcons]     = useState({});
 
   // Real-time listeners — always add an error handler to avoid unhandled rejections
   useEffect(() => {
@@ -83,6 +84,13 @@ export function DataProvider({ children }) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "vodafoneCash"), (snap) => {
       if (snap.exists()) setVodafoneCashState(snap.data().value ?? SITE.vodafoneCash);
+    }, () => {});
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "categoryIcons"), (snap) => {
+      if (snap.exists()) setCategoryIcons(snap.data());
     }, () => {});
     return () => unsub();
   }, []);
@@ -290,9 +298,22 @@ export function DataProvider({ children }) {
     await setDoc(doc(db, "settings", "vodafoneCash"), { value: val });
   };
 
+  // ── Category Icons (Corporate Programs + Services) ────
+  const saveCategoryIcon = async (key, imageData) => {
+    setCategoryIcons(prev => ({ ...prev, [key]: imageData }));
+    await setDoc(doc(db, "settings", "categoryIcons"), { [key]: imageData }, { merge: true });
+  };
+
+  const deleteCategoryIcon = async (key) => {
+    const next = { ...categoryIcons };
+    delete next[key];
+    setCategoryIcons(next);
+    await setDoc(doc(db, "settings", "categoryIcons"), { [key]: null }, { merge: true });
+  };
+
   return (
     <DataCtx.Provider value={{
-      courses, news, exams, trainers, programs, testimonials, team, vodafoneCash,
+      courses, news, exams, trainers, programs, testimonials, team, vodafoneCash, categoryIcons,
       addCourse, updateCourse, toggleFeatured, deleteCourse,
       addNews, deleteNews,
       addExam, deleteExam,
@@ -301,6 +322,7 @@ export function DataProvider({ children }) {
       addTestimonial, deleteTestimonial,
       addTeamMember, updateTeamMember, deleteTeamMember,
       setVodafoneCash,
+      saveCategoryIcon, deleteCategoryIcon,
     }}>
       {children}
     </DataCtx.Provider>

@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const {
     courses, news, exams, trainers, programs, testimonials, team,
     vodafoneCash, setVodafoneCash,
+    categoryIcons, saveCategoryIcon, deleteCategoryIcon,
     addCourse, updateCourse, toggleFeatured, deleteCourse,
     addNews, deleteNews,
     addExam, deleteExam,
@@ -91,30 +92,32 @@ export default function AdminDashboard() {
 
   const tabs = ar
     ? [
-        ["overview", "نظرة عامة"],
-        ["users", "المستخدمون"],
-        ["requests", "الطلبات"],
-        ["courses", "الكورسات"],
-        ["news", "الأخبار"],
-        ["exams", "الامتحانات"],
-        ["trainers", "المدربون"],
-        ["programs", "البرامج"],
-        ["testimonials", "الآراء"],
-        ["team", "الفريق"],
-        ["settings", "الإعدادات"],
+        ["overview",   "نظرة عامة"],
+        ["users",      "المستخدمون"],
+        ["requests",   "الطلبات"],
+        ["courses",    "الكورسات"],
+        ["news",       "الأخبار"],
+        ["exams",      "الامتحانات"],
+        ["trainers",   "المدربون"],
+        ["programs",   "البرامج"],
+        ["testimonials","الآراء"],
+        ["team",       "الفريق"],
+        ["icons",      "أيقونات الخدمات"],
+        ["settings",   "الإعدادات"],
       ]
     : [
-        ["overview", "Overview"],
-        ["users", "Users"],
-        ["requests", "Requests"],
-        ["courses", "Courses"],
-        ["news", "News"],
-        ["exams", "Exams"],
-        ["trainers", "Trainers"],
-        ["programs", "Programs"],
-        ["testimonials", "Testimonials"],
-        ["team", "Team"],
-        ["settings", "Settings"],
+        ["overview",   "Overview"],
+        ["users",      "Users"],
+        ["requests",   "Requests"],
+        ["courses",    "Courses"],
+        ["news",       "News"],
+        ["exams",      "Exams"],
+        ["trainers",   "Trainers"],
+        ["programs",   "Programs"],
+        ["testimonials","Testimonials"],
+        ["team",       "Team"],
+        ["icons",      "Service Icons"],
+        ["settings",   "Settings"],
       ];
 
   /* ─────────── Add Course Form ─────────── */
@@ -1164,6 +1167,89 @@ export default function AdminDashboard() {
         )}
 
         {/* ── Settings ── */}
+        {/* ── Service & Program Icons ── */}
+        {tab === "icons" && (() => {
+          const CORP = [
+            { key:"TK", icon:"💻", label:tx("تدريب تقني","Technical Training") },
+            { key:"MG", icon:"📊", label:tx("تدريب إداري","Management Training") },
+            { key:"EN", icon:"🌐", label:tx("اللغة الإنجليزية","English Language") },
+            { key:"KD", icon:"🧒", label:tx("تدريب الأطفال","Children Programs") },
+            { key:"ED", icon:"📚", label:tx("استشارات تعليمية","Educational Consulting") },
+            { key:"CT", icon:"🏆", label:tx("شهادات معتمدة","Certified Programs") },
+          ];
+          const SVCS = [
+            { key:"web-development",  icon:"🌐", label:tx("تطوير الويب","Web Development") },
+            { key:"mobile-apps",      icon:"📱", label:tx("تطبيقات الموبايل","Mobile Apps") },
+            { key:"ai-solutions",     icon:"🤖", label:tx("الذكاء الاصطناعي","AI Solutions") },
+            { key:"cybersecurity",    icon:"🔒", label:tx("الأمن السيبراني","Cybersecurity") },
+            { key:"ui-ux-design",     icon:"🎨", label:"UI/UX Design" },
+            { key:"cloud-devops",     icon:"☁️", label:"Cloud & DevOps" },
+          ];
+          const IconCard = ({ item }) => {
+            const img = categoryIcons?.[item.key];
+            return (
+              <Card style={{ padding:0, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+                {/* Preview */}
+                <div style={{ position:"relative", height:120, background:"rgba(255,255,255,.04)", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+                  {img
+                    ? <img src={img} alt={item.label} style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                    : <span style={{ fontSize:48 }}>{item.icon}</span>
+                  }
+                  {img && (
+                    <button
+                      onClick={() => { deleteCategoryIcon(item.key); showT(tx("تم حذف الصورة","Image removed"),"error"); }}
+                      style={{ position:"absolute", top:6, left:6, background:"rgba(200,0,0,.8)", border:"none", borderRadius:6, color:"#fff", cursor:"pointer", padding:"3px 8px", fontSize:11, fontWeight:700 }}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {/* Info + upload */}
+                <div style={{ padding:"12px 14px", flex:1, display:"flex", flexDirection:"column", gap:10 }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{item.label}</div>
+                  <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+                    background: "rgba(125,61,158,.2)", border:`1px dashed ${C.purple}`, borderRadius:8,
+                    padding:"8px 12px", fontSize:12, color:C.muted, fontWeight:600 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    {img ? tx("استبدال الصورة","Replace Image") : tx("رفع صورة","Upload Image")}
+                    <input type="file" accept="image/*" style={{ display:"none" }}
+                      onChange={e => {
+                        if (!e.target.files[0]) return;
+                        readFile(e.target.files[0], data => {
+                          saveCategoryIcon(item.key, data);
+                          showT(tx("تم حفظ الصورة ✓","Image saved ✓"));
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </Card>
+            );
+          };
+          return (
+            <div>
+              <h2 style={{ fontWeight:900, fontSize:18, marginBottom:6 }}>{tx("أيقونات الخدمات والبرامج","Service & Program Icons")}</h2>
+              <p style={{ color:C.muted, fontSize:13, marginBottom:24 }}>{tx("ارفع صورة لكل خدمة أو برنامج تحل محل الأيقونة الافتراضية","Upload an image for each service/program to replace the default emoji icon")}</p>
+
+              <div style={{ fontWeight:700, fontSize:14, color:C.orange, marginBottom:12, letterSpacing:1 }}>
+                {tx("البرامج المؤسسية","CORPORATE PROGRAMS")}
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:14, marginBottom:32 }}>
+                {CORP.map(item => <IconCard key={item.key} item={item}/>)}
+              </div>
+
+              <div style={{ fontWeight:700, fontSize:14, color:C.orange, marginBottom:12, letterSpacing:1 }}>
+                {tx("الخدمات","SERVICES")}
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:14 }}>
+                {SVCS.map(item => <IconCard key={item.key} item={item}/>)}
+              </div>
+            </div>
+          );
+        })()}
+
         {tab === "settings" && (
           <div>
             <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 20 }}>{tx("إعدادات المنصة", "Platform Settings")}</h2>
