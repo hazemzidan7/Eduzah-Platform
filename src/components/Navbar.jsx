@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import { Btn } from "./UI";
 import { isSuperAdminEmail } from "../config/superAdmin";
+import { useScrolled } from "../hooks/useScrolled";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -26,6 +27,8 @@ export default function Navbar() {
   const { lang, toggle }        = useLang();
   const navigate  = useNavigate();
   const location  = useLocation();
+
+  const scrolled = useScrolled(20);
 
   const [open,   setOpen]   = useState(false);
   const [mobile, setMobile] = useState(window.innerWidth < 900);
@@ -85,16 +88,22 @@ export default function Navbar() {
   return (
     <>
       <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} style={{
-        position: "sticky", top: 0, zIndex: 200,
-        background: "#fff",
+        position: "fixed", top: 0, zIndex: 200,
+        width: "100%",
+        background: scrolled ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.95)",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
+        boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,.12)" : "0 1px 8px rgba(0,0,0,.05)",
+        transition: "all .35s cubic-bezier(.4,0,.2,1)",
         borderBottom: "1px solid #e5e7eb",
-        boxShadow: "0 1px 8px rgba(0,0,0,.08)",
         direction: lang === "ar" ? "rtl" : "ltr",
       }}>
         <div style={{
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 4%", minHeight: 60,
+          padding: "0 4%",
+          minHeight: scrolled ? 54 : 64,
+          transition: "min-height .35s cubic-bezier(.4,0,.2,1)",
           maxWidth: 1400, margin: "0 auto",
         }}>
 

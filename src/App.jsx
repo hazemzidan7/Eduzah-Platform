@@ -86,7 +86,7 @@ export default function App() {
       <header>
         <Navbar />
       </header>
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: 64 }}>
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* ── Public ─────────────────────────── */}

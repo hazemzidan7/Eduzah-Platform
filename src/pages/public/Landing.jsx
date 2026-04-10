@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Btn, Card, Stars } from "../../components/UI";
@@ -7,30 +7,56 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { Seo } from "../../components/Seo";
+import JourneySection from "../../components/JourneySection";
+import { useInView } from "../../hooks/useInView";
 
 const CourseCard = memo(function CourseCard({ course, lang }) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const [hovered, setHovered] = useState(false);
   const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
   const title = lang === "ar" ? course.title : (course.title_en || course.title);
+  const desc = lang === "ar" ? (course.desc || "") : (course.desc_en || course.desc || "");
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
   return (
     <div
-      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-6px)";e.currentTarget.style.boxShadow=`0 18px 45px rgba(217,27,91,.25)`;}}
-      onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onClick={()=>navigate(`/courses/${course.slug}`)}
-      style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
+      style={{
+        background:"rgba(50,29,61,.65)", border:`1px solid ${C.border}`,
+        borderRadius:20, overflow:"hidden", cursor:"pointer",
+        transition:"all .3s",
+        transform: hovered ? "translateY(-8px) scale(1.01)" : "translateY(0) scale(1)",
+        boxShadow: hovered ? `0 20px 50px rgba(217,27,91,.3)` : "none",
+      }}>
       <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
         {course.image
           ? <img src={course.image} alt={title} loading="lazy" decoding="async"
               width="400" height="160"
-              style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+              style={{width:"100%",height:"100%",objectFit:"cover",display:"block",
+                transform: hovered ? "scale(1.06)" : "scale(1)", transition:"transform .4s ease"}}/>
           : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`}}/>
         }
-        {/* dim overlay + title at bottom */}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
         <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{title}</span>
-        {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.92)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
+        {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.92)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang==="ar"?course.badge:(course.badge_en||course.badge)}</div>}
+        {/* Hover preview overlay */}
+        {desc && (
+          <div style={{
+            position:"absolute", inset:0,
+            background:"rgba(26,10,46,.92)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            padding:16, textAlign:"center",
+            opacity: hovered ? 1 : 0,
+            transition:"opacity .3s ease",
+            pointerEvents:"none",
+          }}>
+            <p style={{color:"rgba(255,255,255,.9)",fontSize:12,lineHeight:1.8,margin:0}}>
+              {desc.slice(0, 100)}{desc.length > 100 ? "…" : ""}
+            </p>
+          </div>
+        )}
       </div>
       <div style={{padding:"14px 16px 16px"}}>
         <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{title}</div>
@@ -50,21 +76,89 @@ const CourseCard = memo(function CourseCard({ course, lang }) {
 export default function Landing() {
   const navigate = useNavigate();
   const { lang } = useLang();
+  const { currentUser } = useAuth();
   const { courses, news, programs, testimonials } = useData();
   const featured    = courses.filter(c => c.featured).slice(0,3);
   const latestNews  = news.slice(0,3);
   const dir = lang === "ar" ? "rtl" : "ltr";
 
+  // ── Animated counter hook ──────────────────────────────
+  const [statsRef, statsInView] = useInView();
+  const STATS = [
+    { target: 5000, suffix: "+", label: lang==="ar"?"متدرب":"Trainees" },
+    { target: 50,   suffix: "+", label: lang==="ar"?"مؤسسة شريكة":"Partners" },
+    { target: 48,   suffix: "/5", label: lang==="ar"?"تقييم":"Rating", display:"4.8" },
+    { target: 3,    suffix: "+", label: lang==="ar"?"سنوات":"Years" },
+  ];
+  const [counts, setCounts] = useState(STATS.map(() => 0));
+  useEffect(() => {
+    if (!statsInView) return;
+    const duration = 1800;
+    const steps = 60;
+    const interval = duration / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      setCounts(STATS.map((s, i) => s.display ? s.display : Math.round(s.target * ease)));
+      if (step >= steps) clearInterval(timer);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [statsInView]);
+
+  // ── Testimonials slider ──────────────────────────────
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  useEffect(() => {
+    if (testimonials.length < 2) return;
+    const t = setInterval(() => {
+      setActiveTestimonial(i => (i + 1) % testimonials.length);
+    }, 4000);
+    return () => clearInterval(t);
+  }, [testimonials.length]);
+
+  const [testimonialsRef, testimonialsInView] = useInView();
+  const [journeyRef, journeyInView] = useInView();
+
   return (
     <div dir={dir}>
+      <style>{`
+        @keyframes floatA {
+          0%,100% { transform: translate(0,0) scale(1); }
+          50%      { transform: translate(-30px,20px) scale(1.08); }
+        }
+        @keyframes floatB {
+          0%,100% { transform: translate(0,0) scale(1); }
+          50%      { transform: translate(20px,-25px) scale(1.05); }
+        }
+        @keyframes glowPulse {
+          0%,100% { box-shadow: 0 8px 25px rgba(217,27,91,.4); }
+          50%      { box-shadow: 0 12px 40px rgba(217,27,91,.7), 0 0 60px rgba(217,27,91,.2); }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity:0; transform:translateY(24px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes spinSlow {
+          to { transform: rotate(360deg); }
+        }
+        .hero-cta-primary {
+          animation: glowPulse 2.5s ease-in-out infinite;
+        }
+        .hero-cta-primary:hover {
+          animation: none;
+          box-shadow: 0 14px 45px rgba(217,27,91,.75) !important;
+        }
+      `}</style>
       <Seo
         title={lang === "ar" ? "Eduzah" : "Eduzah"}
         description={lang === "ar" ? SITE.tagline : (SITE.tagline_en || SITE.tagline)}
       />
       {/* ── Hero ── */}
       <div style={{minHeight:"calc(100vh - 60px)",background:gHero,display:"flex",alignItems:"center",padding:"50px 5%",position:"relative",overflow:"hidden",gap:40,flexWrap:"wrap"}}>
-        <div style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,background:`radial-gradient(circle,rgba(217,27,91,.25),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatA 8s ease-in-out infinite"}}/>
+        <div style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,background:`radial-gradient(circle,rgba(217,27,91,.25),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 10s ease-in-out infinite"}}/>
+        <div style={{position:"absolute",top:"30%",left:"20%",width:200,height:200,background:`radial-gradient(circle,rgba(255,184,77,.08),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 7s ease-in-out infinite 2s"}}/>
 
         <div style={{flex:"1 1 300px",position:"relative",zIndex:2}}>
           <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:16}}>
@@ -79,17 +173,38 @@ export default function Landing() {
             }
           </p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:36}}>
-            <Btn children={lang==="ar" ? "استعرض البرامج" : "Explore Programs"} onClick={()=>navigate("/courses")} style={{padding:"12px 26px",fontSize:14,boxShadow:`0 8px 25px rgba(217,27,91,.4)`}}/>
-            <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"12px 26px",fontSize:14}}/>
+            {!currentUser ? (
+              <Btn
+                className="hero-cta-primary"
+                children={lang==="ar" ? "ابدأ رحلتك 🚀" : "Start Your Journey 🚀"}
+                onClick={()=>navigate("/register")}
+                style={{padding:"13px 28px",fontSize:14,borderRadius:12,background:"linear-gradient(135deg,#d91b5b,#b51549)"}}
+              />
+            ) : currentUser.role === "admin" ? (
+              <Btn
+                className="hero-cta-primary"
+                children={lang==="ar" ? "إدارة المنصة ⚙️" : "Manage Platform ⚙️"}
+                onClick={()=>navigate("/dashboard")}
+                style={{padding:"13px 28px",fontSize:14,borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}
+              />
+            ) : (
+              <Btn
+                className="hero-cta-primary"
+                children={lang==="ar" ? "كمّل الكورس ▶" : "Continue Course ▶"}
+                onClick={()=>navigate("/dashboard")}
+                style={{padding:"13px 28px",fontSize:14,borderRadius:12}}
+              />
+            )}
+            <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
           </div>
-          <div style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap"}}>
-            {[
-              ["5,000+", lang==="ar"?"متدرب":"Trainees"],
-              ["50+",    lang==="ar"?"مؤسسة شريكة":"Partners"],
-              ["4.8/5",  lang==="ar"?"تقييم":"Rating"],
-              ["3+",     lang==="ar"?"سنوات":"Years"]
-            ].map(([n,l])=>(
-              <div key={l}><div style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:900,color:C.orange}}>{n}</div><div style={{color:C.muted,fontSize:11,marginTop:2}}>{l}</div></div>
+          <div ref={statsRef} style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap"}}>
+            {STATS.map((s, i)=>(
+              <div key={s.label}>
+                <div style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:900,color:C.orange}}>
+                  {counts[i]}{s.suffix}
+                </div>
+                <div style={{color:C.muted,fontSize:11,marginTop:2}}>{s.label}</div>
+              </div>
             ))}
           </div>
         </div>
@@ -127,6 +242,9 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* ── User Journey ── */}
+      <JourneySection lang={lang} />
 
       {/* ── Tracks ── */}
       <div style={{background:"#2a1540",padding:"clamp(36px,7vw,70px) 5%"}}>
@@ -296,9 +414,9 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* ── Testimonials (Dynamic) ── */}
+      {/* ── Testimonials Slider ── */}
       {testimonials.length > 0 && (
-        <div style={{background:"#321d3d",padding:"clamp(36px,7vw,70px) 5%"}}>
+        <div ref={testimonialsRef} style={{background:"#321d3d",padding:"clamp(36px,7vw,70px) 5%",overflow:"hidden"}}>
           <div style={{textAlign:"center",marginBottom:36}}>
             <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:8}}>
               {lang==="ar" ? "آراء عملائنا" : "TESTIMONIALS"}
@@ -308,28 +426,83 @@ export default function Landing() {
             </h2>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Stars n={5}/><span style={{color:C.muted,fontSize:13}}>4.8 / 5.0</span></div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:18}}>
-            {testimonials.map(tc=>(
-              <Card key={tc.id} style={{padding:20}}>
-                <Stars n={tc.rating||5}/>
-                <p style={{color:C.muted,fontSize:13,lineHeight:1.85,margin:"12px 0 16px"}}>
-                  "{lang==="ar"?tc.comment_ar:tc.comment_en}"
-                </p>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  {tc.image
-                    ? <img src={tc.image} alt={tc.name} style={{width:36,height:36,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
-                    : <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:15,flexShrink:0}}>
-                        {lang==="ar" ? (tc.avatar||tc.name?.[0]) : (tc.name_en?.[0]||tc.name?.[0])}
-                      </div>
-                  }
-                  <div>
-                    <div style={{fontWeight:700,fontSize:13}}>{lang==="ar"?tc.name:(tc.name_en||tc.name)}</div>
-                    <div style={{color:C.muted,fontSize:11}}>{lang==="ar"?tc.course_ar:(tc.course_en||tc.course_ar)}</div>
+
+          {/* Featured testimonial (auto-sliding) */}
+          <div style={{maxWidth:640,margin:"0 auto 28px",position:"relative",minHeight:200}}>
+            {testimonials.map((tc, i) => (
+              <div key={tc.id}
+                style={{
+                  position: i === 0 ? "relative" : "absolute",
+                  inset: 0,
+                  opacity: i === activeTestimonial ? 1 : 0,
+                  transform: i === activeTestimonial ? "translateY(0)" : "translateY(16px)",
+                  transition: "opacity .6s ease, transform .6s ease",
+                  pointerEvents: i === activeTestimonial ? "auto" : "none",
+                }}>
+                <Card style={{padding:28,textAlign:"center"}}>
+                  <Stars n={tc.rating||5}/>
+                  <p style={{color:"rgba(255,255,255,.85)",fontSize:14,lineHeight:1.9,margin:"14px 0 20px",fontStyle:"italic"}}>
+                    "{lang==="ar"?tc.comment_ar:(tc.comment_en||tc.comment_ar)}"
+                  </p>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
+                    {tc.image
+                      ? <img src={tc.image} alt={tc.name} style={{width:44,height:44,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                      : <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:18,flexShrink:0}}>
+                          {lang==="ar"?(tc.avatar||tc.name?.[0]):(tc.name_en?.[0]||tc.name?.[0])}
+                        </div>
+                    }
+                    <div style={{textAlign:"start"}}>
+                      <div style={{fontWeight:700,fontSize:14}}>{lang==="ar"?tc.name:(tc.name_en||tc.name)}</div>
+                      <div style={{color:C.muted,fontSize:12}}>{lang==="ar"?tc.course_ar:(tc.course_en||tc.course_ar)}</div>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </div>
             ))}
           </div>
+
+          {/* Dot navigation */}
+          {testimonials.length > 1 && (
+            <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:32}}>
+              {testimonials.map((_, i) => (
+                <button key={i}
+                  onClick={() => setActiveTestimonial(i)}
+                  style={{
+                    width: i === activeTestimonial ? 24 : 8,
+                    height:8, borderRadius:4, border:"none",
+                    background: i === activeTestimonial ? C.red : "rgba(255,255,255,.25)",
+                    cursor:"pointer", transition:"all .35s ease",
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Grid of remaining */}
+          {testimonials.length > 1 && (
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}}>
+              {testimonials.filter((_,i)=>i!==activeTestimonial).slice(0,3).map(tc=>(
+                <Card key={tc.id} style={{padding:16}}>
+                  <Stars n={tc.rating||5}/>
+                  <p style={{color:C.muted,fontSize:12,lineHeight:1.8,margin:"10px 0 12px"}}>
+                    "{(lang==="ar"?tc.comment_ar:(tc.comment_en||tc.comment_ar)).slice(0,90)}…"
+                  </p>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {tc.image
+                      ? <img src={tc.image} alt={tc.name} style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}}/>
+                      : <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#d91b5b,#b51549)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13}}>
+                          {lang==="ar"?(tc.avatar||tc.name?.[0]):(tc.name_en?.[0]||tc.name?.[0])}
+                        </div>
+                    }
+                    <div>
+                      <div style={{fontWeight:700,fontSize:12}}>{lang==="ar"?tc.name:(tc.name_en||tc.name)}</div>
+                      <div style={{color:C.muted,fontSize:11}}>{lang==="ar"?tc.course_ar:(tc.course_en||tc.course_ar)}</div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -377,7 +550,12 @@ export default function Landing() {
           {lang==="ar" ? "انضم لأكثر من 5,000 متدرب اختاروا Eduzah" : "Join 5,000+ trainees who chose Eduzah"}
         </p>
         <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <Btn children={lang==="ar"?"ابدأ الآن":"Get Started"} onClick={()=>navigate("/register")} style={{padding:"13px 30px",boxShadow:`0 8px 25px rgba(217,27,91,.44)`}}/>
+          {!currentUser
+            ? <Btn className="hero-cta-primary" children={lang==="ar"?"ابدأ رحلتك 🚀":"Start Your Journey 🚀"} onClick={()=>navigate("/register")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#d91b5b,#b51549)"}}/>
+            : currentUser.role === "admin"
+              ? <Btn className="hero-cta-primary" children={lang==="ar"?"إدارة المنصة":"Manage Platform"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}/>
+              : <Btn className="hero-cta-primary" children={lang==="ar"?"كمّل الكورس ▶":"Continue Course ▶"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12}}/>
+          }
           <Btn children={lang==="ar"?"تدريب الشركات":"Corporate Training"} v="outline" onClick={()=>navigate("/corporate")} style={{padding:"13px 30px"}}/>
           <Btn children={lang==="ar"?"استشارة مجانية":"Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 30px"}}/>
         </div>
