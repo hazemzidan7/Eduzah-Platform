@@ -14,12 +14,12 @@ const MEETING_PLATFORMS = [
 ];
 
 const PROGRAMS = [
-  { abbr:"TK", color:"#d91b5b", ar:"تدريب تقني", en:"Technical Training", desc_ar:"Front-End, Back-End, Flutter, AI, UI/UX", desc_en:"Front-End, Back-End, Flutter, AI, UI/UX" },
-  { abbr:"MG", color:"#faa633", ar:"تدريب إداري", en:"Management Training", desc_ar:"HR, Soft Skills, القيادة, التصميم التعليمي", desc_en:"HR, Soft Skills, Leadership, Instructional Design" },
-  { abbr:"EN", color:"#0ea5e9", ar:"اللغة الإنجليزية", en:"English Language", desc_ar:"من المبتدئ حتى المتقدم + إنجليزي متخصص", desc_en:"Beginner to advanced + business English" },
-  { abbr:"KD", color:"#10b981", ar:"تدريب الأطفال", en:"Children Programs", desc_ar:"برمجة وإنجليزي للأطفال", desc_en:"Coding and English for children" },
-  { abbr:"ED", color:"#672d86", ar:"الاستشارات التعليمية", en:"Educational Consulting", desc_ar:"تصميم برامج تدريبية مخصصة", desc_en:"Custom training program design" },
-  { abbr:"CT", color:"#faa633", ar:"شهادات معتمدة", en:"Certified Programs", desc_ar:"برامج بشهادات معترف بها", desc_en:"Internationally recognized certificates" },
+  { abbr:"TK", icon:"💻", color:"#d91b5b", ar:"تدريب تقني",           en:"Technical Training",       desc_ar:"Front-End, Back-End, Flutter, AI, UI/UX",              desc_en:"Front-End, Back-End, Flutter, AI, UI/UX" },
+  { abbr:"MG", icon:"📊", color:"#faa633", ar:"تدريب إداري",          en:"Management Training",      desc_ar:"HR, Soft Skills, القيادة, التصميم التعليمي",           desc_en:"HR, Soft Skills, Leadership, Instructional Design" },
+  { abbr:"EN", icon:"🌐", color:"#0ea5e9", ar:"اللغة الإنجليزية",     en:"English Language",         desc_ar:"من المبتدئ حتى المتقدم + إنجليزي متخصص",              desc_en:"Beginner to advanced + business English" },
+  { abbr:"KD", icon:"🧒", color:"#10b981", ar:"تدريب الأطفال",        en:"Children Programs",        desc_ar:"برمجة وإنجليزي للأطفال",                              desc_en:"Coding and English for children" },
+  { abbr:"ED", icon:"📚", color:"#672d86", ar:"الاستشارات التعليمية", en:"Educational Consulting",   desc_ar:"تصميم برامج تدريبية مخصصة",                           desc_en:"Custom training program design" },
+  { abbr:"CT", icon:"🏆", color:"#f59e0b", ar:"شهادات معتمدة",        en:"Certified Programs",       desc_ar:"برامج بشهادات معترف بها",                             desc_en:"Internationally recognized certificates" },
 ];
 
 const initForm = { company:"", contact:"", phone:"", email:"", program:"", employees:"", platform:"meet", date:"", time:"", notes:"" };
@@ -138,8 +138,12 @@ export default function CorporatePage() {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:18}}>
           {PROGRAMS.map(p=>(
-            <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22}}>
-              <div style={{width:44,height:44,borderRadius:12,background:`${p.color}22`,border:`1.5px solid ${p.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:p.color,marginBottom:12,letterSpacing:1}}>{p.abbr}</div>
+            <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22,transition:"all .25s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=p.color+"66";e.currentTarget.style.transform="translateY(-3px)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="";e.currentTarget.style.transform="";}}>
+              <div style={{width:54,height:54,borderRadius:14,background:`${p.color}18`,border:`1.5px solid ${p.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,marginBottom:14}}>
+                {p.icon}
+              </div>
               <div style={{fontWeight:800,fontSize:15,marginBottom:7}}>{lang==="ar"?p.ar:p.en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?p.desc_ar:p.desc_en}</div>
             </div>

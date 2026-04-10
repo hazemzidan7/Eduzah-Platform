@@ -5,37 +5,37 @@ import { useLang } from "../../context/LangContext";
 import { SITE } from "../../data";
 
 const SERVICES = [
-  { slug:"web-development",  abbr:"WD", color:C.red,
+  { slug:"web-development",  abbr:"WD", icon:"🌐", color:C.red,
     title_ar:"تطوير المواقع والتطبيقات", title_en:"Web Development",
     desc_ar:"مواقع وتطبيقات ويب احترافية بأحدث التقنيات — React, Next.js, Node.js.",
     desc_en:"Professional websites and web apps with modern tech — React, Next.js, Node.js.",
     tags:["React","Node.js","TypeScript","Next.js"],
   },
-  { slug:"mobile-apps",      abbr:"MA", color:"#4a1f6e",
+  { slug:"mobile-apps",      abbr:"MA", icon:"📱", color:"#4a1f6e",
     title_ar:"تطبيقات الموبايل", title_en:"Mobile Apps",
     desc_ar:"تطبيقات iOS & Android عالية الأداء باستخدام Flutter من كود واحد.",
     desc_en:"High-performance iOS & Android apps using Flutter from a single codebase.",
     tags:["Flutter","Dart","Firebase","iOS/Android"],
   },
-  { slug:"ai-solutions",     abbr:"AI", color:C.purple,
+  { slug:"ai-solutions",     abbr:"AI", icon:"🤖", color:C.purple,
     title_ar:"حلول الذكاء الاصطناعي", title_en:"AI Solutions",
     desc_ar:"Chatbots ذكية، نماذج ML، وتكامل OpenAI في منتجاتك لمضاعفة الكفاءة.",
     desc_en:"Smart chatbots, ML models, and OpenAI integration to multiply your efficiency.",
     tags:["Python","OpenAI","TensorFlow","LangChain"],
   },
-  { slug:"cybersecurity",    abbr:"CS", color:C.danger,
+  { slug:"cybersecurity",    abbr:"CS", icon:"🔒", color:C.danger,
     title_ar:"الأمن السيبراني", title_en:"Cybersecurity",
     desc_ar:"اختبارات اختراق، تدقيق أمني، وحماية شاملة من التهديدات الرقمية.",
     desc_en:"Penetration testing, security audits, and comprehensive digital threat protection.",
     tags:["OWASP","Pentest","Kali Linux","SIEM"],
   },
-  { slug:"ui-ux-design",     abbr:"UX", color:C.orange,
+  { slug:"ui-ux-design",     abbr:"UX", icon:"🎨", color:C.orange,
     title_ar:"تصميم UI/UX", title_en:"UI/UX Design",
     desc_ar:"تجارب مستخدم استثنائية تجمع الجمال البصري والسهولة الوظيفية بـ Figma.",
     desc_en:"Exceptional user experiences combining visual beauty and functional ease with Figma.",
     tags:["Figma","Prototyping","UX Research","Design Systems"],
   },
-  { slug:"cloud-devops",     abbr:"CD", color:C.success,
+  { slug:"cloud-devops",     abbr:"CD", icon:"☁️", color:C.success,
     title_ar:"الكلاود وـ DevOps", title_en:"Cloud & DevOps",
     desc_ar:"بنية تحتية سحابية موثوقة، CI/CD Pipelines، وإدارة Kubernetes.",
     desc_en:"Reliable cloud infrastructure, CI/CD Pipelines, and Kubernetes management.",
@@ -76,8 +76,8 @@ export default function ServicesPage() {
 
               {/* Icon + Title */}
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: svc.color, flexShrink: 0, letterSpacing: 1 }}>
-                  {svc.abbr}
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+                  {svc.icon}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>{lang === "ar" ? svc.title_ar : svc.title_en}</div>
               </div>
@@ -99,8 +99,8 @@ export default function ServicesPage() {
                 <span style={{ color: svc.color, fontSize: 12, fontWeight: 700 }}>
                   {lang === "ar" ? "اعرف أكثر ←" : "Learn More →"}
                 </span>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: svc.color, letterSpacing: 0.5 }}>
-                  {svc.abbr}
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${svc.color}22`, border: `1px solid ${svc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>
+                  {svc.icon}
                 </div>
               </div>
             </div>
