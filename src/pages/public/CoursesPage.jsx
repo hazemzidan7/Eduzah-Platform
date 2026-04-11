@@ -48,10 +48,10 @@ export default function CoursesPage() {
         <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:8}}>
           {lang==="ar" ? "كل البرامج" : "ALL PROGRAMS"}
         </div>
-        <h1 style={{fontSize:"clamp(1.5rem,3vw,2.4rem)",fontWeight:900,marginBottom:10}}>
+        <h1 style={{fontSize:"clamp(1.5rem,3vw,2.4rem)",fontWeight:900,marginBottom:10,color:"var(--page-text)"}}>
           {lang==="ar" ? "كورسات التدريب المتخصصة" : "Specialized Training Courses"}
         </h1>
-        <p style={{color:C.muted,fontSize:14}}>{courses.length} {lang==="ar" ? "برنامج متخصص" : "specialized programs"}</p>
+        <p style={{color:"var(--page-muted)",fontSize:14}}>{courses.length} {lang==="ar" ? "برنامج متخصص" : "specialized programs"}</p>
       </div>
 
       {/* Search */}
@@ -60,21 +60,21 @@ export default function CoursesPage() {
           value={search}
           onChange={e=>setSearch(e.target.value)}
           placeholder={lang==="ar" ? "ابحث عن كورس..." : "Search courses..."}
-          style={{width:"100%",boxSizing:"border-box",background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:12,padding:"11px 16px",color:"#fff",fontFamily:"'Cairo',sans-serif",fontSize:13,outline:"none"}}
+          style={{width:"100%",boxSizing:"border-box",background:"var(--input-bg)",border:"1.5px solid var(--input-border)",borderRadius:12,padding:"11px 16px",color:"var(--page-text)",fontFamily:"'Cairo',sans-serif",fontSize:13,outline:"none"}}
         />
       </div>
 
       {/* Track Filter */}
       <div style={{marginBottom:16}}>
-        <div style={{color:C.muted,fontSize:11,fontWeight:700,marginBottom:10,letterSpacing:1}}>
+        <div style={{color:"var(--page-muted)",fontSize:11,fontWeight:700,marginBottom:10,letterSpacing:1}}>
           {lang==="ar" ? "المسار:" : "TRACK:"}
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button onClick={()=>setTrack("all")} style={{padding:"7px 16px",borderRadius:50,background:track==="all"?C.red:"transparent",border:`1.5px solid ${track==="all"?C.red:C.border}`,color:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
+          <button onClick={()=>setTrack("all")} style={{padding:"7px 16px",borderRadius:50,background:track==="all"?C.red:"var(--chip-inactive-bg)",border:`1.5px solid ${track==="all"?C.red:"var(--chip-inactive-border)"}`,color:track==="all"?"#fff":"var(--chip-inactive-text)",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
             {lang==="ar" ? "الكل" : "All"}
           </button>
           {TRACKS.map(tr=>(
-            <button key={tr.id} onClick={()=>setTrack(tr.id)} style={{padding:"7px 16px",borderRadius:50,background:track===tr.id?tr.color:"transparent",border:`1.5px solid ${track===tr.id?tr.color:C.border}`,color:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
+            <button key={tr.id} onClick={()=>setTrack(tr.id)} style={{padding:"7px 16px",borderRadius:50,background:track===tr.id?tr.color:"var(--chip-inactive-bg)",border:`1.5px solid ${track===tr.id?tr.color:"var(--chip-inactive-border)"}`,color:track===tr.id?"#fff":"var(--chip-inactive-text)",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
               {lang==="ar" ? tr.title_ar : tr.title_en}
             </button>
           ))}
@@ -83,12 +83,12 @@ export default function CoursesPage() {
 
       {/* Training Type Filter */}
       <div style={{marginBottom:28}}>
-        <div style={{color:C.muted,fontSize:11,fontWeight:700,marginBottom:10,letterSpacing:1}}>
+        <div style={{color:"var(--page-muted)",fontSize:11,fontWeight:700,marginBottom:10,letterSpacing:1}}>
           {lang==="ar" ? "نوع التدريب:" : "TRAINING TYPE:"}
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {TRAINING_TYPES.map(t=>(
-            <button key={t.v} onClick={()=>setType(t.v)} style={{padding:"6px 14px",borderRadius:50,background:type===t.v?"rgba(217,27,91,.2)":"transparent",border:`1.5px solid ${type===t.v?C.red:C.border}`,color:type===t.v?C.red:"#fff",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
+            <button key={t.v} onClick={()=>setType(t.v)} style={{padding:"6px 14px",borderRadius:50,background:type===t.v?"rgba(217,27,91,.22)":"var(--chip-inactive-bg)",border:`1.5px solid ${type===t.v?C.red:"var(--chip-inactive-border)"}`,color:type===t.v?C.red:"var(--chip-inactive-text)",fontFamily:"'Cairo',sans-serif",fontWeight:600,fontSize:12,cursor:"pointer",transition:"all .2s"}}>
               {lang==="ar" ? t.ar : t.en}
             </button>
           ))}
@@ -97,7 +97,7 @@ export default function CoursesPage() {
 
       {/* Results */}
       {filtered.length===0
-        ? <div style={{textAlign:"center",color:C.muted,padding:"60px 0",fontSize:14}}>
+        ? <div style={{textAlign:"center",color:"var(--page-muted)",padding:"60px 0",fontSize:14}}>
             {lang==="ar" ? "لا توجد كورسات مطابقة للبحث." : "No courses match your search."}
           </div>
         : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
@@ -106,13 +106,29 @@ export default function CoursesPage() {
             const prog      = enrolled?.progress||0;
             const trackData = TRACKS.find(tr=>tr.id===c.trackId);
             return (
-              <div key={c.id}
-                onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-5px)";e.currentTarget.style.boxShadow=`0 18px 45px rgba(217,27,91,.2)`;}}
-                onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}
-                onClick={()=>navigate(`/courses/${c.slug}`)}
-                style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
-
-                <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
+              <div
+                key={c.id}
+                onClick={() => navigate(`/courses/${c.slug}`)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 18px 45px rgba(217,27,91,.2)";
+                  e.currentTarget.style.background = "var(--surface-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "";
+                  e.currentTarget.style.boxShadow = "";
+                  e.currentTarget.style.background = "var(--surface)";
+                }}
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--page-border)",
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  cursor: "pointer",
+                  transition: "transform .3s, box-shadow .3s, background .2s",
+                }}
+              >
+                <div style={{ position: "relative", height: 160, overflow: "hidden", flexShrink: 0 }}>
                   {c.image
                     ? <img src={c.image} alt={lang==="ar"?c.title:(c.title_en||c.title)} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
                     : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${c.color||C.red},#321d3d)`}}/>
@@ -129,8 +145,8 @@ export default function CoursesPage() {
                     {lang==="ar" ? trackData.title_ar : trackData.title_en}
                   </div>}
 
-                  <div style={{fontWeight:800,fontSize:14,marginBottom:5}}>{lang==="ar"?c.title:(c.title_en||c.title)}</div>
-                  <div style={{color:C.muted,fontSize:12,marginBottom:10,lineHeight:1.6}}>{(lang==="ar"?c.desc:(c.desc_en||c.desc)||"").slice(0,65)}...</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 5, color: "var(--page-text)" }}>{lang==="ar"?c.title:(c.title_en||c.title)}</div>
+                  <div style={{ color: "var(--page-muted)", fontSize: 12, marginBottom: 10, lineHeight: 1.6 }}>{(lang==="ar"?c.desc:(c.desc_en||c.desc)||"").slice(0,65)}...</div>
 
                   {/* Training type badges */}
                   <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
@@ -142,17 +158,17 @@ export default function CoursesPage() {
                   </div>
 
                   <div style={{display:"flex",gap:12,marginBottom:10}}>
-                    <span style={{color:C.muted,fontSize:11}}>{dur(c.duration)}</span>
-                    <span style={{color:C.muted,fontSize:11}}>{c.hours}h</span>
+                    <span style={{color:"var(--page-muted)",fontSize:11}}>{dur(c.duration)}</span>
+                    <span style={{color:"var(--page-muted)",fontSize:11}}>{c.hours}h</span>
                     {c.rating>0&&<span style={{color:C.orange,fontSize:11}}>{c.rating} / 5</span>}
                   </div>
 
-                  {enrolled&&<div style={{marginBottom:10}}><PBar value={prog} color={C.orange} h={4}/><div style={{color:C.muted,fontSize:11,marginTop:3}}>{prog}% {lang==="ar"?"مكتمل":"completed"}</div></div>}
+                  {enrolled&&<div style={{marginBottom:10}}><PBar value={prog} color={C.orange} h={4}/><div style={{color:"var(--page-muted)",fontSize:11,marginTop:3}}>{prog}% {lang==="ar"?"مكتمل":"completed"}</div></div>}
 
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--page-border)",paddingTop:10}}>
                     <div>
-                      <span style={{fontWeight:900,fontSize:16,color:C.red}}>{c.price.toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
-                      {c.installment>0&&<div style={{color:C.muted,fontSize:10}}>{lang==="ar"?"أو":"or"} {c.installment.toLocaleString()} EGP &times; 3</div>}
+                      <span style={{fontWeight:900,fontSize:16,color:C.red}}>{c.price.toLocaleString()} <small style={{fontSize:10,color:"var(--page-muted)",fontWeight:400}}>EGP</small></span>
+                      {c.installment>0&&<div style={{color:"var(--page-muted)",fontSize:10}}>{lang==="ar"?"أو":"or"} {c.installment.toLocaleString()} EGP &times; 3</div>}
                     </div>
                     <Btn children={enrolled?(lang==="ar"?"متابعة ▶":"Continue ▶"):(lang==="ar"?"سجّل الآن":"Enroll")} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${c.slug}`);}}/>
                   </div>
