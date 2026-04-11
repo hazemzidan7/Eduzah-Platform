@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
-import { Btn, Card } from "../../components/UI";
+import { Btn, Card, DarkDateInput, DarkTimeInput } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
 import { useData } from "../../context/DataContext";
 import { submitToSheet } from "../../utils/sheets";
@@ -265,10 +265,10 @@ export default function CorporatePage() {
               {/* Date & Time */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:18}}>
                 <FieldWrap label={lang==="ar"?"التاريخ المناسب":"Preferred Date"}>
-                  <input value={form.date} onChange={set("date")} type="date" style={inputSx(false)}/>
+                  <DarkDateInput value={form.date} onChange={set("date")} style={inputSx(false)} />
                 </FieldWrap>
                 <FieldWrap label={lang==="ar"?"الوقت المناسب":"Preferred Time"}>
-                  <input value={form.time} onChange={set("time")} type="time" style={inputSx(false)}/>
+                  <DarkTimeInput value={form.time} onChange={set("time")} style={inputSx(false)} />
                 </FieldWrap>
               </div>
 

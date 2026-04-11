@@ -48,15 +48,87 @@ export function Stars({ n=5 }) {
   return <span style={{color:C.orange,fontSize:13}}>{"★".repeat(n)}{"☆".repeat(5-n)}</span>;
 }
 
+function whiteCalSvg() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
+function whiteClockSvg() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+/** Native date/time with invisible system icon + white SVG (Windows Chrome keeps black glyph otherwise). */
+function DarkPickerWrap({ type, value, onChange, style = {}, placeholder, onFocus, onBlur, ...rest }) {
+  const cls = type === "date" ? "edu-date-input" : "edu-time-input";
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className={cls}
+        style={{ ...style, width: "100%", position: "relative", boxSizing: "border-box", paddingInlineEnd: 44 }}
+        {...rest}
+      />
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          insetInlineEnd: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {type === "date" ? whiteCalSvg() : whiteClockSvg()}
+      </span>
+    </div>
+  );
+}
+
+export function DarkDateInput({ value, onChange, style = {}, ...rest }) {
+  return <DarkPickerWrap type="date" value={value} onChange={onChange} style={style} {...rest} />;
+}
+
+export function DarkTimeInput({ value, onChange, style = {}, ...rest }) {
+  return <DarkPickerWrap type="time" value={value} onChange={onChange} style={style} {...rest} />;
+}
+
 export function Input({ label, value, onChange, type="text", placeholder="", error, rows }) {
   const [f,setF] = useState(false);
   const style = {background:"rgba(255,255,255,.06)",border:`1.5px solid ${error?C.danger:f?C.red:C.border}`,borderRadius:10,padding:"9px 13px",color:"#fff",fontFamily:font,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",transition:"border-color .2s"};
+  const isPicker = type === "date" || type === "time";
   return (
     <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
       {label && <label style={{fontSize:12,fontWeight:600,color:C.muted}}>{label}</label>}
       {rows
         ? <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows} onFocus={()=>setF(true)} onBlur={()=>setF(false)} style={{...style,resize:"vertical"}}/>
-        : <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onFocus={()=>setF(true)} onBlur={()=>setF(false)} style={style}/>}
+        : isPicker
+          ? <DarkPickerWrap
+              type={type}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder={placeholder}
+              onFocus={() => setF(true)}
+              onBlur={() => setF(false)}
+              style={style}
+            />
+          : <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onFocus={()=>setF(true)} onBlur={()=>setF(false)} style={style}/>}
       {error && <span style={{color:C.danger,fontSize:11}}>{error}</span>}
     </div>
   );

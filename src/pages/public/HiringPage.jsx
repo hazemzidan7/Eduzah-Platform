@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, gHero } from "../../theme";
-import { Btn, Card } from "../../components/UI";
+import { Btn, Card, DarkDateInput } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
@@ -227,7 +227,7 @@ export default function HiringPage() {
                   <input value={form.count} onChange={set("count")} type="number" min="1" style={inputSx(false)} placeholder="1"/>
                 </FieldWrap>
                 <FieldWrap label={lang==="ar"?"التاريخ المناسب":"Preferred Date"}>
-                  <input value={form.date} onChange={set("date")} type="date" style={inputSx(false)}/>
+                  <DarkDateInput value={form.date} onChange={set("date")} style={inputSx(false)} />
                 </FieldWrap>
               </div>
 

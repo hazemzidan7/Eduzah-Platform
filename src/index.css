@@ -49,19 +49,29 @@ input::placeholder,
 textarea::placeholder { color: var(--input-placeholder); }
 select option { background: var(--select-option-bg); color: var(--page-text); }
 
-/* Date/time native picker icon → white on dark fields (Chrome, Edge, Safari) */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.08);
-  opacity: 0.92;
+/*
+  Hide native black picker glyph; white SVG is drawn in markup (DarkDateInput / Input).
+  Clicks still hit the invisible indicator (WebKit).
+*/
+input.edu-date-input::-webkit-calendar-picker-indicator,
+input.edu-time-input::-webkit-calendar-picker-indicator,
+input.edu-datetime-input::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
   cursor: pointer;
+  width: 40px;
+  height: 100%;
+  min-height: 2.25rem;
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  margin: 0;
+  padding: 0;
 }
 
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"] {
-  color-scheme: dark;
+input.edu-date-input,
+input.edu-time-input,
+input.edu-datetime-input {
+  position: relative;
 }
 
 @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
