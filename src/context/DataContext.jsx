@@ -156,6 +156,10 @@ export function DataProvider({ children }) {
       instructorId: form.instructorId || null,
       presentationUrl: form.presentationUrl || null,
       introVideoUrl: form.introVideoUrl || null,
+      previewVideoUrl: form.previewVideoUrl || null,
+      freeLessonNote: form.freeLessonNote || "",
+      upcomingSessionNote: form.upcomingSessionNote || "",
+      sheetsTabName: form.sheetsTabName || slug,
       notifyEmails: Array.isArray(form.notifyEmails) ? form.notifyEmails : [],
     };
     await setDoc(doc(db, "courses", slug), nc);

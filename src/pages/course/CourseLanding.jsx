@@ -101,6 +101,8 @@ export default function CourseLanding() {
   };
 
   const introEmbed = course.introVideoUrl ? toEmbedIntro(course.introVideoUrl) : null;
+  const freePreviewEmbed = !enrolled && course.previewVideoUrl ? toEmbedIntro(course.previewVideoUrl) : null;
+  const freeNote = !enrolled && course.freeLessonNote?.trim();
 
   return (
     <div style={{ paddingBottom: 70 }} dir={dir}>
@@ -209,6 +211,36 @@ export default function CourseLanding() {
           </div>
         </div>
       </div>
+
+      {/* ── Free preview (guests — boosts conversion) ── */}
+      {(freePreviewEmbed || freeNote) && (
+        <div style={{ background: "linear-gradient(180deg,#1a0f24 0%,#321d3d 100%)", padding: "clamp(24px,5vw,48px) 4%", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ maxWidth: 920, margin: "0 auto" }}>
+            <div style={{ color: C.success, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8, textAlign: "center" }}>
+              {lang === "ar" ? "معاينة مجانية" : "FREE PREVIEW"}
+            </div>
+            <h2 style={{ fontSize: "clamp(1.1rem,2.5vw,1.5rem)", fontWeight: 900, marginBottom: 14, textAlign: "center" }}>
+              {lang === "ar" ? "جرّب قبل التسجيل" : "Try before you enroll"}
+            </h2>
+            {freeNote && (
+              <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.85, textAlign: "center", marginBottom: freePreviewEmbed ? 18 : 0, maxWidth: 640, marginInline: "auto" }}>
+                {freeNote}
+              </p>
+            )}
+            {freePreviewEmbed && (
+              <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, borderRadius: 14, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 12px 40px rgba(0,0,0,.35)" }}>
+                <iframe
+                  title={lang === "ar" ? "معاينة مجانية" : "Free preview"}
+                  src={freePreviewEmbed}
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Intro video (only if Admin set introVideoUrl) ── */}
       {introEmbed && (

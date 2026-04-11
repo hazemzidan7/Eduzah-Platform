@@ -14,6 +14,11 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth, db, app } from "../firebase";
 import { courseIdsFromEnrolled } from "../utils/enrollment";
 import { isSuperAdminEmail } from "../config/superAdmin";
+import {
+  patchAfterEnroll,
+  patchAfterLesson,
+  patchCourseComplete,
+} from "../utils/gamification";
 
 const AuthCtx = createContext(null);
 
@@ -35,7 +40,24 @@ export function AuthProvider({ children }) {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
           if (snap.exists()) {
             const data = snap.data();
-            setCU({ id: firebaseUser.uid, ...data });
+            const merged = {
+              ...data,
+              xp: data.xp ?? 0,
+              level: data.level ?? 1,
+              badges: Array.isArray(data.badges) ? data.badges : [],
+              userNotifications: Array.isArray(data.userNotifications) ? data.userNotifications : [],
+              courseActivity: data.courseActivity && typeof data.courseActivity === "object" ? data.courseActivity : {},
+            };
+            setCU({ id: firebaseUser.uid, ...merged });
+            const persist = {};
+            if (data.xp == null) persist.xp = 0;
+            if (data.level == null) persist.level = 1;
+            if (!Array.isArray(data.badges)) persist.badges = [];
+            if (!Array.isArray(data.userNotifications)) persist.userNotifications = [];
+            if (data.courseActivity == null) persist.courseActivity = {};
+            if (Object.keys(persist).length) {
+              updateDoc(doc(db, "users", firebaseUser.uid), persist).catch(() => {});
+            }
           } else {
             await signOut(auth);
             setCU(null);
@@ -116,6 +138,13 @@ export function AuthProvider({ children }) {
         enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
         assignedCourses: [],
         ...(pendingCourseId ? { pendingEnrollmentCourseId: pendingCourseId } : {}),
+        xp: 0,
+        level: 1,
+        badges: [],
+        userNotifications: [],
+        lastViewedCourseId: null,
+        lastViewedAt: null,
+        courseActivity: {},
         createdAt: new Date().toISOString(),
       });
       await signOut(auth);
@@ -160,12 +189,22 @@ export function AuthProvider({ children }) {
       }];
       const enrolledCourseIds = courseIdsFromEnrolled(updated);
       const roleNext = u.role === "user" || u.role === "student" ? "student" : u.role;
+      let courseTitle = "";
+      try {
+        const cs = await getDoc(doc(db, "courses", pendingCid));
+        if (cs.exists()) courseTitle = cs.data().title || "";
+      } catch (_) {}
+      const gam = patchAfterEnroll(u, courseTitle);
       await updateDoc(doc(db, "users", id), {
         status: "approved",
         enrolledCourses: updated,
         enrolledCourseIds,
         pendingEnrollmentCourseId: null,
         ...(roleNext !== u.role ? { role: roleNext } : {}),
+        xp: gam.xp,
+        level: gam.level,
+        badges: gam.badges,
+        userNotifications: gam.userNotifications,
       });
       setUsers((p) => p.map((usr) => (usr.id === id ? {
         ...usr,
@@ -174,6 +213,10 @@ export function AuthProvider({ children }) {
         enrolledCourseIds,
         pendingEnrollmentCourseId: null,
         role: roleNext,
+        xp: gam.xp,
+        level: gam.level,
+        badges: gam.badges,
+        userNotifications: gam.userNotifications,
       } : usr)));
       if (currentUser?.id === id) {
         setCU((prev) => (prev ? {
@@ -183,6 +226,10 @@ export function AuthProvider({ children }) {
           enrolledCourseIds,
           pendingEnrollmentCourseId: null,
           role: roleNext,
+          xp: gam.xp,
+          level: gam.level,
+          badges: gam.badges,
+          userNotifications: gam.userNotifications,
         } : prev));
       }
       return;
@@ -219,13 +266,43 @@ export function AuthProvider({ children }) {
     }];
     const enrolledCourseIds = courseIdsFromEnrolled(updated);
     const roleNext = u.role === "user" ? "student" : u.role;
+    let courseTitle = "";
+    try {
+      const cs = await getDoc(doc(db, "courses", cid));
+      if (cs.exists()) courseTitle = cs.data().title || "";
+    } catch (_) {}
+    const gam = patchAfterEnroll(u, courseTitle);
     await updateDoc(doc(db, "users", uid), {
       enrolledCourses: updated,
       enrolledCourseIds,
       ...(roleNext !== u.role ? { role: roleNext } : {}),
+      xp: gam.xp,
+      level: gam.level,
+      badges: gam.badges,
+      userNotifications: gam.userNotifications,
     });
-    setUsers((p) => p.map((usr) => (usr.id === uid ? { ...usr, enrolledCourses: updated, enrolledCourseIds, role: roleNext } : usr)));
-    if (currentUser?.id === uid) setCU((prev) => ({ ...prev, enrolledCourses: updated, enrolledCourseIds, role: roleNext }));
+    setUsers((p) => p.map((usr) => (usr.id === uid ? {
+      ...usr,
+      enrolledCourses: updated,
+      enrolledCourseIds,
+      role: roleNext,
+      xp: gam.xp,
+      level: gam.level,
+      badges: gam.badges,
+      userNotifications: gam.userNotifications,
+    } : usr)));
+    if (currentUser?.id === uid) {
+      setCU((prev) => ({
+        ...prev,
+        enrolledCourses: updated,
+        enrolledCourseIds,
+        role: roleNext,
+        xp: gam.xp,
+        level: gam.level,
+        badges: gam.badges,
+        userNotifications: gam.userNotifications,
+      }));
+    }
   };
 
   const removeEnroll = async (uid, cid) => {
@@ -258,18 +335,59 @@ export function AuthProvider({ children }) {
     setCU((prev) => ({ ...prev, ...patch }));
   };
 
-  const markLesson = async (cid, idx, total) => {
+  const markLesson = async (cid, idx, total, courseTitle = "") => {
     if (!currentUser) return;
-    const snap = await getDoc(doc(db, "users", currentUser.id));
+    const ref = doc(db, "users", currentUser.id);
+    const snap = await getDoc(ref);
     if (!snap.exists()) return;
-    const ec = (snap.data().enrolledCourses || []).map((e) => {
+    const u = snap.data();
+    const entryBefore = (u.enrolledCourses || []).find((e) => e.courseId === cid);
+    const wasDone = entryBefore?.completedLessons?.includes(idx);
+    const prevProg = entryBefore?.progress || 0;
+
+    const ec = (u.enrolledCourses || []).map((e) => {
       if (e.courseId !== cid) return e;
       const done = e.completedLessons.includes(idx) ? e.completedLessons : [...e.completedLessons, idx];
       return { ...e, completedLessons: done, progress: Math.round((done.length / total) * 100) };
     });
+    const entryAfter = ec.find((e) => e.courseId === cid);
+    const newProg = entryAfter?.progress || 0;
     const enrolledCourseIds = courseIdsFromEnrolled(ec);
-    await updateDoc(doc(db, "users", currentUser.id), { enrolledCourses: ec, enrolledCourseIds });
-    setCU((prev) => ({ ...prev, enrolledCourses: ec, enrolledCourseIds }));
+
+    let patch = { enrolledCourses: ec, enrolledCourseIds };
+    let base = { ...u, ...patch };
+
+    if (!wasDone) {
+      const totalLessonsDone = ec.reduce((sum, e) => sum + (e.completedLessons?.length || 0), 0);
+      const pl = patchAfterLesson(u, totalLessonsDone);
+      patch = { ...patch, xp: pl.xp, level: pl.level, badges: pl.badges, userNotifications: pl.userNotifications };
+      base = { ...base, ...pl };
+    }
+    if (newProg === 100 && prevProg < 100) {
+      const pc = patchCourseComplete(base, courseTitle);
+      patch = { ...patch, xp: pc.xp, level: pc.level, badges: pc.badges, userNotifications: pc.userNotifications };
+    }
+
+    await updateDoc(ref, patch);
+    setCU((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const recordCourseView = async (courseId) => {
+    if (!currentUser?.id || !courseId) return;
+    const ref = doc(db, "users", currentUser.id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const u = snap.data();
+    const activity = { ...(u.courseActivity || {}) };
+    const cur = activity[courseId] || { views: 0 };
+    activity[courseId] = { views: (cur.views || 0) + 1, lastAt: new Date().toISOString() };
+    const patch = {
+      lastViewedCourseId: courseId,
+      lastViewedAt: new Date().toISOString(),
+      courseActivity: activity,
+    };
+    await updateDoc(ref, patch);
+    setCU((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
   const requestPasswordReset = async (email) => {
@@ -309,7 +427,7 @@ export function AuthProvider({ children }) {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#1a0f24" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--page-bg, #1a0f24)" }}>
       <div style={{ width: 36, height: 36, border: "3px solid rgba(217,27,91,.3)", borderTopColor: "#d91b5b", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -320,7 +438,7 @@ export function AuthProvider({ children }) {
       users, currentUser, loading,
       fetchUsers, login, logout, register,
       approveUser, rejectUser, enrollUser, removeEnroll,
-      assignInstructor, markLesson, updateProfile, adminUpdateUser,
+      assignInstructor, markLesson, recordCourseView, updateProfile, adminUpdateUser,
       requestPasswordReset, changePassword,
       createAdminAccount,
     }}>

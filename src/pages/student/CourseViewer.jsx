@@ -21,7 +21,7 @@ const toEmbed = (url) => {
 export default function CourseViewer() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
-  const { currentUser, markLesson } = useAuth();
+  const { currentUser, markLesson, recordCourseView } = useAuth();
   const { courses, exams } = useData();
   const { lang } = useLang();
   const ar = lang === "ar";
@@ -33,6 +33,12 @@ export default function CourseViewer() {
   useEffect(() => { setIframePlay(false); }, [li]);
 
   const course = courses.find(c => c.slug === slug);
+
+  // Track last-viewed course for personalised dashboard
+  useEffect(() => {
+    if (course?.id) recordCourseView(course.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id]);
   if (!course) { navigate("/dashboard"); return null; }
 
   const ed = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
@@ -239,7 +245,7 @@ export default function CourseViewer() {
                 )}
                 {done.includes(li)
                   ? <Badge color={C.success}>{ar ? "تم الإكمال" : "Completed"}</Badge>
-                  : <Btn children={ar ? "تم مشاهدة الدرس" : "Mark as watched"} v="success" sm onClick={() => markLesson(course.id, li, total)} />
+                  : <Btn children={ar ? "تم مشاهدة الدرس" : "Mark as watched"} v="success" sm onClick={() => markLesson(course.id, li, total, ar ? course.title : (course.title_en || course.title))} />
                 }
               </div>
             )}

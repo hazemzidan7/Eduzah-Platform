@@ -183,18 +183,19 @@ export default function Landing() {
             ) : currentUser.role === "admin" ? (
               <Btn
                 className="hero-cta-primary"
-                children={lang==="ar" ? "إدارة المنصة ⚙️" : "Manage Platform ⚙️"}
+                children={lang==="ar" ? "لوحة التحكم ⚙️" : "Dashboard ⚙️"}
                 onClick={()=>navigate("/dashboard")}
                 style={{padding:"13px 28px",fontSize:14,borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}
               />
             ) : (
               <Btn
                 className="hero-cta-primary"
-                children={lang==="ar" ? "كمّل الكورس ▶" : "Continue Course ▶"}
+                children={lang==="ar" ? "كمل التعلم ▶" : "Continue learning ▶"}
                 onClick={()=>navigate("/dashboard")}
                 style={{padding:"13px 28px",fontSize:14,borderRadius:12}}
               />
             )}
+            <Btn children={lang==="ar" ? "\u0645\u0634 \u0639\u0627\u0631\u0641 \u062a\u0628\u062f\u0623 \u0645\u0646\u064a\u0646\u061f" : "Find my path"} v="outline" onClick={()=>navigate("/find-path")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
             <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
           </div>
           <div ref={statsRef} style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap"}}>
@@ -553,9 +554,10 @@ export default function Landing() {
           {!currentUser
             ? <Btn className="hero-cta-primary" children={lang==="ar"?"ابدأ رحلتك 🚀":"Start Your Journey 🚀"} onClick={()=>navigate("/register")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#d91b5b,#b51549)"}}/>
             : currentUser.role === "admin"
-              ? <Btn className="hero-cta-primary" children={lang==="ar"?"إدارة المنصة":"Manage Platform"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}/>
-              : <Btn className="hero-cta-primary" children={lang==="ar"?"كمّل الكورس ▶":"Continue Course ▶"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12}}/>
+              ? <Btn className="hero-cta-primary" children={lang==="ar"?"\u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645":"Dashboard"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}/>
+              : <Btn className="hero-cta-primary" children={lang==="ar"?"كمل التعلم ▶":"Continue learning ▶"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12}}/>
           }
+          <Btn children={lang==="ar"?"\u0645\u0634 \u0639\u0627\u0631\u0641 \u062a\u0628\u062f\u0623 \u0645\u0646\u064a\u0646\u061f":"Find my path"} v="outline" onClick={()=>navigate("/find-path")} style={{padding:"13px 30px"}}/>
           <Btn children={lang==="ar"?"تدريب الشركات":"Corporate Training"} v="outline" onClick={()=>navigate("/corporate")} style={{padding:"13px 30px"}}/>
           <Btn children={lang==="ar"?"استشارة مجانية":"Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 30px"}}/>
         </div>

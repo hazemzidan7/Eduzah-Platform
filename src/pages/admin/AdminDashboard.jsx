@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
@@ -9,6 +9,7 @@ import { useLang } from "../../context/LangContext";
 import { isSuperAdminEmail } from "../../config/superAdmin";
 import { exportCourseStudents } from "../../utils/exportExcel";
 import CourseStudentsModal from "../../components/CourseStudentsModal";
+import { StatCard, BarChart, DonutChart } from "../../components/Charts";
 
 /* ─── small helpers ─── */
 function formatNewsDateAdmin(n, lang) {
@@ -90,6 +91,34 @@ export default function AdminDashboard() {
   const approvedLearners = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved");
   const superAdmin   = isSuperAdminEmail(currentUser?.email);
 
+  const [analyticsRange, setAnalyticsRange] = useState("all");
+  const cutoffMs = useMemo(() => {
+    if (analyticsRange === "7d") return Date.now() - 7 * 864e5;
+    if (analyticsRange === "30d") return Date.now() - 30 * 864e5;
+    return 0;
+  }, [analyticsRange]);
+  const usersInRange = useMemo(() => {
+    if (!cutoffMs) return users;
+    return users.filter((u) => {
+      const t = u.createdAt ? Date.parse(u.createdAt) : 0;
+      return !Number.isNaN(t) && t >= cutoffMs;
+    });
+  }, [users, cutoffMs]);
+  const totalEnrollments = useMemo(
+    () => users.reduce((s, u) => s + (u.enrolledCourses?.length || 0), 0),
+    [users],
+  );
+  const courseEnrollBars = useMemo(() => {
+    const m = {};
+    for (const u of users) {
+      for (const e of u.enrolledCourses || []) {
+        m[e.courseId] = (m[e.courseId] || 0) + 1;
+      }
+    }
+    const max = Math.max(1, ...Object.values(m));
+    return courses.map((c) => ({ c, n: m[c.id] || 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 10).map((x) => ({ ...x, pct: Math.round((x.n / max) * 100) }));
+  }, [users, courses]);
+
   const tabs = ar
     ? [
         ["overview",   "نظرة عامة"],
@@ -125,7 +154,7 @@ export default function AdminDashboard() {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
-      presentationUrl:"", introVideoUrl:"", notifyEmailsStr:"",
+      presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
@@ -189,6 +218,10 @@ export default function AdminDashboard() {
             <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
             <Input label={tx("رابط عرض المنهج (PDF)", "Curriculum presentation URL")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
             <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} placeholder="https://..." />
+            <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
+            <Input label={tx("جلسة قادمة (للطالب)", "Upcoming session note")} value={f.upcomingSessionNote} onChange={v => set("upcomingSessionNote", v)} rows={2} />
+            <Input label={tx("تبويب Google Sheet", "Google Sheet tab name")} value={f.sheetsTabName} onChange={v => set("sheetsTabName", v)} placeholder="course-tab" />
             <Input label={tx("إيميلات إشعار التسجيل (فاصلة)", "Notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="a@x.com, b@x.com" rows={2} />
           </div>
         </div>
@@ -217,6 +250,10 @@ export default function AdminDashboard() {
       image: c.image || null,
       presentationUrl: c.presentationUrl || "",
       introVideoUrl: c.introVideoUrl || "",
+      previewVideoUrl: c.previewVideoUrl || "",
+      freeLessonNote: c.freeLessonNote || "",
+      upcomingSessionNote: c.upcomingSessionNote || "",
+      sheetsTabName: c.sheetsTabName || c.slug || "",
       notifyEmailsStr: (Array.isArray(c.notifyEmails) ? c.notifyEmails : []).join(", "),
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -243,6 +280,10 @@ export default function AdminDashboard() {
         image: f.image,
         presentationUrl: f.presentationUrl?.trim() || null,
         introVideoUrl: f.introVideoUrl?.trim() || null,
+        previewVideoUrl: f.previewVideoUrl?.trim() || null,
+        freeLessonNote: f.freeLessonNote?.trim() || "",
+        upcomingSessionNote: f.upcomingSessionNote?.trim() || "",
+        sheetsTabName: (f.sheetsTabName || "").trim() || c.slug || c.id,
         notifyEmails: f.notifyEmailsStr.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(e => e.includes("@")),
       });
       showT(tx("تم تحديث الكورس", "Course updated"));
@@ -298,6 +339,10 @@ export default function AdminDashboard() {
             <Input label="Outcomes EN" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} rows={2} />
             <Input label={tx("رابط عرض المنهج (PDF أو رابط)", "Curriculum presentation URL (PDF or link)")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
             <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} />
+            <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
+            <Input label={tx("جلسة قادمة (للطالب)", "Upcoming session note")} value={f.upcomingSessionNote} onChange={v => set("upcomingSessionNote", v)} rows={2} />
+            <Input label={tx("تبويب Google Sheet", "Google Sheet tab name")} value={f.sheetsTabName} onChange={v => set("sheetsTabName", v)} />
             <Input label={tx("إيميلات إشعار التسجيل (مفصولة بفاصلة)", "Enrollment notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="admin@example.com, team@example.com" rows={2} />
           </div>
         </div>
@@ -820,6 +865,51 @@ export default function AdminDashboard() {
                   <div style={{ color: C.muted, fontSize: 12 }}>{s.l}</div>
                 </Card>
               ))}
+            </div>
+
+            {/* ── Analytics filter ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{tx('تحليلات المنصة', 'Platform Analytics')}</div>
+              <Select
+                label=''
+                value={analyticsRange}
+                onChange={setAnalyticsRange}
+                options={[
+                  { v: 'all', l: tx('كل الفترة', 'All time') },
+                  { v: '30d', l: tx('٣٠ يوم', '30 days') },
+                  { v: '7d',  l: tx('٧ أيام', '7 days') },
+                ]}
+              />
+            </div>
+
+            {/* ── Stat cards ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 22 }}>
+              <StatCard label={tx('المستخدمون (الفترة)', 'Users (range)')} value={usersInRange.length} icon='👥' color={C.red} />
+              <StatCard label={tx('متعلمون موافق عليهم', 'Approved learners')} value={approvedLearners.length} icon='✅' color={C.orange} />
+              <StatCard label={tx('طلاب بكورسات', 'Active students')} value={studentsEnr.length} icon='🎓' color={C.success} />
+              <StatCard label={tx('إجمالي التسجيلات', 'Total enrollments')} value={totalEnrollments} icon='📚' color={C.purple} />
+            </div>
+
+            {/* ── Charts ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginBottom: 22 }}>
+              <BarChart
+                title={tx('أكثر الكورسات تسجيلاً', 'Top courses by enrollments')}
+                color={C.red}
+                data={courseEnrollBars.map(({ c, n }) => ({
+                  label: ar ? c.title : (c.title_en || c.title),
+                  value: n,
+                  color: c.color || C.red,
+                }))}
+              />
+              <DonutChart
+                title={tx('توزيع المستخدمين', 'User distribution')}
+                data={[
+                  { label: tx('طلاب', 'Students'), value: users.filter(u => u.role === 'student').length, color: C.red },
+                  { label: tx('مستخدمون', 'Users'), value: users.filter(u => u.role === 'user').length, color: C.orange },
+                  { label: tx('مدربون', 'Trainers'), value: instructors.length, color: C.purple },
+                  { label: tx('مدراء', 'Admins'), value: adminsList.length, color: '#60a5fa' },
+                ].filter(d => d.value > 0)}
+              />
             </div>
 
             {pending.length > 0 && (

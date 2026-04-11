@@ -51,7 +51,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (
         request.auth.uid == userId || isAdmin()
-        || (isInstructor() && resource.data.role == 'student')
+        || (isInstructor() && resource.data.role in ['student', 'user'])
       );
       allow create: if isSignedIn()
         && request.auth.uid == userId
@@ -126,6 +126,15 @@ service cloud.firestore {
         && request.resource.data.studentEmail is string;
       allow read, delete: if isAdmin();
       allow update: if isAdmin(); // Admin confirms/unconfirms payment
+    }
+
+    /* Path quiz — learners save recommendations (signed-in only). */
+    match /pathQuizResults/{id} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['answers', 'recommendedCourseIds', 'createdAt', 'userId']);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if false;
     }
 
     match /{document=**} { allow read, write: if false; }

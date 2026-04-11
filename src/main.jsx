@@ -5,6 +5,7 @@ import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { LangProvider } from './context/LangContext'
+import { ThemeProvider } from './context/ThemeContext'
 import App from './App.jsx'
 import './index.css'
 
@@ -12,13 +13,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
       <BrowserRouter>
-        <LangProvider>
-          <AuthProvider>
-            <DataProvider>
-              <App />
-            </DataProvider>
-          </AuthProvider>
-        </LangProvider>
+        <ThemeProvider>
+          <LangProvider>
+            <AuthProvider>
+              <DataProvider>
+                <App />
+              </DataProvider>
+            </AuthProvider>
+          </LangProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </HelmetProvider>
   </React.StrictMode>

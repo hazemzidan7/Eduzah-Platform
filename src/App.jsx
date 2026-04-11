@@ -2,10 +2,12 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
+import GlobalSupportFab from "./components/GlobalSupportFab";
 
-// Eagerly loaded — visible on first paint
-import Landing  from "./pages/public/Landing";
-import NotFound from "./pages/public/NotFound";
+// Lazy — reduces initial JS for faster LCP on first paint
+const Landing = lazy(() => import("./pages/public/Landing"));
+const NotFound = lazy(() => import("./pages/public/NotFound"));
+const PathQuiz = lazy(() => import("./pages/public/PathQuiz"));
 
 // Lazy loaded — Auth pages are never needed on the initial render
 const LoginPage          = lazy(() => import("./pages/public/Auth").then(m => ({ default: m.LoginPage })));
@@ -86,11 +88,12 @@ export default function App() {
       <header>
         <Navbar />
       </header>
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: 64 }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: 64, minHeight: "calc(100vh - 64px)", background: "var(--page-bg)", color: "var(--page-text)" }}>
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* ── Public ─────────────────────────── */}
           <Route path="/"           element={<Landing />} />
+          <Route path="/find-path" element={<PathQuiz />} />
           <Route path="/courses"    element={<CoursesPage />} />
           <Route path="/news"       element={<NewsPage />} />
           <Route path="/services"   element={<ServicesPage />} />
@@ -132,6 +135,7 @@ export default function App() {
         </Routes>
       </Suspense>
       </main>
+      <GlobalSupportFab />
     </>
   );
 }

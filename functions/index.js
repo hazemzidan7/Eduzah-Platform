@@ -7,8 +7,41 @@
  */
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const { google } = require("googleapis");
 
 admin.initializeApp();
+
+/** Append one enrollment row to a course tab. Requires env GOOGLE_SHEETS_SPREADSHEET_ID + GOOGLE_SERVICE_ACCOUNT_JSON (full JSON). */
+async function appendEnrollmentRowToSheet({ tabName, row }) {
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!spreadsheetId || !raw) {
+    console.log("Sheets: set GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SERVICE_ACCOUNT_JSON to enable.");
+    return;
+  }
+  let creds;
+  try {
+    creds = JSON.parse(raw);
+  } catch (e) {
+    console.error("Sheets: invalid GOOGLE_SERVICE_ACCOUNT_JSON", e.message);
+    return;
+  }
+  const safeTab = String(tabName || "Enrollments").replace(/'/g, "''").slice(0, 90);
+  const auth = new google.auth.JWT({
+    email: creds.client_email,
+    key: creds.private_key,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  const sheets = google.sheets({ version: "v4", auth });
+  const range = `'${safeTab}'!A:Z`;
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range,
+    valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: { values: [row] },
+  });
+}
 
 const SUPER_ADMIN = "hazemzidan833@gmail.com";
 
@@ -41,6 +74,11 @@ exports.createAdminAccount = functions.https.onCall(async (data, context) => {
     enrolledCourses: [],
     enrolledCourseIds: [],
     assignedCourses: [],
+    xp: 0,
+    level: 1,
+    badges: [],
+    userNotifications: [],
+    courseActivity: {},
     createdAt: new Date().toISOString(),
   });
   return { uid: userRecord.uid };
@@ -52,11 +90,35 @@ exports.onEnrollmentRequestCreated = functions.firestore
     const d = snap.data();
     const courseId = d.courseId;
     let notify = [];
+    let sheetsTabName = courseId;
     try {
       const c = await admin.firestore().doc(`courses/${courseId}`).get();
-      const raw = c.exists && c.data().notifyEmails;
-      notify = Array.isArray(raw) ? raw.filter((e) => typeof e === "string" && e.includes("@")) : [];
+      if (c.exists) {
+        const cd = c.data();
+        const raw = cd.notifyEmails;
+        notify = Array.isArray(raw) ? raw.filter((e) => typeof e === "string" && e.includes("@")) : [];
+        if (cd.sheetsTabName && String(cd.sheetsTabName).trim()) sheetsTabName = String(cd.sheetsTabName).trim();
+      }
     } catch (_) {}
+    try {
+      await appendEnrollmentRowToSheet({
+        tabName: sheetsTabName,
+        row: [
+          new Date().toISOString(),
+          d.studentName || "",
+          d.studentEmail || "",
+          d.studentPhone || "",
+          d.courseTitle || courseId,
+          courseId,
+          d.trainingType || "",
+          d.paymentPlan || "",
+          d.paymentMethod || "",
+          d.amountQuoted != null ? String(d.amountQuoted) : "",
+        ],
+      });
+    } catch (e) {
+      console.error("Sheets append failed:", e.message || e);
+    }
     const recipients = [...new Set([...notify, SUPER_ADMIN])];
     const subject = `Eduzah — تسجيل جديد في كورس: ${d.courseTitle || courseId}`;
     const text = [
