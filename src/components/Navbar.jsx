@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { C, font, gRed, gOr, gPur } from "../theme";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
-import { useTheme } from "../context/ThemeContext";
 import { Btn } from "./UI";
 import { isSuperAdminEmail } from "../config/superAdmin";
 import { useScrolled } from "../hooks/useScrolled";
@@ -26,7 +25,6 @@ const CloseIcon = () => (
 export default function Navbar() {
   const { currentUser, logout } = useAuth();
   const { lang, toggle }        = useLang();
-  const { isDark, toggle: toggleTheme } = useTheme();
   const navigate  = useNavigate();
   const location  = useLocation();
 
@@ -75,7 +73,7 @@ export default function Navbar() {
 
   const doLogout = () => { logout(); navigate("/"); setOpen(false); };
 
-  const linkIdle = isDark ? "rgba(255,255,255,.78)" : "#374151";
+  const linkIdle = "rgba(255,255,255,.78)";
 
   const linkSx = (path, isMobile = false) => ({
     display: "block",
@@ -83,7 +81,7 @@ export default function Navbar() {
     borderRadius: 8,
     background: isActive(path) ? "rgba(217,27,91,.10)" : "transparent",
     border: isActive(path) ? `1px solid ${C.red}33` : "1px solid transparent",
-    color: isActive(path) ? C.red : (isDark ? "rgba(255,255,255,.78)" : "#374151"),
+    color: isActive(path) ? C.red : "rgba(255,255,255,.78)",
     fontFamily: font, fontSize: isMobile ? 14 : 12, fontWeight: 600,
     textDecoration: "none", whiteSpace: "nowrap",
     transition: "all .2s",
@@ -99,8 +97,8 @@ export default function Navbar() {
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
         boxShadow: scrolled
-          ? (isDark ? "0 4px 24px rgba(0,0,0,.45)" : "0 4px 24px rgba(0,0,0,.12)")
-          : (isDark ? "0 1px 8px rgba(0,0,0,.25)" : "0 1px 8px rgba(0,0,0,.05)"),
+          ? "0 4px 24px rgba(0,0,0,.45)"
+          : "0 1px 8px rgba(0,0,0,.25)",
         transition: "all .35s cubic-bezier(.4,0,.2,1)",
         borderBottom: "1px solid var(--nav-border)",
         direction: lang === "ar" ? "rtl" : "ltr",
@@ -136,7 +134,7 @@ export default function Navbar() {
                   }}
                   onMouseLeave={e => {
                     if (!isActive(path)) {
-                      e.currentTarget.style.color = isDark ? "rgba(255,255,255,.78)" : "#374151";
+                      e.currentTarget.style.color = "rgba(255,255,255,.78)";
                       e.currentTarget.style.background = "transparent";
                     }
                   }}
@@ -147,40 +145,13 @@ export default function Navbar() {
 
           {/* ── Right controls ── */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              title={lang === "ar" ? "اضغط للتبديل بين الوضع الفاتح والداكن" : "Click to switch light / dark theme"}
-              aria-label={
-                isDark
-                  ? (lang === "ar" ? "الوضع الحالي داكن. تفعيل الوضع الفاتح" : "Dark theme on. Switch to light theme")
-                  : (lang === "ar" ? "الوضع الحالي فاتح. تفعيل الوضع الداكن" : "Light theme on. Switch to dark theme")
-              }
-              style={{
-                background: isDark ? "rgba(255,255,255,.08)" : "#f3f4f6",
-                border: isDark ? "1.5px solid rgba(255,255,255,.15)" : "1.5px solid #e5e7eb",
-                borderRadius: 8,
-                padding: "5px 10px",
-                color: isDark ? "#fbbf24" : "#374151",
-                fontFamily: font,
-                fontWeight: 800,
-                fontSize: 11,
-                cursor: "pointer",
-                lineHeight: 1,
-              }}
-            >
-              {isDark
-                ? (lang === "ar" ? "داكن" : "Dark")
-                : (lang === "ar" ? "فاتح" : "Light")}
-            </button>
-            {/* Language toggle */}
             <button type="button" onClick={toggle}
               aria-label={lang === "ar" ? "التبديل إلى الإنجليزية" : "Switch to Arabic"}
               style={{
-                background: isDark ? "rgba(255,255,255,.08)" : "#f3f4f6",
-                border: isDark ? "1.5px solid rgba(255,255,255,.15)" : "1.5px solid #e5e7eb",
+                background: "rgba(255,255,255,.08)",
+                border: "1.5px solid rgba(255,255,255,.15)",
                 borderRadius: 8, padding: "5px 12px",
-                color: isDark ? "rgba(255,255,255,.85)" : "#374151", fontFamily: font, fontWeight: 800,
+                color: "rgba(255,255,255,.85)", fontFamily: font, fontWeight: 800,
                 fontSize: 11, cursor: "pointer", letterSpacing: 0.5,
               }}>
               {lang === "ar" ? "EN" : "عر"}
@@ -228,7 +199,7 @@ export default function Navbar() {
                       ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : currentUser.avatar}
                   </div>
-                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} style={{ color: linkIdle, border: isDark ? "1px solid rgba(255,255,255,.2)" : "1px solid #e5e7eb" }} />
+                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} style={{ color: linkIdle, border: "1px solid rgba(255,255,255,.2)" }} />
                 </div>
               )
             )}
@@ -241,7 +212,7 @@ export default function Navbar() {
                 aria-expanded={open}
                 style={{
                   background: "transparent",
-                  border: isDark ? "1.5px solid rgba(255,255,255,.2)" : "1.5px solid #e5e7eb",
+                  border: "1.5px solid rgba(255,255,255,.2)",
                   borderRadius: 8, padding: "7px 9px",
                   color: linkIdle, cursor: "pointer",
                   display: "flex", alignItems: "center",
@@ -255,8 +226,8 @@ export default function Navbar() {
         {/* ── Mobile menu ── */}
         {mobile && open && (
           <div style={{
-            borderTop: isDark ? "1px solid rgba(255,255,255,.12)" : "1px solid #e5e7eb",
-            background: isDark ? "rgba(26,15,36,.98)" : "#fff",
+            borderTop: "1px solid rgba(255,255,255,.12)",
+            background: "rgba(26,15,36,.98)",
             padding: "10px 4% 20px",
             direction: lang === "ar" ? "rtl" : "ltr",
           }}>
@@ -268,7 +239,7 @@ export default function Navbar() {
             </div>
 
             {/* Divider */}
-            <div style={{ borderTop: isDark ? "1px solid rgba(255,255,255,.12)" : "1px solid #e5e7eb", paddingTop: 14 }}>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,.12)", paddingTop: 14 }}>
               {!currentUser ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn children={lang==="ar" ? "دخول"  : "Login"}
