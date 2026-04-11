@@ -25,34 +25,33 @@ export default function GlobalSupportFab() {
         title={ar ? "دعم واتساب" : "WhatsApp support"}
         aria-label={ar ? "تواصل مع الدعم عبر واتساب" : "Contact support on WhatsApp"}
         style={{
-          width: 48,
-          height: 48,
+          width: 52,
+          height: 52,
           borderRadius: "50%",
-          background: "linear-gradient(135deg,#0ea5e9,#0369a1)",
-          color: "#fff",
+          background: "#ffffff",
+          border: "1px solid rgba(0,0,0,.08)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: "0 6px 24px rgba(14,165,233,.45)",
+          boxShadow: "0 6px 22px rgba(0,0,0,.2)",
           textDecoration: "none",
-          fontWeight: 900,
-          fontSize: 18,
+          overflow: "hidden",
           transition: "transform .2s, box-shadow .2s",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.08)";
-          e.currentTarget.style.boxShadow = "0 8px 28px rgba(14,165,233,.55)";
+          e.currentTarget.style.boxShadow = "0 8px 28px rgba(0,0,0,.28)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "";
-          e.currentTarget.style.boxShadow = "0 6px 24px rgba(14,165,233,.45)";
+          e.currentTarget.style.boxShadow = "0 6px 22px rgba(0,0,0,.2)";
         }}
-           >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9.5 9.5a2.5 2.5 0 1 1 4.2 1.8c-.7.6-1.2 1.2-1.2 2.2v.5" />
-          <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none" />
-        </svg>
+      >
+        <img
+          src={ar ? "/logo-ar.png" : "/logo-en.png"}
+          alt=""
+          style={{ width: 36, height: 36, objectFit: "contain", display: "block" }}
+        />
       </a>
     </div>
   );
