@@ -85,7 +85,7 @@ export default function App() {
       >
         Skip to content
       </a>
-      <header>
+      <header style={{ background: "#ffffff" }}>
         <Navbar />
       </header>
       <main id="main-content" tabIndex={-1} style={{ paddingTop: 64, minHeight: "calc(100vh - 64px)", background: "var(--page-bg)", color: "var(--page-text)" }}>

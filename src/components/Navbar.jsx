@@ -93,9 +93,10 @@ export default function Navbar() {
         position: "fixed", top: 0, zIndex: 200,
         width: "100%",
         color: "var(--nav-text)",
-        background: scrolled ? "var(--nav-bg-scrolled)" : "var(--nav-bg)",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
+        /* Solid white — no backdrop-blur (blur makes dark page bleed through and looks purple/black). */
+        background: "#ffffff",
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
         boxShadow: scrolled
           ? "0 4px 20px rgba(0,0,0,.08)"
           : "0 1px 6px rgba(0,0,0,.06)",

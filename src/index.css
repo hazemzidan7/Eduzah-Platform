@@ -31,6 +31,11 @@ body {
   transition: background-color 0.25s ease, color 0.2s ease;
 }
 
+/* Ensure top bar stays white (nav is fixed; header fills the strip behind it). */
+header {
+  background: #ffffff;
+}
+
 .skip-to-content:focus {
   transform: translateY(0) !important;
   outline: 2px solid #fff;
