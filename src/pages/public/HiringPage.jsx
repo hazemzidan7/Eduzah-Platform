@@ -6,6 +6,22 @@ import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
 
+const centeredRow = (gap = 18) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  alignItems: "stretch",
+  gap,
+  maxWidth: 1240,
+  marginInline: "auto",
+});
+const centeredCell = (basisPx) => ({
+  flex: `0 1 ${basisPx}px`,
+  width: `min(100%, ${basisPx}px)`,
+  minWidth: 0,
+  boxSizing: "border-box",
+});
+
 const SPECIALTIES = [
   { v:"frontend",   ar:"Front-End Developer",    en:"Front-End Developer" },
   { v:"backend",    ar:"Back-End Developer",      en:"Back-End Developer" },
@@ -119,14 +135,14 @@ export default function HiringPage() {
             {lang==="ar" ? "لماذا خريجو Eduzah؟" : "Why Eduzah Graduates?"}
           </h2>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:18}}>
+        <div style={centeredRow(18)}>
           {[
             {ar:"تدريب عملي متخصص",en:"Specialized Practical Training",ar2:"تدريب على مشاريع حقيقية بإشراف خبراء",en2:"Trained on real projects supervised by experts"},
             {ar:"Portfolio قوي",en:"Strong Portfolio",ar2:"كل خريج معه مشاريع جاهزة للعرض",en2:"Every graduate has ready-to-show projects"},
             {ar:"شهادات معتمدة",en:"Certified Credentials",ar2:"شهادات Eduzah المعتمدة",en2:"Recognized Eduzah certified credentials"},
             {ar:"متحمسون ومستعدون",en:"Motivated & Prepared",ar2:"خريجون متحمسون لبدء مسيرتهم",en2:"Graduates eager to start their careers"},
           ].map(f=>(
-            <Card key={f.ar} style={{padding:22}}>
+            <Card key={f.ar} style={{...centeredCell(252),padding:22}}>
               <div style={{fontWeight:800,fontSize:14,marginBottom:8}}>{lang==="ar"?f.ar:f.en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?f.ar2:f.en2}</div>
             </Card>

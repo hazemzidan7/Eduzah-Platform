@@ -43,8 +43,8 @@ export default function JourneySection({ lang }) {
         {STEPS.map((step, i) => (
           <div key={step.num}
             style={{
-              flex: "1 1 200px",
-              maxWidth: 248,
+              flex: "0 1 248px",
+              width: "min(100%, 248px)",
               minWidth: 0,
               textAlign: "center",
               padding: "22px 16px 20px",

@@ -7,6 +7,22 @@ import { useData } from "../../context/DataContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
 
+const centeredRow = (gap = 18) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  alignItems: "stretch",
+  gap,
+  maxWidth: 1240,
+  marginInline: "auto",
+});
+const centeredCell = (basisPx) => ({
+  flex: `0 1 ${basisPx}px`,
+  width: `min(100%, ${basisPx}px)`,
+  minWidth: 0,
+  boxSizing: "border-box",
+});
+
 const MEETING_PLATFORMS = [
   { v:"zoom",  label:"Zoom" },
   { v:"meet",  label:"Google Meet" },
@@ -113,14 +129,14 @@ export default function CorporatePage() {
 
       {/* Stats */}
       <div style={{background:"#321d3d",color:"#f8fafc",padding:"clamp(24px,5vw,44px) 5%"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:18}}>
+        <div style={centeredRow(18)}>
           {[
             ["50+", lang==="ar"?"مؤسسة شريكة":"Partner Organizations"],
             ["5,000+", lang==="ar"?"موظف مدرَّب":"Trained Employees"],
             ["100%", lang==="ar"?"رضا العملاء":"Client Satisfaction"],
             ["3+", lang==="ar"?"سنوات خبرة مؤسسية":"Years of Corporate Training"],
           ].map(([v,l])=>(
-            <div key={l} style={{textAlign:"center",background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 16px"}}>
+            <div key={l} style={{...centeredCell(160),textAlign:"center",background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 16px"}}>
               <div style={{fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:900,color:C.orange}}>{v}</div>
               <div style={{color:C.muted,fontSize:12,marginTop:6}}>{l}</div>
             </div>
@@ -138,11 +154,11 @@ export default function CorporatePage() {
             {lang==="ar" ? "ما الذي نقدمه لمؤسستك؟" : "What We Offer Your Organization"}
           </h2>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:18}}>
+        <div style={centeredRow(18)}>
           {PROGRAMS.map(p=>{
             const uploadedImg = categoryIcons?.[p.abbr];
             return (
-              <div key={p.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22,transition:"all .25s"}}
+              <div key={p.ar} style={{...centeredCell(252),background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22,transition:"all .25s"}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=p.color+"66";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor="";e.currentTarget.style.transform="";}}>
                 <div style={{width:60,height:60,borderRadius:14,background:`${p.color}18`,border:`1.5px solid ${p.color}44`,overflow:"hidden",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -166,14 +182,14 @@ export default function CorporatePage() {
             {lang==="ar" ? "كيف نعمل معك؟" : "How We Work With You"}
           </h2>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:18}}>
+        <div style={centeredRow(18)}>
           {[
             {n:"01",ar:"استشارة مجانية",en:"Free Consultation",ar2:"نفهم احتياجات مؤسستك",en2:"We understand your needs"},
             {n:"02",ar:"تصميم مخصص",en:"Custom Design",ar2:"نصمم برنامج مخصص لكم",en2:"We design a tailored program"},
             {n:"03",ar:"تنفيذ احترافي",en:"Professional Delivery",ar2:"مدربون خبراء يتولون التنفيذ",en2:"Expert trainers execute it"},
             {n:"04",ar:"تقييم وشهادات",en:"Assessment & Certificates",ar2:"تقييم الموظفين وإصدار شهادات",en2:"Employee assessment & certificates"},
           ].map(s=>(
-            <div key={s.n} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22}}>
+            <div key={s.n} style={{...centeredCell(208),background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:22}}>
               <div style={{fontSize:"2.5rem",fontWeight:900,color:`${C.red}44`,marginBottom:10}}>{s.n}</div>
               <div style={{fontWeight:800,fontSize:14,marginBottom:7}}>{lang==="ar"?s.ar:s.en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.7}}>{lang==="ar"?s.ar2:s.en2}</div>

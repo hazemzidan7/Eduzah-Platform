@@ -10,6 +10,23 @@ import { Seo } from "../../components/Seo";
 import JourneySection from "../../components/JourneySection";
 import { useInView } from "../../hooks/useInView";
 
+/** Cards stay centered as a group when items are added or removed */
+const centeredRow = (gap = 20) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  alignItems: "stretch",
+  gap,
+  maxWidth: 1240,
+  marginInline: "auto",
+});
+const centeredCell = (basisPx) => ({
+  flex: `0 1 ${basisPx}px`,
+  width: `min(100%, ${basisPx}px)`,
+  minWidth: 0,
+  boxSizing: "border-box",
+});
+
 const CourseCard = memo(function CourseCard({ course, lang }) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -198,7 +215,7 @@ export default function Landing() {
             <Btn children={lang==="ar" ? "\u0645\u0634 \u0639\u0627\u0631\u0641 \u062a\u0628\u062f\u0623 \u0645\u0646\u064a\u0646\u061f" : "Find my path"} v="outline" onClick={()=>navigate("/find-path")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
             <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
           </div>
-          <div ref={statsRef} style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap"}}>
+          <div ref={statsRef} style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap",justifyContent:"center"}}>
             {STATS.map((s, i)=>(
               <div key={s.label}>
                 <div style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:900,color:C.orange}}>
@@ -257,13 +274,13 @@ export default function Landing() {
             {lang==="ar" ? "4 مسارات تدريبية متخصصة" : "4 Specialized Training Tracks"}
           </h2>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:20}}>
+        <div style={centeredRow(20)}>
           {TRACKS.map(tr=>(
             <div key={tr.id}
               onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.borderColor=tr.color;}}
               onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.borderColor=C.border;}}
               onClick={()=>navigate(`/courses?track=${tr.id}`)}
-              style={{background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:16,padding:22,cursor:"pointer",transition:"all .25s"}}>
+              style={{...centeredCell(240),background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:16,padding:22,cursor:"pointer",transition:"all .25s"}}>
               <div style={{width:52,height:52,borderRadius:14,background:`${tr.color}22`,border:`1.5px solid ${tr.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:tr.color,marginBottom:14,letterSpacing:1}}>
                 {tr.icon}
               </div>
@@ -293,13 +310,13 @@ export default function Landing() {
               {lang==="ar" ? "برامج Eduzah المميزة" : "Eduzah Signature Programs"}
             </h2>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:20}}>
+          <div style={centeredRow(20)}>
             {programs.map(p=>(
               <div key={p.id}
                 onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-5px)";e.currentTarget.style.boxShadow=`0 16px 40px rgba(217,27,91,.2)`;}}
                 onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}
                 onClick={()=>navigate("/courses")}
-                style={{background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
+                style={{...centeredCell(280),background:"rgba(50,29,61,.65)",border:`1px solid ${C.border}`,borderRadius:20,overflow:"hidden",cursor:"pointer",transition:"all .3s"}}>
                 {p.image
                   ? <img src={p.image} alt={p.title_ar} style={{width:"100%",height:"clamp(160px, 22vw, 220px)",objectFit:"cover",display:"block"}}/>
                   : <div style={{height:140,background:`linear-gradient(135deg,#321d3d,#4a1f6e)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -331,7 +348,11 @@ export default function Landing() {
         </div>
         {featured.length===0
           ? <div style={{textAlign:"center",color:C.muted,padding:"40px 0"}}>{lang==="ar"?"لا توجد كورسات مميزة.":"No featured courses yet."}</div>
-          : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}}>{featured.map(c=><CourseCard key={c.id} course={c} lang={lang}/>)}</div>}
+          : <div style={centeredRow(20)}>{featured.map(c=>(
+              <div key={c.id} style={centeredCell(288)}>
+                <CourseCard course={c} lang={lang}/>
+              </div>
+            ))}</div>}
         <div style={{textAlign:"center",marginTop:28}}>
           <Btn children={lang==="ar"?"عرض كل الكورسات ←":"View All Courses →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
         </div>
@@ -396,7 +417,7 @@ export default function Landing() {
             {lang==="ar" ? "حلول شاملة للأفراد والمؤسسات" : "Comprehensive Solutions for Individuals & Organizations"}
           </h2>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:18}}>
+        <div style={centeredRow(18)}>
           {[
             {ar:"تدريب الأفراد",en:"Individual Training",ar2:"كورسات مسجلة وأونلاين وحضورية",en2:"Recorded, Online & Offline courses",path:"/courses"},
             {ar:"تدريب الشركات",en:"Corporate Training",ar2:"برامج تدريبية مخصصة للمؤسسات",en2:"Customized programs for organizations",path:"/corporate"},
@@ -407,7 +428,7 @@ export default function Landing() {
               onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.borderColor=C.red;}}
               onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.borderColor=C.border;}}
               onClick={()=>navigate(s.path)}
-              style={{background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:16,padding:22,cursor:"pointer",transition:"all .25s",textAlign:"center"}}>
+              style={{...centeredCell(228),background:"rgba(50,29,61,.6)",border:`1.5px solid ${C.border}`,borderRadius:16,padding:22,cursor:"pointer",transition:"all .25s",textAlign:"center"}}>
               <div style={{fontWeight:800,fontSize:14,marginBottom:8}}>{lang==="ar"?s.ar:s.en}</div>
               <div style={{color:C.muted,fontSize:12,lineHeight:1.6}}>{lang==="ar"?s.ar2:s.en2}</div>
             </div>
@@ -481,9 +502,9 @@ export default function Landing() {
 
           {/* Grid of remaining */}
           {testimonials.length > 1 && (
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}}>
+            <div style={centeredRow(14)}>
               {testimonials.filter((_,i)=>i!==activeTestimonial).slice(0,3).map(tc=>(
-                <Card key={tc.id} style={{padding:16}}>
+                <Card key={tc.id} style={{...centeredCell(248),padding:16}}>
                   <Stars n={tc.rating||5}/>
                   <p style={{color:C.muted,fontSize:12,lineHeight:1.8,margin:"10px 0 12px"}}>
                     "{(lang==="ar"?tc.comment_ar:(tc.comment_en||tc.comment_ar)).slice(0,90)}…"
@@ -518,9 +539,9 @@ export default function Landing() {
               {lang==="ar" ? "أخبار Eduzah" : "Eduzah News"}
             </h2>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:18}}>
+          <div style={centeredRow(18)}>
             {latestNews.map(n=>(
-              <Card key={n.id} style={{padding:0,overflow:"hidden"}}>
+              <Card key={n.id} style={{...centeredCell(288),padding:0,overflow:"hidden"}}>
                 {n.images?.length>0
                   ? <img src={n.images[0]} alt={n.title} style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
                   : <div style={{height:80,background:"linear-gradient(135deg,rgba(103,45,134,.4),rgba(217,27,91,.2))"}}/>

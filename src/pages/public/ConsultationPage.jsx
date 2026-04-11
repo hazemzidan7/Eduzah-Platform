@@ -6,6 +6,22 @@ import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
 
+const centeredRow = (gap = 16) => ({
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  alignItems: "stretch",
+  gap,
+  maxWidth: 1100,
+  marginInline: "auto",
+});
+const centeredCell = (basisPx) => ({
+  flex: `0 1 ${basisPx}px`,
+  width: `min(100%, ${basisPx}px)`,
+  minWidth: 0,
+  boxSizing: "border-box",
+});
+
 const REQUEST_TYPES = [
   { v:"track", ar:"اختيار مسار تعليمي", en:"Choose a Learning Track" },
   { v:"service", ar:"استشارة خدمة", en:"Service Consultation" },
@@ -82,14 +98,14 @@ export default function ConsultationPage() {
 
       {/* Features */}
       <div style={{background:"#321d3d",padding:"clamp(28px,5vw,50px) 5%"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:16}}>
+        <div style={centeredRow(16)}>
           {[
             {ar:"استشارة مجانية 100%", en:"100% Free Consultation", ar2:"بدون أي تكلفة", en2:"No cost whatsoever"},
             {ar:"رد خلال 24 ساعة", en:"Response in 24 Hours", ar2:"فريقنا متاح دائماً", en2:"Our team is always available"},
             {ar:"مدربون خبراء", en:"Expert Trainers", ar2:"توجيه من أفضل المحترفين", en2:"Guidance from top professionals"},
             {ar:"خطة شخصية", en:"Personal Plan", ar2:"مخصصة لأهدافك", en2:"Tailored to your goals"},
           ].map(f=>(
-            <div key={f.ar} style={{background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:14,padding:18,textAlign:"center"}}>
+            <div key={f.ar} style={{...centeredCell(212),background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:14,padding:18,textAlign:"center"}}>
               <div style={{fontWeight:800,fontSize:13,marginBottom:5}}>{lang==="ar" ? f.ar : f.en}</div>
               <div style={{color:C.muted,fontSize:11}}>{lang==="ar" ? f.ar2 : f.en2}</div>
             </div>
