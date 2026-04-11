@@ -157,7 +157,7 @@ export default function Navbar() {
                 border: isDark ? "1.5px solid rgba(255,255,255,.15)" : "1.5px solid #e5e7eb",
                 borderRadius: 8,
                 padding: "5px 10px",
-                color: isDark ? "#fbbf24" : "#0f172a",
+                color: isDark ? "#fbbf24" : "#374151",
                 fontFamily: font,
                 fontWeight: 800,
                 fontSize: 11,

@@ -17,12 +17,12 @@
 
 [data-theme="light"] {
   --page-bg: #f1f5f9;
-  --page-text: #0f172a;
+  --page-text: #374151;
   --page-muted: #64748b;
   --page-border: #e2e8f0;
   --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-bg-scrolled: rgba(255, 255, 255, 0.98);
-  --nav-text: #0f172a;
+  --nav-text: #374151;
   --nav-link-idle: #475569;
   --nav-border: #e2e8f0;
   --input-placeholder: rgba(15, 23, 42, 0.4);
