@@ -94,16 +94,15 @@ export default function Navbar() {
       <nav aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"} style={{
         position: "fixed", top: 0, zIndex: 200,
         width: "100%",
-        background: scrolled
-          ? (isDark ? "var(--nav-bg-scrolled)" : "rgba(255,255,255,0.97)")
-          : (isDark ? "var(--nav-bg)" : "rgba(255,255,255,0.95)"),
+        color: "var(--nav-text)",
+        background: scrolled ? "var(--nav-bg-scrolled)" : "var(--nav-bg)",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
         boxShadow: scrolled
           ? (isDark ? "0 4px 24px rgba(0,0,0,.45)" : "0 4px 24px rgba(0,0,0,.12)")
           : (isDark ? "0 1px 8px rgba(0,0,0,.25)" : "0 1px 8px rgba(0,0,0,.05)"),
         transition: "all .35s cubic-bezier(.4,0,.2,1)",
-        borderBottom: isDark ? "1px solid var(--nav-border)" : "1px solid #e5e7eb",
+        borderBottom: "1px solid var(--nav-border)",
         direction: lang === "ar" ? "rtl" : "ltr",
       }}>
         <div style={{
@@ -151,7 +150,12 @@ export default function Navbar() {
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label={isDark ? (lang === "ar" ? "الوضع الفاتح" : "Light mode") : (lang === "ar" ? "الوضع الداكن" : "Dark mode")}
+              title={lang === "ar" ? "اضغط للتبديل بين الوضع الفاتح والداكن" : "Click to switch light / dark theme"}
+              aria-label={
+                isDark
+                  ? (lang === "ar" ? "الوضع الحالي داكن. تفعيل الوضع الفاتح" : "Dark theme on. Switch to light theme")
+                  : (lang === "ar" ? "الوضع الحالي فاتح. تفعيل الوضع الداكن" : "Light theme on. Switch to dark theme")
+              }
               style={{
                 background: isDark ? "rgba(255,255,255,.08)" : "#f3f4f6",
                 border: isDark ? "1.5px solid rgba(255,255,255,.15)" : "1.5px solid #e5e7eb",
@@ -166,8 +170,8 @@ export default function Navbar() {
               }}
             >
               {isDark
-                ? (lang === "ar" ? "فاتح" : "Light")
-                : (lang === "ar" ? "داكن" : "Dark")}
+                ? (lang === "ar" ? "داكن" : "Dark")
+                : (lang === "ar" ? "فاتح" : "Light")}
             </button>
             {/* Language toggle */}
             <button type="button" onClick={toggle}

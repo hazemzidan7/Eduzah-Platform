@@ -1,28 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root,
-[data-theme="dark"] {
-  --page-bg: #2a1834;
-  --page-text: #f8fafc;
-  --page-muted: rgba(248, 250, 252, 0.75);
-  --page-border: rgba(255, 255, 255, 0.14);
-  --surface: rgba(50, 29, 61, 0.92);
-  --surface-hover: rgba(62, 36, 78, 0.95);
-  --input-bg: rgba(50, 29, 61, 0.55);
-  --input-border: rgba(255, 255, 255, 0.18);
-  --chip-inactive-bg: rgba(255, 255, 255, 0.1);
-  --chip-inactive-text: #f1f5f9;
-  --chip-inactive-border: rgba(255, 255, 255, 0.22);
-  --nav-bg: rgba(26, 15, 36, 0.96);
-  --nav-bg-scrolled: rgba(26, 15, 36, 0.98);
-  --nav-text: rgba(255, 255, 255, 0.88);
-  --nav-link-idle: rgba(255, 255, 255, 0.72);
-  --nav-border: rgba(255, 255, 255, 0.12);
-  --input-placeholder: rgba(255, 255, 255, 0.4);
-  --select-option-bg: #321d3d;
-}
-
-[data-theme="light"] {
+/* Light theme = default (before JS + localStorage). Dark overrides when html[data-theme="dark"]. */
+:root {
   --page-bg: #f1f5f9;
   --page-text: #0f172a;
   --page-muted: #64748b;
@@ -41,6 +20,27 @@
   --nav-border: #e2e8f0;
   --input-placeholder: rgba(15, 23, 42, 0.45);
   --select-option-bg: #fff;
+}
+
+[data-theme="dark"] {
+  --page-bg: #1a0f24;
+  --page-text: #f8fafc;
+  --page-muted: rgba(248, 250, 252, 0.75);
+  --page-border: rgba(255, 255, 255, 0.14);
+  --surface: rgba(50, 29, 61, 0.92);
+  --surface-hover: rgba(62, 36, 78, 0.95);
+  --input-bg: rgba(50, 29, 61, 0.55);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --chip-inactive-bg: rgba(255, 255, 255, 0.1);
+  --chip-inactive-text: #f1f5f9;
+  --chip-inactive-border: rgba(255, 255, 255, 0.22);
+  --nav-bg: rgba(26, 15, 36, 0.96);
+  --nav-bg-scrolled: rgba(26, 15, 36, 0.98);
+  --nav-text: rgba(255, 255, 255, 0.88);
+  --nav-link-idle: rgba(255, 255, 255, 0.72);
+  --nav-border: rgba(255, 255, 255, 0.12);
+  --input-placeholder: rgba(255, 255, 255, 0.4);
+  --select-option-bg: #321d3d;
 }
 
 body {

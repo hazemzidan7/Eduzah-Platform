@@ -26,7 +26,7 @@ export function Card({ children, style={}, onClick }) {
   const [h,setH] = useState(false);
   return (
     <div onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
-      style={{background:h?"rgba(103,45,134,.22)":"rgba(50,29,61,.58)",border:`1px solid ${h?C.purple+"55":C.border}`,borderRadius:18,padding:20,backdropFilter:"blur(12px)",transition:"all .25s",cursor:onClick?"pointer":"default",...style}}>
+      style={{color:"rgba(248,250,252,.96)",background:h?"rgba(103,45,134,.22)":"rgba(50,29,61,.58)",border:`1px solid ${h?C.purple+"55":C.border}`,borderRadius:18,padding:20,backdropFilter:"blur(12px)",transition:"all .25s",cursor:onClick?"pointer":"default",...style}}>
       {children}
     </div>
   );

@@ -82,7 +82,7 @@ export default function CorporatePage() {
   return (
     <div dir={dir}>
       {/* Hero */}
-      <div style={{background:gHero,padding:"clamp(40px,8vw,80px) 5%",position:"relative",overflow:"hidden"}}>
+      <div style={{background:gHero,color:"#f8fafc",padding:"clamp(40px,8vw,80px) 5%",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"-20%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.35),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:700}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
@@ -112,7 +112,7 @@ export default function CorporatePage() {
       </div>
 
       {/* Stats */}
-      <div style={{background:"#321d3d",padding:"clamp(24px,5vw,44px) 5%"}}>
+      <div style={{background:"#321d3d",color:"#f8fafc",padding:"clamp(24px,5vw,44px) 5%"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:18}}>
           {[
             ["50+", lang==="ar"?"مؤسسة شريكة":"Partner Organizations"],
@@ -129,12 +129,12 @@ export default function CorporatePage() {
       </div>
 
       {/* Programs */}
-      <div style={{background:"#2a1540",padding:"clamp(36px,7vw,70px) 5%"}}>
+      <div style={{background:"#2a1540",color:"#f8fafc",padding:"clamp(36px,7vw,70px) 5%"}}>
         <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:10}}>
             {lang==="ar" ? "برامجنا المؤسسية" : "CORPORATE PROGRAMS"}
           </div>
-          <h2 style={{fontSize:"clamp(1.4rem,3vw,2.4rem)",fontWeight:900}}>
+          <h2 style={{fontSize:"clamp(1.4rem,3vw,2.4rem)",fontWeight:900,color:"#f8fafc"}}>
             {lang==="ar" ? "ما الذي نقدمه لمؤسستك؟" : "What We Offer Your Organization"}
           </h2>
         </div>
@@ -160,9 +160,9 @@ export default function CorporatePage() {
       </div>
 
       {/* Process */}
-      <div style={{background:"#321d3d",padding:"clamp(36px,7vw,60px) 5%"}}>
+      <div style={{background:"#321d3d",color:"#f8fafc",padding:"clamp(36px,7vw,60px) 5%"}}>
         <div style={{textAlign:"center",marginBottom:36}}>
-          <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900}}>
+          <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,color:"#f8fafc"}}>
             {lang==="ar" ? "كيف نعمل معك؟" : "How We Work With You"}
           </h2>
         </div>
@@ -183,10 +183,10 @@ export default function CorporatePage() {
       </div>
 
       {/* ── Request Form ── */}
-      <div id="corp-form" style={{background:"#2a1540",padding:"clamp(36px,7vw,70px) 5%"}}>
+      <div id="corp-form" style={{background:"#2a1540",color:"#f8fafc",padding:"clamp(36px,7vw,70px) 5%"}}>
         <div style={{maxWidth:700,margin:"0 auto"}}>
           <div style={{textAlign:"center",marginBottom:32}}>
-            <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:10}}>
+            <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:10,color:"#f8fafc"}}>
               {lang==="ar" ? "اطلب استشارة مجانية" : "Request a Free Consultation"}
             </h2>
             <p style={{color:C.muted,fontSize:13}}>

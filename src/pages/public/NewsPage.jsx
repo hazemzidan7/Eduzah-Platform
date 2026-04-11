@@ -37,7 +37,7 @@ export default function NewsPage() {
         <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
           {lang === "ar" ? "آخر الأخبار" : "LATEST NEWS"}
         </div>
-        <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.4rem)", fontWeight: 900 }}>
+        <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.4rem)", fontWeight: 900, color: "var(--page-text)" }}>
           {lang === "ar" ? "أخبار Eduzah" : "Eduzah News"}
         </h1>
       </div>
@@ -60,7 +60,7 @@ export default function NewsPage() {
           {featured.images?.length > 0 && (
             <img src={featured.images[0]} alt={featured.title} style={{ width: "100%", height: 260, objectFit: "cover", display: "block" }} />
           )}
-          <div style={{ padding: "28px 30px" }}>
+          <div style={{ padding: "28px 30px", color: "#f8fafc" }}>
             {!featured.images?.length && (
               <div
                 style={{
@@ -83,7 +83,7 @@ export default function NewsPage() {
             >
               {newsTag(featured, lang)}
             </span>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.9rem)", fontWeight: 900, margin: "12px 0 10px" }}>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.9rem)", fontWeight: 900, margin: "12px 0 10px", color: "#fff" }}>
               {lang === "ar" ? featured.title : featured.title_en || featured.title}
             </h2>
             <p style={{ color: C.muted, fontSize: 14, maxWidth: 600, lineHeight: 1.8 }}>
@@ -171,7 +171,7 @@ export default function NewsPage() {
                 style={{ width: "100%", height: 240, objectFit: "cover", borderRadius: "20px 20px 0 0", display: "block" }}
               />
             )}
-            <div style={{ padding: "24px 28px" }}>
+            <div style={{ padding: "24px 28px", color: "#f8fafc" }}>
               <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
                 <span
                   style={{
@@ -187,7 +187,7 @@ export default function NewsPage() {
                 </span>
                 <span style={{ color: C.muted, fontSize: 11, padding: "3px 0" }}>{formatNewsDate(selected, lang)}</span>
               </div>
-              <h2 style={{ fontWeight: 900, fontSize: "clamp(1.2rem,2.5vw,1.7rem)", marginBottom: 14, lineHeight: 1.4 }}>
+              <h2 style={{ fontWeight: 900, fontSize: "clamp(1.2rem,2.5vw,1.7rem)", marginBottom: 14, lineHeight: 1.4, color: "#fff" }}>
                 {lang === "ar" ? selected.title : selected.title_en || selected.title}
               </h2>
               <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.9 }}>

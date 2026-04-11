@@ -11,6 +11,17 @@
     <meta property="og:description" content="Eduzah — شركة سوفتوير متخصصة في تقديم التدريبات التقنية في مجالات تطوير البرمجيات والذكاء الاصطناعي"/>
     <meta property="og:type" content="website"/>
 
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("eduzah-theme");
+          document.documentElement.dataset.theme = t === "dark" || t === "light" ? t : "light";
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+
     <!-- ── DNS prefetch / preconnect ─────────────────────────────────────── -->
     <!-- Firebase services -->
     <link rel="dns-prefetch" href="//firestore.googleapis.com"/>
@@ -49,7 +60,7 @@
     <!-- ── Critical CSS (font-display: swap fallback) ─────────────────────── -->
     <style>
       /* Ensure no layout shift while Cairo loads — match metric-compatible fallback */
-      body { font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; margin: 0; background: #1a0a2e; color: #fff; }
+      body { font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
       #root { min-height: 100vh; }
       /* Prevent CLS from spinner on initial paint */
       .app-shell { min-height: 100vh; }
