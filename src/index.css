@@ -13,11 +13,11 @@
   --chip-inactive-bg: rgba(255, 255, 255, 0.1);
   --chip-inactive-text: #f1f5f9;
   --chip-inactive-border: rgba(255, 255, 255, 0.22);
-  --nav-bg: rgba(26, 15, 36, 0.96);
-  --nav-bg-scrolled: rgba(26, 15, 36, 0.98);
-  --nav-text: rgba(255, 255, 255, 0.88);
-  --nav-link-idle: rgba(255, 255, 255, 0.72);
-  --nav-border: rgba(255, 255, 255, 0.12);
+  --nav-bg: #ffffff;
+  --nav-bg-scrolled: rgba(255, 255, 255, 0.97);
+  --nav-text: #0f172a;
+  --nav-link-idle: #475569;
+  --nav-border: #e5e7eb;
   --input-placeholder: rgba(255, 255, 255, 0.4);
   --select-option-bg: #321d3d;
 }

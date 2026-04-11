@@ -73,7 +73,7 @@ export default function Navbar() {
 
   const doLogout = () => { logout(); navigate("/"); setOpen(false); };
 
-  const linkIdle = "rgba(255,255,255,.78)";
+  const linkIdle = "var(--nav-link-idle)";
 
   const linkSx = (path, isMobile = false) => ({
     display: "block",
@@ -81,7 +81,7 @@ export default function Navbar() {
     borderRadius: 8,
     background: isActive(path) ? "rgba(217,27,91,.10)" : "transparent",
     border: isActive(path) ? `1px solid ${C.red}33` : "1px solid transparent",
-    color: isActive(path) ? C.red : "rgba(255,255,255,.78)",
+    color: isActive(path) ? C.red : linkIdle,
     fontFamily: font, fontSize: isMobile ? 14 : 12, fontWeight: 600,
     textDecoration: "none", whiteSpace: "nowrap",
     transition: "all .2s",
@@ -97,8 +97,8 @@ export default function Navbar() {
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
         boxShadow: scrolled
-          ? "0 4px 24px rgba(0,0,0,.45)"
-          : "0 1px 8px rgba(0,0,0,.25)",
+          ? "0 4px 20px rgba(0,0,0,.08)"
+          : "0 1px 6px rgba(0,0,0,.06)",
         transition: "all .35s cubic-bezier(.4,0,.2,1)",
         borderBottom: "1px solid var(--nav-border)",
         direction: lang === "ar" ? "rtl" : "ltr",
@@ -134,7 +134,7 @@ export default function Navbar() {
                   }}
                   onMouseLeave={e => {
                     if (!isActive(path)) {
-                      e.currentTarget.style.color = "rgba(255,255,255,.78)";
+                      e.currentTarget.style.color = linkIdle;
                       e.currentTarget.style.background = "transparent";
                     }
                   }}
@@ -148,10 +148,10 @@ export default function Navbar() {
             <button type="button" onClick={toggle}
               aria-label={lang === "ar" ? "التبديل إلى الإنجليزية" : "Switch to Arabic"}
               style={{
-                background: "rgba(255,255,255,.08)",
-                border: "1.5px solid rgba(255,255,255,.15)",
+                background: "#f3f4f6",
+                border: "1.5px solid #e5e7eb",
                 borderRadius: 8, padding: "5px 12px",
-                color: "rgba(255,255,255,.85)", fontFamily: font, fontWeight: 800,
+                color: "#374151", fontFamily: font, fontWeight: 800,
                 fontSize: 11, cursor: "pointer", letterSpacing: 0.5,
               }}>
               {lang === "ar" ? "EN" : "عر"}
@@ -199,7 +199,7 @@ export default function Navbar() {
                       ? <img src={currentUser.avatarImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : currentUser.avatar}
                   </div>
-                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} style={{ color: linkIdle, border: "1px solid rgba(255,255,255,.2)" }} />
+                  <Btn children={lang==="ar" ? "خروج" : "Logout"} v="ghost" sm onClick={doLogout} style={{ color: linkIdle, border: "1px solid #e5e7eb" }} />
                 </div>
               )
             )}
@@ -212,7 +212,7 @@ export default function Navbar() {
                 aria-expanded={open}
                 style={{
                   background: "transparent",
-                  border: "1.5px solid rgba(255,255,255,.2)",
+                  border: "1.5px solid #d1d5db",
                   borderRadius: 8, padding: "7px 9px",
                   color: linkIdle, cursor: "pointer",
                   display: "flex", alignItems: "center",
@@ -226,8 +226,8 @@ export default function Navbar() {
         {/* ── Mobile menu ── */}
         {mobile && open && (
           <div style={{
-            borderTop: "1px solid rgba(255,255,255,.12)",
-            background: "rgba(26,15,36,.98)",
+            borderTop: "1px solid var(--nav-border)",
+            background: "#ffffff",
             padding: "10px 4% 20px",
             direction: lang === "ar" ? "rtl" : "ltr",
           }}>
@@ -239,7 +239,7 @@ export default function Navbar() {
             </div>
 
             {/* Divider */}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,.12)", paddingTop: 14 }}>
+            <div style={{ borderTop: "1px solid var(--nav-border)", paddingTop: 14 }}>
               {!currentUser ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn children={lang==="ar" ? "دخول"  : "Login"}
