@@ -24,7 +24,7 @@ export default function JourneySection({ lang }) {
         <div style={{ color:C.orange, fontWeight:700, fontSize:11, letterSpacing:2, marginBottom:8 }}>
           {ar ? "رحلتك معنا" : "YOUR JOURNEY"}
         </div>
-        <h2 style={{ fontSize:"clamp(1.4rem,3vw,2.4rem)", fontWeight:900, marginBottom:12, fontFamily:font }}>
+        <h2 style={{ fontSize:"clamp(1.4rem,3vw,2.4rem)", fontWeight:900, marginBottom:12, fontFamily:font, color:"#f8fafc" }}>
           {ar ? "5 خطوات نحو مستقبلك" : "5 Steps to Your Future"}
         </h2>
         <p style={{ color:C.muted, fontSize:14, maxWidth:460, margin:"0 auto", lineHeight:1.8 }}>
@@ -34,34 +34,48 @@ export default function JourneySection({ lang }) {
         </p>
       </div>
 
-      {/* Steps grid */}
+      {/* Steps grid — wide illustrations use a rounded frame, not a circle */}
       <div style={{
-        display:"flex", flexWrap:"wrap", gap:12,
-        justifyContent:"center", position:"relative",
+        display: "flex", flexWrap: "wrap", gap: 16,
+        justifyContent: "center", position: "relative",
+        maxWidth: 1280, margin: "0 auto",
       }}>
         {STEPS.map((step, i) => (
           <div key={step.num}
             style={{
-              flex:"1 1 160px", maxWidth:210,
-              textAlign:"center", padding:"24px 12px",
-              background:"rgba(255,255,255,.03)",
-              border:`1px solid ${step.color}33`,
-              borderRadius:20,
+              flex: "1 1 200px",
+              maxWidth: 248,
+              minWidth: 0,
+              textAlign: "center",
+              padding: "22px 16px 20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "stretch",
+              background: "linear-gradient(165deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.02) 100%)",
+              border: `1px solid ${step.color}38`,
+              borderRadius: 22,
               opacity: inView ? 1 : 0,
               transform: inView ? "translateY(0)" : "translateY(32px)",
               transition: `opacity .6s ease ${i * 0.12}s, transform .6s ease ${i * 0.12}s`,
+              boxShadow: inView ? `0 12px 40px rgba(0,0,0,.28), 0 0 0 1px ${step.color}14 inset` : "none",
             }}>
-            {/* Step illustration */}
             <div style={{
-              width: 92, height: 92, borderRadius: "50%",
-              background: `linear-gradient(135deg,${step.color}28,${step.color}0d)`,
-              border: `2px solid ${step.color}55`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 18px",
-              padding: 8,
+              width: "100%",
+              aspectRatio: "5 / 4",
+              maxHeight: 148,
+              margin: "0 auto 16px",
+              borderRadius: 16,
+              background: `linear-gradient(160deg, rgba(0,0,0,.45) 0%, ${step.color}12 55%, rgba(0,0,0,.2) 100%)`,
+              border: `1px solid ${step.color}45`,
               boxSizing: "border-box",
+              padding: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               overflow: "hidden",
-              boxShadow: inView ? `0 0 28px ${step.color}40` : "none",
+              boxShadow: inView
+                ? `0 4px 20px rgba(0,0,0,.35), inset 0 1px 0 ${step.color}30`
+                : "0 4px 16px rgba(0,0,0,.25)",
               transition: "box-shadow .8s ease",
             }}>
               <img
@@ -73,6 +87,7 @@ export default function JourneySection({ lang }) {
                 style={{
                   width: "100%",
                   height: "100%",
+                  maxHeight: 128,
                   objectFit: "contain",
                   objectPosition: "center",
                   display: "block",
@@ -80,13 +95,16 @@ export default function JourneySection({ lang }) {
                 }}
               />
             </div>
-            <div style={{ color:step.color, fontWeight:900, fontSize:10, letterSpacing:2, marginBottom:8 }}>
+            <div style={{ color: step.color, fontWeight: 900, fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>
               STEP {step.num}
             </div>
-            <div style={{ fontWeight:800, fontSize:14, marginBottom:8, fontFamily:font }}>
+            <div style={{
+              fontWeight: 800, fontSize: 15, marginBottom: 8, fontFamily: font,
+              color: "#f1f5f9", lineHeight: 1.35,
+            }}>
               {ar ? step.ar : step.en}
             </div>
-            <div style={{ color:C.muted, fontSize:12, lineHeight:1.75 }}>
+            <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.75, flexGrow: 1 }}>
               {ar ? step.desc_ar : step.desc_en}
             </div>
           </div>
