@@ -315,82 +315,233 @@ export function RegisterPage() {
    https://YOUR_DOMAIN/reset-password
 ══════════════════════════════════════════ */
 export function ForgotPasswordPage() {
-  const { requestPasswordReset } = useAuth();
+  const { startPasswordReset, confirmPasswordResetOtp } = useAuth();
   const { lang } = useLang();
   const navigate = useNavigate();
+  const ar = lang === "ar";
+  const dir = ar ? "rtl" : "ltr";
+  const [view, setView] = useState("formEmail");
   const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [pass, setPass] = useState("");
+  const [confirm, setConfirmP] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = async () => {
+  const cardSx = {
+    background: "rgba(50,29,61,.92)",
+    backdropFilter: "blur(24px)",
+    border: `1px solid ${C.border}`,
+    borderRadius: 22,
+    padding: 28,
+    width: "100%",
+    maxWidth: 440,
+    boxShadow: "0 24px 60px rgba(0,0,0,.35)",
+  };
+
+  const submitEmail = async () => {
     setErr("");
     if (!email.trim() || !email.includes("@")) {
-      setErr(lang === "ar" ? "أدخل بريداً صالحاً" : "Enter a valid email");
+      setErr(ar ? "أدخل بريداً صالحاً" : "Enter a valid email");
       return;
     }
     setLoading(true);
-    const r = await requestPasswordReset(email);
+    const r = await startPasswordReset(email);
     setLoading(false);
     if (!r.ok) {
       const code = r.code || "";
-      if (code === "invalid-email") {
-        setErr(lang === "ar" ? "صيغة البريد غير صحيحة" : "Invalid email format");
-      } else if (code === "auth/operation-not-allowed") {
-        setErr(lang === "ar"
-          ? "تسجيل الدخول بالبريد معطّل في إعدادات Firebase. فعّل «Email/Password» من لوحة المشروع."
-          : "Email sign-in is disabled in Firebase. Enable Email/Password in the Firebase console.");
+      if (code === "invalid-email") setErr(ar ? "صيغة البريد غير صحيحة" : "Invalid email format");
+      else if (code === "rate-limit") setErr(ar ? "انتظر دقيقة ثم أعد المحاولة." : "Please wait a minute before trying again.");
+      else if (code === "auth/operation-not-allowed") {
+        setErr(ar
+          ? "تسجيل الدخول بالبريد معطّل في Firebase. فعّل Email/Password من لوحة المشروع."
+          : "Email sign-in is disabled in Firebase. Enable Email/Password in the console.");
       } else if (code === "auth/network-request-failed") {
-        setErr(lang === "ar" ? "لا يوجد اتصال بالإنترنت أو تم حظر الطلب." : "No internet connection or the request was blocked.");
+        setErr(ar ? "لا يوجد اتصال أو تم حظر الطلب." : "No connection or the request was blocked.");
       } else if (["auth/unauthorized-continue-uri", "auth/invalid-continue-uri"].includes(code)) {
-        setErr(lang === "ar"
-          ? "نطاق الموقع غير مضاف في Firebase → Authentication → Settings → Authorized domains. أضف نطاقك (مثل localhost أو دومين الإنتاج)."
-          : "This site’s domain is not in Firebase → Authentication → Settings → Authorized domains. Add your domain (e.g. localhost or production).");
+        setErr(ar
+          ? "أضف نطاق الموقع في Firebase → Authentication → Authorized domains."
+          : "Add your site domain in Firebase → Authentication → Authorized domains.");
       } else {
-        setErr(lang === "ar"
-          ? `تعذر إرسال الرسالة (${code || "خطأ غير معروف"}). تحقق من الإنترنت وإعدادات Firebase.`
-          : `Could not send the email (${code || "unknown"}). Check your connection and Firebase settings.`);
+        setErr(ar
+          ? `تعذر إكمال الطلب (${code || "—"}). تحقق من الإنترنت وإعدادات Firebase.`
+          : `Could not continue (${code || "—"}). Check connection and Firebase settings.`);
       }
       return;
     }
-    setDone(true);
+    if (r.mode === "otp" && r.sent) {
+      setOtp("");
+      setPass("");
+      setConfirmP("");
+      setView("formOtp");
+      return;
+    }
+    if (r.mode === "otp" && !r.sent) {
+      setView("msgNoUser");
+      return;
+    }
+    setView("msgLink");
   };
 
+  const submitOtp = async () => {
+    setErr("");
+    const digits = otp.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setErr(ar ? "أدخل الـ 8 أرقام المرسلة للبريد" : "Enter the 8 digits sent to your email");
+      return;
+    }
+    const rules = validatePassword(pass);
+    if (rules.some((x) => !x.ok)) {
+      setErr(ar ? "كلمة المرور لا تستوفي الشروط أدناه" : "Password does not meet the requirements below");
+      return;
+    }
+    if (pass !== confirm) {
+      setErr(ar ? "تأكيد كلمة المرور غير متطابق" : "Password confirmation does not match");
+      return;
+    }
+    setLoading(true);
+    const r = await confirmPasswordResetOtp({ email, code: digits, newPassword: pass });
+    setLoading(false);
+    if (!r.ok) {
+      if (r.code === "BAD_CODE") setErr(ar ? "الرمز غير صحيح" : "Invalid code");
+      else if (r.code === "EXPIRED") setErr(ar ? "انتهت صلاحية الرمز. ابدأ من جديد لطلب رمز جديد." : "Code expired. Start over to request a new code.");
+      else if (r.code === "TOO_MANY_ATTEMPTS") setErr(ar ? "تجاوزت عدد المحاولات. اطلب رمزاً جديداً." : "Too many attempts. Request a new code.");
+      else if (r.code === "INVALID_PASSWORD") setErr(ar ? "كلمة المرور ضعيفة" : "Password too weak");
+      else if (r.code === "NOT_DEPLOYED") {
+        setErr(ar ? "ميزة الرمز غير مفعّلة على السيرفر. استخدم الرابط في البريد." : "Code reset is not deployed. Use the link in your email.");
+      } else setErr(ar ? "تعذر التحديث. حاول مرة أخرى." : "Could not update. Try again.");
+      return;
+    }
+    setView("msgSuccess");
+  };
+
+  const iconCircle = (child) => (
+    <div style={{
+      width: 56, height: 56, borderRadius: "50%", background: "rgba(16,185,129,.15)",
+      border: "2px solid rgba(16,185,129,.4)", display: "flex", alignItems: "center", justifyContent: "center",
+      margin: "0 auto 16px", fontSize: 22, fontWeight: 900, color: "#10b981",
+    }}>{child}</div>
+  );
+
   return (
-    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={dir} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
-        title={lang === "ar" ? "استعادة كلمة المرور — Eduzah" : "Forgot password — Eduzah"}
-        description={lang === "ar" ? "استعد الوصول إلى حسابك على Eduzah." : "Recover access to your Eduzah account."}
+        title={ar ? "استعادة كلمة المرور — Eduzah" : "Forgot password — Eduzah"}
+        description={ar ? "استعد الوصول إلى حسابك على Eduzah." : "Recover access to your Eduzah account."}
       />
-      <div style={{ background: "rgba(50,29,61,.92)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 420 }}>
-        <h1 style={{ fontSize: 20, marginBottom: 8 }}>{lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}</h1>
-        <p style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
-          {lang === "ar"
-            ? "أدخل البريد المسجّل على المنصة. ستصلك رسالة تحتوي رابط التأكيد: افتحه ثم عيّن كلمة مرور جديدة من صفحتنا. (تحقق من «الرسائل غير المرغوبة» إن لم تجدها.)"
-            : "Enter the email you used on the platform. You will get a message with a confirmation link — open it, then set a new password on our site. (Check spam if you do not see it.)"}
-        </p>
-        {!done ? (
+      <div style={cardSx}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <div style={{ display: "inline-block", background: "#fff", borderRadius: 14, padding: "10px 20px", marginBottom: 8 }}>
+            <img src="/logo-en.png" alt="Eduzah" style={{ height: 48, width: "auto", maxWidth: 180, objectFit: "contain", display: "block" }} />
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.red, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+            {ar ? "أمان الحساب" : "Account security"}
+          </div>
+          <h1 style={{ fontSize: "clamp(1.15rem, 3vw, 1.45rem)", fontWeight: 900, margin: 0, lineHeight: 1.35 }}>
+            {view === "formOtp"
+              ? (ar ? "أدخل الرمز وكلمة المرور الجديدة" : "Enter code and new password")
+              : (ar ? "نسيت كلمة المرور؟" : "Forgot password?")}
+          </h1>
+        </div>
+
+        {view === "formEmail" && (
           <>
-            <Field label={lang === "ar" ? "البريد الإلكتروني" : "Email"}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputSx(!!err)} disabled={loading} />
-            </Field>
-            {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>{err}</div>}
-            <Btn children={loading ? "…" : (lang === "ar" ? "متابعة" : "Continue")} full onClick={submit} />
-          </>
-        ) : (
-          <div>
-            <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
-              {lang === "ar"
-                ? "إذا كان هذا البريد مسجّلاً لدينا، ستصلك رسالة خلال دقائق. افتح الرابط من نفس الجهاز ثم أدخل كلمة المرور الجديدة."
-                : "If this email is registered, you will receive a message within a few minutes. Open the link on this device, then enter your new password."}
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 18, lineHeight: 1.75 }}>
+              {ar
+                ? "أدخل بريدك المسجّل. إن وُجدت إعدادات الإيميل على السيرفر، يُرسل لك رمز من 8 أرقام؛ وإلا يُرسل رابط لتعيين كلمة المرور. تحقق من البريد غير المرغوب."
+                : "Enter your registered email. If email is configured on the server, you will get an 8-digit code; otherwise a reset link. Check spam."}
             </p>
+            <Field label={ar ? "البريد الإلكتروني" : "Email"}>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputSx(!!err)} disabled={loading} autoComplete="email" />
+            </Field>
+            {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 12 }}>{err}</div>}
+            <Btn children={loading ? "…" : (ar ? "إرسال رمز التحقق" : "Send verification code")} full onClick={submitEmail} style={{ boxShadow: "0 8px 25px rgba(217,27,91,.35)" }} />
+          </>
+        )}
+
+        {view === "formOtp" && (
+          <>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+              {ar
+                ? `تم إرسال رمز مكوّن من 8 أرقام إلى ${email}. أدخل الرمز ثم اختر كلمة مرور جديدة.`
+                : `We sent an 8-digit code to ${email}. Enter it and choose a new password.`}
+            </p>
+            <Field label={ar ? "رمز التحقق (8 أرقام)" : "Verification code (8 digits)"}>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={8}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="••••••••"
+                style={{
+                  ...inputSx(!!err),
+                  textAlign: "center",
+                  fontSize: 22,
+                  letterSpacing: "0.4em",
+                  fontVariantNumeric: "tabular-nums",
+                  paddingTop: 12,
+                  paddingBottom: 12,
+                }}
+                disabled={loading}
+              />
+            </Field>
+            <PassField label={ar ? "كلمة المرور الجديدة" : "New password"} value={pass} onChange={setPass} error={undefined} placeholder="••••••••" lang={lang} />
+            <PassRules pass={pass} lang={lang} />
+            <div style={{ marginTop: 10 }}>
+              <PassField label={ar ? "تأكيد كلمة المرور" : "Confirm password"} value={confirm} onChange={setConfirmP} error={undefined} placeholder="••••••••" lang={lang} />
+            </div>
+            {err && <div role="alert" style={{ color: C.danger, fontSize: 12, margin: "12px 0" }}>{err}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              <Btn children={ar ? "← تغيير البريد" : "← Change email"} v="outline" onClick={() => { setView("formEmail"); setErr(""); }} style={{ flex: "0 1 auto", padding: "11px 16px" }} />
+              <Btn children={loading ? "…" : (ar ? "حفظ كلمة المرور" : "Save password")} onClick={submitOtp} style={{ flex: 1, minWidth: 160, boxShadow: "0 8px 25px rgba(217,27,91,.35)" }} disabled={loading} />
+            </div>
+          </>
+        )}
+
+        {view === "msgLink" && (
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            {iconCircle("✓")}
+            <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
+              {ar
+                ? "تحقق من بريدك وافتح رابط إعادة التعيين. لعرض صفحة بتصميم المنصة: من Firebase → Authentication → Templates اضبط رابط الإجراء إلى موقعك ثم /reset-password"
+                : "Check your email and open the reset link. For our branded page: Firebase → Authentication → Templates → set the action URL to your site + /reset-password"}
+            </p>
+            <Btn children={ar ? "تسجيل الدخول" : "Sign in"} full onClick={() => navigate("/login")} />
           </div>
         )}
-        <div style={{ marginTop: 18 }}>
-          <button type="button" onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12 }}>
-            ← {lang === "ar" ? "العودة لتسجيل الدخول" : "Back to login"}
-          </button>
-        </div>
+
+        {view === "msgNoUser" && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.8 }}>
+              {ar
+                ? "إذا كان هذا البريد مسجّلاً لدينا، ستصلك رسالة قريباً. إن لم يكن مسجّلاً، أنشئ حساباً من صفحة التسجيل."
+                : "If this email is registered, you will receive a message shortly. If not, create an account from the register page."}
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18, flexWrap: "wrap" }}>
+              <Btn children={ar ? "تسجيل الدخول" : "Login"} onClick={() => navigate("/login")} />
+              <Btn children={ar ? "إنشاء حساب" : "Register"} v="outline" onClick={() => navigate("/register")} />
+            </div>
+          </div>
+        )}
+
+        {view === "msgSuccess" && (
+          <div style={{ textAlign: "center" }}>
+            {iconCircle("✓")}
+            <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
+              {ar ? "تم تحديث كلمة المرور. يمكنك تسجيل الدخول الآن." : "Your password was updated. You can sign in now."}
+            </p>
+            <Btn children={ar ? "تسجيل الدخول" : "Login"} full onClick={() => navigate("/login")} style={{ boxShadow: "0 8px 25px rgba(217,27,91,.35)" }} />
+          </div>
+        )}
+
+        {view !== "msgSuccess" && (
+          <div style={{ marginTop: 20, textAlign: "center" }}>
+            <button type="button" onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 12 }}>
+              ← {ar ? "العودة لتسجيل الدخول" : "Back to login"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -438,29 +589,53 @@ export function ResetPasswordPage() {
     }
   };
 
+  const ar = lang === "ar";
+  const cardSx = {
+    background: "rgba(50,29,61,.92)",
+    backdropFilter: "blur(24px)",
+    border: `1px solid ${C.border}`,
+    borderRadius: 22,
+    padding: 28,
+    width: "100%",
+    maxWidth: 420,
+    boxShadow: "0 24px 60px rgba(0,0,0,.35)",
+  };
+
   return (
-    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={ar ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
-        title={lang === "ar" ? "إعادة تعيين كلمة المرور — Eduzah" : "Reset password — Eduzah"}
-        description={lang === "ar" ? "عيّن كلمة مرور جديدة لحساب Eduzah." : "Set a new password for your Eduzah account."}
+        title={ar ? "إعادة تعيين كلمة المرور — Eduzah" : "Reset password — Eduzah"}
+        description={ar ? "عيّن كلمة مرور جديدة لحساب Eduzah." : "Set a new password for your Eduzah account."}
       />
-      <div style={{ background: "rgba(50,29,61,.92)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 400 }}>
+      <div style={cardSx}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ display: "inline-block", background: "#fff", borderRadius: 14, padding: "10px 20px", marginBottom: 8 }}>
+            <img src="/logo-en.png" alt="Eduzah" style={{ height: 48, width: "auto", maxWidth: 180, objectFit: "contain", display: "block" }} />
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.red, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+            {ar ? "أمان الحساب" : "Account security"}
+          </div>
+        </div>
         {!oobCode ? (
-          <p style={{ color: C.danger }}>{lang === "ar" ? "رابط غير صالح. افتح الرابط من البريد الإلكتروني." : "Invalid link. Open the link from your email."}</p>
+          <p style={{ color: C.danger, textAlign: "center", lineHeight: 1.7 }}>{ar ? "رابط غير صالح. افتح الرابط من البريد الإلكتروني." : "Invalid link. Open the link from your email."}</p>
         ) : ok ? (
           <>
-            <h1 style={{ fontSize: 20, marginBottom: 12 }}>{lang === "ar" ? "تم التحديث" : "Password updated"}</h1>
-            <Btn children={lang === "ar" ? "تسجيل الدخول" : "Login"} full onClick={() => navigate("/login")} />
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(16,185,129,.15)", border: "2px solid rgba(16,185,129,.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 24, color: "#10b981", fontWeight: 900 }}>✓</div>
+            <h1 style={{ fontSize: 20, marginBottom: 12, textAlign: "center" }}>{ar ? "تم التحديث" : "Password updated"}</h1>
+            <Btn children={ar ? "تسجيل الدخول" : "Login"} full onClick={() => navigate("/login")} style={{ boxShadow: "0 8px 25px rgba(217,27,91,.35)" }} />
           </>
         ) : (
           <>
-            <h1 style={{ fontSize: 20, marginBottom: 16 }}>{lang === "ar" ? "كلمة مرور جديدة" : "New password"}</h1>
-            <PassField label={lang === "ar" ? "كلمة المرور" : "Password"} value={pass} onChange={setPass} error={errs.pass} placeholder="••••••••" lang={lang} />
+            <h1 style={{ fontSize: "clamp(1.1rem, 3vw, 1.35rem)", fontWeight: 900, marginBottom: 16, textAlign: "center" }}>{ar ? "كلمة مرور جديدة" : "New password"}</h1>
+            <p style={{ color: C.muted, fontSize: 12, marginBottom: 14, textAlign: "center", lineHeight: 1.65 }}>
+              {ar ? "اختر كلمة مرور قوية تطابق الشروط أدناه." : "Choose a strong password that meets the rules below."}
+            </p>
+            <PassField label={ar ? "كلمة المرور" : "Password"} value={pass} onChange={setPass} error={errs.pass} placeholder="••••••••" lang={lang} />
             <PassRules pass={pass} lang={lang} />
             <div style={{ marginTop: 10 }}>
-              <PassField label={lang === "ar" ? "تأكيد" : "Confirm"} value={confirm} onChange={setConfirm} error={errs.confirm} placeholder="••••••••" lang={lang} />
+              <PassField label={ar ? "تأكيد" : "Confirm"} value={confirm} onChange={setConfirm} error={errs.confirm} placeholder="••••••••" lang={lang} />
             </div>
-            <Btn children={submitting ? "…" : (lang === "ar" ? "حفظ" : "Save")} full onClick={submit} style={{ marginTop: 16 }} disabled={submitting} />
+            <Btn children={submitting ? "…" : (ar ? "حفظ" : "Save")} full onClick={submit} style={{ marginTop: 16, boxShadow: "0 8px 25px rgba(217,27,91,.35)" }} disabled={submitting} />
           </>
         )}
       </div>

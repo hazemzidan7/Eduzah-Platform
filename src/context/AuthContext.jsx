@@ -463,6 +463,53 @@ export function AuthProvider({ children }) {
     setCU((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
+  /**
+   * Try 8-digit email code (Cloud Function + Resend). If unavailable, falls back to Firebase reset link.
+   * Returns { ok, mode: 'otp'|'link', sent?: boolean, usedDefaultEmailLink?: boolean } or { ok: false, code }.
+   */
+  const startPasswordReset = async (email) => {
+    const e = email.trim().toLowerCase();
+    if (!e.includes("@")) return { ok: false, code: "invalid-email" };
+    try {
+      const functions = getFunctions(app, "us-central1");
+      const callable = httpsCallable(functions, "requestPasswordResetOtp");
+      const { data } = await callable({ email: e });
+      if (data?.ok === true) {
+        return { ok: true, mode: "otp", sent: data.sent !== false };
+      }
+    } catch (err) {
+      const code = String(err.code || "");
+      if (code.includes("resource-exhausted")) {
+        return { ok: false, code: "rate-limit" };
+      }
+    }
+    const r = await requestPasswordReset(email);
+    if (r.ok) return { ok: true, mode: "link", usedDefaultEmailLink: r.usedDefaultEmailLink };
+    return { ok: false, code: r.code };
+  };
+
+  const confirmPasswordResetOtp = async ({ email, code, newPassword }) => {
+    try {
+      const functions = getFunctions(app, "us-central1");
+      const callable = httpsCallable(functions, "confirmPasswordResetOtp");
+      await callable({
+        email: email.trim().toLowerCase(),
+        code: String(code || "").replace(/\D/g, ""),
+        newPassword,
+      });
+      return { ok: true };
+    } catch (err) {
+      const code = String(err.code || "");
+      if (code === "functions/not-found") return { ok: false, code: "NOT_DEPLOYED" };
+      if (code.includes("permission-denied")) return { ok: false, code: "BAD_CODE" };
+      if (code.includes("deadline-exceeded")) return { ok: false, code: "EXPIRED" };
+      if (code.includes("resource-exhausted")) return { ok: false, code: "TOO_MANY_ATTEMPTS" };
+      if (code.includes("not-found")) return { ok: false, code: "NO_CODE" };
+      if (code.includes("invalid-argument")) return { ok: false, code: "INVALID_PASSWORD" };
+      return { ok: false, code: err.code || "unknown" };
+    }
+  };
+
   const requestPasswordReset = async (email) => {
     const e = email.trim().toLowerCase();
     if (!e.includes("@")) return { ok: false, code: "invalid-email" };
@@ -534,7 +581,7 @@ export function AuthProvider({ children }) {
       approveUser, rejectUser, approveEnrollmentRequest, rejectEnrollmentRequest,
       enrollUser, removeEnroll,
       assignInstructor, markLesson, recordCourseView, updateProfile, adminUpdateUser,
-      requestPasswordReset, changePassword,
+      requestPasswordReset, startPasswordReset, confirmPasswordResetOtp, changePassword,
       createAdminAccount,
     }}>
       {children}
