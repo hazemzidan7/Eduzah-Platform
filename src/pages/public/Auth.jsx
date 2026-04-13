@@ -113,50 +113,57 @@ export function LoginPage() {
   const { login }  = useAuth();
   const { lang }   = useLang();
   const navigate   = useNavigate();
+  const ar = lang === "ar";
   const [email, setEmail] = useState("");
   const [pass,  setPass]  = useState("");
   const [err,   setErr]   = useState("");
+  const [noProfile, setNoProfile] = useState(false);
 
   const submit = async () => {
-    if (!email || !pass) { setErr(lang === "ar" ? "أدخل البريد وكلمة المرور" : "Enter email and password"); return; }
+    setNoProfile(false);
+    if (!email || !pass) { setErr(ar ? "أدخل البريد وكلمة المرور" : "Enter email and password"); return; }
     const r = await login(email, pass);
-    if (!r.ok) { setErr(loginErr(r.code, lang, r.msg)); return; }
+    if (!r.ok) {
+      if (r.code === "NO_PROFILE") { setNoProfile(true); setErr(""); return; }
+      setErr(loginErr(r.code, lang, r.msg));
+      return;
+    }
     navigate("/dashboard");
   };
 
   return (
-    <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
+    <div dir={ar ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
       <Seo
-        title={lang === "ar" ? "تسجيل الدخول — Eduzah" : "Login — Eduzah"}
-        description={lang === "ar" ? "سجّل دخولك إلى منصة Eduzah للتدريب المهني." : "Sign in to the Eduzah professional training platform."}
+        title={ar ? "تسجيل الدخول — Eduzah" : "Login — Eduzah"}
+        description={ar ? "سجّل دخولك إلى منصة Eduzah للتدريب المهني." : "Sign in to the Eduzah professional training platform."}
       />
-      <div role="form" aria-label={lang === "ar" ? "تسجيل الدخول" : "Login"}
+      <div role="form" aria-label={ar ? "تسجيل الدخول" : "Login"}
         style={{ background: "rgba(50,29,61,.92)", backdropFilter: "blur(24px)", border: `1px solid ${C.border}`, borderRadius: 22, padding: 28, width: "100%", maxWidth: 380 }}>
 
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ display:"inline-block", background:"#fff", borderRadius:14, padding:"10px 20px", marginBottom:8 }}>
-              <img src="/logo-en.png" alt="Eduzah" style={{ height: 52, width: "auto", maxWidth: 200, objectFit: "contain", display:"block" }} />
-            </div>
+            <img src="/logo-en.png" alt="Eduzah" style={{ height: 52, width: "auto", maxWidth: 200, objectFit: "contain", display:"block" }} />
+          </div>
           <div style={{ color: C.muted, fontSize: 13 }}>
-            {lang === "ar" ? "مرحباً بعودتك" : "Welcome back"}
+            {ar ? "مرحباً بعودتك" : "Welcome back"}
           </div>
         </div>
 
-        <Field label={lang === "ar" ? "البريد الإلكتروني" : "Email"}>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+        <Field label={ar ? "البريد الإلكتروني" : "Email"}>
+          <input type="email" value={email} onChange={e => { setEmail(e.target.value); setNoProfile(false); }}
             placeholder="email@example.com" style={inputSx(false)}
             aria-label="Email" />
         </Field>
 
         <PassField
-          label={lang === "ar" ? "كلمة المرور" : "Password"}
-          value={pass} onChange={setPass}
+          label={ar ? "كلمة المرور" : "Password"}
+          value={pass} onChange={v => { setPass(v); setNoProfile(false); }}
           placeholder="••••••••" lang={lang}
         />
 
-        <div style={{ textAlign: lang === "ar" ? "right" : "left", marginBottom: 12 }}>
+        <div style={{ textAlign: ar ? "right" : "left", marginBottom: 12 }}>
           <Link to="/forgot-password" style={{ color: C.orange, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-            {lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}
+            {ar ? "نسيت كلمة المرور؟" : "Forgot password?"}
           </Link>
         </div>
 
@@ -166,13 +173,37 @@ export function LoginPage() {
           </div>
         )}
 
-        <Btn children={lang === "ar" ? "تسجيل الدخول" : "Login"} full onClick={submit}
+        {/* NO_PROFILE: orphaned auth account — offer re-register or WhatsApp */}
+        {noProfile && (
+          <div role="alert" style={{ background: "rgba(250,166,51,.1)", border: `1px solid rgba(250,166,51,.4)`, borderRadius: 11, padding: "12px 14px", fontSize: 12, marginBottom: 14, lineHeight: 1.8 }}>
+            <div style={{ fontWeight: 700, color: C.orange, marginBottom: 4 }}>
+              {ar ? "البيانات غير مكتملة" : "Incomplete profile"}
+            </div>
+            <div style={{ color: C.muted }}>
+              {ar
+                ? "الإيميل ده موجود لكن البروفايل مش مكتمل. سجّل من جديد بنفس الإيميل أو تواصل معنا."
+                : "This email exists but your profile is incomplete. Re-register with the same email or contact us."}
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+              <span style={{ color: C.orange, fontWeight: 700, cursor: "pointer", fontSize: 12 }}
+                onClick={() => navigate("/register")}>
+                {ar ? "تسجيل من جديد ←" : "Re-register →"}
+              </span>
+              <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
+                style={{ color: "#25d366", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+                {ar ? "تواصل على واتساب" : "WhatsApp support"}
+              </a>
+            </div>
+          </div>
+        )}
+
+        <Btn children={ar ? "تسجيل الدخول" : "Login"} full onClick={submit}
           style={{ padding: "12px", fontSize: 14, boxShadow: `0 8px 25px rgba(217,27,91,.4)` }} />
 
         <div style={{ textAlign: "center", marginTop: 14, fontSize: 12, color: C.muted }}>
-          {lang === "ar" ? "مش عندك حساب؟" : "Don't have an account?"}{" "}
+          {ar ? "مش عندك حساب؟" : "Don't have an account?"}{" "}
           <span style={{ color: C.orange, cursor: "pointer", fontWeight: 700 }} onClick={() => navigate("/register")}>
-            {lang === "ar" ? "سجّل دلوقتي" : "Register now"}
+            {ar ? "سجّل دلوقتي" : "Register now"}
           </span>
         </div>
       </div>

@@ -157,8 +157,9 @@ export function AuthProvider({ children }) {
     } catch {
       /* If enumeration protection blocks this, we still rely on createUser below. */
     }
+    let cred = null;
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, d.pass);
+      cred = await createUserWithEmailAndPassword(auth, email, d.pass);
       const enrolledCourses = [];
       const welcomeMsg =
         "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة والتقديم على الكورسات. | "
@@ -185,6 +186,12 @@ export function AuthProvider({ children }) {
       });
       return { ok: true, uid: cred.user.uid };
     } catch (err) {
+      // If Auth account was created but Firestore write failed, delete the orphaned Auth account
+      // so the user can retry registration cleanly next time.
+      if (cred?.user && err.code !== "auth/email-already-in-use") {
+        try { await cred.user.delete(); } catch (_) {}
+        await signOut(auth).catch(() => {});
+      }
       if (err.code === "auth/email-already-in-use") return { ok: false, code: "EMAIL_EXISTS" };
       return { ok: false, code: err.message };
     }
@@ -194,7 +201,11 @@ export function AuthProvider({ children }) {
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
       const snap = await getDoc(doc(db, "users", cred.user.uid));
-      if (!snap.exists()) { await signOut(auth); return { ok: false, code: "NO_PROFILE" }; }
+      if (!snap.exists()) {
+        // Orphaned Auth account — sign out and tell them to re-register
+        await signOut(auth);
+        return { ok: false, code: "NO_PROFILE" };
+      }
       const u = snap.data();
       if (u.status === "rejected") { await signOut(auth); return { ok: false, code: "REJECTED" }; }
       setCU({ id: cred.user.uid, ...u });
