@@ -389,11 +389,41 @@ export function AuthProvider({ children }) {
   };
 
   const assignInstructor = async (uid, cid) => {
-    const snap = await getDoc(doc(db, "users", uid));
-    if (!snap.exists()) return;
-    const assigned = [...new Set([...(snap.data().assignedCourses || []), cid])];
+    const userSnap = await getDoc(doc(db, "users", uid));
+    if (!userSnap.exists()) return;
+    const courseRef = doc(db, "courses", cid);
+    const courseSnap = await getDoc(courseRef);
+    if (!courseSnap.exists()) return;
+    const prevId = courseSnap.data().instructorId || null;
+
+    if (prevId && prevId !== uid) {
+      const prevSnap = await getDoc(doc(db, "users", prevId));
+      if (prevSnap.exists()) {
+        const ac = (prevSnap.data().assignedCourses || []).filter((x) => x !== cid);
+        await updateDoc(doc(db, "users", prevId), { assignedCourses: ac });
+        setUsers((p) => p.map((u) => (u.id === prevId ? { ...u, assignedCourses: ac } : u)));
+      }
+    }
+
+    const assigned = [...new Set([...(userSnap.data().assignedCourses || []), cid])];
     await updateDoc(doc(db, "users", uid), { assignedCourses: assigned });
+    await updateDoc(courseRef, { instructorId: uid });
     setUsers((p) => p.map((u) => (u.id === uid ? { ...u, assignedCourses: assigned } : u)));
+  };
+
+  const unassignInstructorFromCourse = async (cid) => {
+    const courseRef = doc(db, "courses", cid);
+    const courseSnap = await getDoc(courseRef);
+    if (!courseSnap.exists()) return;
+    const prevId = courseSnap.data().instructorId || null;
+    if (!prevId) return;
+    const prevSnap = await getDoc(doc(db, "users", prevId));
+    if (prevSnap.exists()) {
+      const ac = (prevSnap.data().assignedCourses || []).filter((x) => x !== cid);
+      await updateDoc(doc(db, "users", prevId), { assignedCourses: ac });
+      setUsers((p) => p.map((u) => (u.id === prevId ? { ...u, assignedCourses: ac } : u)));
+    }
+    await updateDoc(courseRef, { instructorId: null });
   };
 
   const updateProfile = async (updates) => {
@@ -580,7 +610,7 @@ export function AuthProvider({ children }) {
       fetchUsers, login, logout, register, refreshUserProfile,
       approveUser, rejectUser, approveEnrollmentRequest, rejectEnrollmentRequest,
       enrollUser, removeEnroll,
-      assignInstructor, markLesson, recordCourseView, updateProfile, adminUpdateUser,
+      assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, updateProfile, adminUpdateUser,
       requestPasswordReset, startPasswordReset, confirmPasswordResetOtp, changePassword,
       createAdminAccount,
     }}>

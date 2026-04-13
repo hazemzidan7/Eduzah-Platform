@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { appendPlainNotification } from "../../utils/gamification";
-import { db } from "../../firebase";
+import { auth, db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
 const INSTAPAY_PHONE = "01044222881";
@@ -59,6 +59,7 @@ export default function CourseRegister() {
   });
   const [err, setErr] = useState("");
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   if (!course) return <div style={{ padding: 80, textAlign: "center", color: C.muted }}>{ar ? "الكورس غير موجود" : "Course not found"}</div>;
 
@@ -82,20 +83,42 @@ export default function CourseRegister() {
   };
 
   const confirm = async () => {
+    if (confirming) return;
+    setConfirming(true);
     setErr("");
     setEmailAlreadyRegistered(false);
     try {
-      const dupSnap = await getDocs(query(collection(db, "enrollmentRequests"), where("courseId", "==", course.id)));
       const em = form.email.trim().toLowerCase();
-      let uidApply = currentUser?.id || null;
-      const hasPending = dupSnap.docs.some((d) => {
-        const x = d.data();
-        const st = x.enrollmentStatus ?? "pending";
-        if (st !== "pending") return false;
-        if (uidApply && x.userId === uidApply) return true;
-        if (!uidApply && (x.studentEmail || "").toLowerCase().trim() === em) return true;
-        return false;
-      });
+      const firebaseUid = auth.currentUser?.uid ?? null;
+      let uidApply = firebaseUid ?? currentUser?.id ?? null;
+
+      // Guests cannot list enrollmentRequests (Firestore rules). Signed-in users: narrow queries only.
+      // If the index is missing or the query errors, skip duplicate check so confirm can still complete.
+      let hasPending = false;
+      if (firebaseUid) {
+        try {
+          const courseIdStr = String(course.id ?? "");
+          const accountEmail = (currentUser?.email || auth.currentUser?.email || "").trim().toLowerCase();
+          const byUid = await getDocs(
+            query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr), where("userId", "==", firebaseUid)),
+          );
+          const byEmail = accountEmail
+            ? await getDocs(
+                query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr), where("studentEmail", "==", accountEmail)),
+              )
+            : { docs: [] };
+          const seen = new Set();
+          const merged = [];
+          for (const d of [...byUid.docs, ...byEmail.docs]) {
+            if (seen.has(d.id)) continue;
+            seen.add(d.id);
+            merged.push(d);
+          }
+          hasPending = merged.some((d) => (d.data().enrollmentStatus ?? "pending") === "pending");
+        } catch (dupErr) {
+          console.warn("[CourseRegister] pending duplicate check skipped:", dupErr?.code || dupErr);
+        }
+      }
       if (hasPending) {
         setErr(ar ? "لديك طلب قيد المراجعة لهذا الكورس." : "You already have a pending request for this course.");
         return;
@@ -118,9 +141,12 @@ export default function CourseRegister() {
           setStep(1);
           return;
         }
-        uidApply = r.uid;
+        uidApply = auth.currentUser?.uid ?? r.uid ?? null;
         await refreshUserProfile();
       }
+
+      // Firestore rule: signed-in ⇒ userId must equal auth.uid; guest ⇒ userId must be null.
+      const uidForDoc = auth.currentUser?.uid ?? null;
 
       await submitToSheet("enrollment", {
         name: `${form.fname} ${form.lname}`.trim(),
@@ -134,13 +160,16 @@ export default function CourseRegister() {
         price: course?.price ?? "",
       });
 
+      const courseIdStr = String(course.id ?? "");
+      const courseTitleStr = String(course.title ?? course.title_en ?? "").trim();
+
       await addDoc(collection(db, "enrollmentRequests"), {
-        courseId: course.id,
-        courseTitle: course.title,
+        courseId: courseIdStr,
+        courseTitle: courseTitleStr,
         studentName: `${form.fname} ${form.lname}`.trim(),
         studentEmail: em,
         studentPhone: form.phone,
-        userId: uidApply || null,
+        userId: uidForDoc,
         trainingType: form.trainingType || "",
         level: form.level || "",
         source: form.source || "",
@@ -151,8 +180,9 @@ export default function CourseRegister() {
         createdAt: new Date().toISOString(),
       });
 
-      if (uidApply) {
-        const uref = doc(db, "users", uidApply);
+      const notifyUid = uidForDoc;
+      if (notifyUid) {
+        const uref = doc(db, "users", notifyUid);
         const us = await getDoc(uref);
         if (us.exists()) {
           const u = us.data();
@@ -164,12 +194,20 @@ export default function CourseRegister() {
           await refreshUserProfile();
         }
       }
+
+      setStep(3);
     } catch (e) {
       console.error(e);
-      setErr(ar ? "حدث خطأ أثناء الحفظ. حاول مرة أخرى." : "Something went wrong. Please try again.");
-      return;
+      const code = e?.code || "";
+      const perm = code === "permission-denied";
+      setErr(
+        perm
+          ? (ar ? "صلاحية مرفوضة: تأكد من تسجيل الدخول أو أن بيانات الطلب صحيحة." : "Permission denied: check you are signed in and try again.")
+          : (ar ? "حدث خطأ أثناء الحفظ. حاول مرة أخرى." : "Something went wrong. Please try again."),
+      );
+    } finally {
+      setConfirming(false);
     }
-    setStep(3);
   };
 
   const instapayInstructions = (
@@ -363,9 +401,10 @@ export default function CourseRegister() {
             <div style={{ fontWeight: 700, fontSize: 12, margin: "14px 0 8px", color: C.muted }}>{ar ? "طريقة الدفع" : "Payment method"}</div>
             <div style={{ marginTop: 4 }}>{instapayInstructions}</div>
 
+            {err && step === 2 && <div style={{ background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 9, padding: "8px 12px", fontSize: 12, color: C.danger, marginBottom: 12 }}>{err}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <Btn children={ar ? "← رجوع" : "← Back"} v="outline" onClick={() => setStep(1)} style={{ padding: "11px 18px" }} />
-              <Btn children={ar ? "تأكيد الدفع" : "Confirm Payment"} onClick={confirm} style={{ flex: 1, padding: "12px", fontSize: 13 }} />
+              <Btn children={ar ? "← رجوع" : "← Back"} v="outline" disabled={confirming} onClick={() => setStep(1)} style={{ padding: "11px 18px" }} />
+              <Btn children={confirming ? (ar ? "جاري الإرسال…" : "Submitting…") : (ar ? "تأكيد الدفع" : "Confirm Payment")} onClick={confirm} disabled={confirming} style={{ flex: 1, padding: "12px", fontSize: 13 }} />
             </div>
             <div style={{ textAlign: "center", marginTop: 8, color: C.muted, fontSize: 10 }}>
               {ar ? "SSL مشفّر · ضمان استرداد 14 يوم" : "SSL Encrypted · 14-day money-back guarantee"}

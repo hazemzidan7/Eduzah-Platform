@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, doc, updateDoc, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, orderBy, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
@@ -40,7 +40,7 @@ const Row = ({ label, children }) => (
 
 export default function AdminDashboard() {
   const {
-    users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser, createAdminAccount, currentUser,
+    users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, unassignInstructorFromCourse, adminUpdateUser, createAdminAccount, currentUser,
     approveEnrollmentRequest, rejectEnrollmentRequest,
   } = useAuth();
   const {
@@ -74,20 +74,60 @@ export default function AdminDashboard() {
   const [enrollFilter,     setEnrollFilter]      = useState("pending"); // pending | approved | rejected | all
   const [rejectModal,      setRejectModal]       = useState(null); // { id }
   const [rejectReason,     setRejectReason]      = useState("");
+  const [enrollmentLoadError, setEnrollmentLoadError] = useState(null);
+
+  const sortEnrollmentRows = useCallback((rows) => {
+    const rowTime = (row) => {
+      const c = row?.createdAt;
+      if (c == null) return 0;
+      if (typeof c.toMillis === "function") return c.toMillis();
+      if (typeof c === "object" && typeof c.seconds === "number") return c.seconds * 1000;
+      if (typeof c === "number") return c;
+      return Date.parse(String(c)) || 0;
+    };
+    return [...rows].sort((a, b) => rowTime(b) - rowTime(a));
+  }, []);
 
   const loadEnrollmentRequests = useCallback(async () => {
     try {
+      setEnrollmentLoadError(null);
       const snap = await getDocs(query(collection(db, "enrollmentRequests"), orderBy("createdAt", "desc")));
       setEnrollmentRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
       console.error(e);
+      try {
+        const snap = await getDocs(collection(db, "enrollmentRequests"));
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setEnrollmentRequests(sortEnrollmentRows(rows));
+      } catch (e2) {
+        console.error(e2);
+        setEnrollmentLoadError(e?.message || String(e));
+      }
     }
-  }, []);
+  }, [sortEnrollmentRows]);
 
+  /** Real-time list for admins (courseId / courseTitle on each row) — full collection + client sort avoids index issues. */
   useEffect(() => {
-    if (currentUser?.role !== "admin") return;
-    if (tab === "requests" || tab === "overview") loadEnrollmentRequests();
-  }, [tab, currentUser?.role, loadEnrollmentRequests]);
+    if (currentUser?.role !== "admin") {
+      setEnrollmentRequests([]);
+      setEnrollmentLoadError(null);
+      return undefined;
+    }
+    const unsub = onSnapshot(
+      collection(db, "enrollmentRequests"),
+      (snap) => {
+        setEnrollmentLoadError(null);
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setEnrollmentRequests(sortEnrollmentRows(rows));
+      },
+      (err) => {
+        console.error(err);
+        setEnrollmentLoadError(err?.message || String(err));
+        loadEnrollmentRequests();
+      },
+    );
+    return () => unsub();
+  }, [currentUser?.role, sortEnrollmentRows, loadEnrollmentRequests]);
 
   useEffect(() => {
     if (tab !== "leads") return;
@@ -169,6 +209,16 @@ export default function AdminDashboard() {
     const max = Math.max(1, ...Object.values(m));
     return courses.map((c) => ({ c, n: m[c.id] || 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 10).map((x) => ({ ...x, pct: Math.round((x.n / max) * 100) }));
   }, [users, courses]);
+
+  /** Prefer stored courseTitle; fallback to live courses list by courseId (fixes empty titles in admin UI). */
+  const enrollmentCourseLabel = useCallback((r) => {
+    const raw = r.courseTitle != null ? String(r.courseTitle).trim() : "";
+    if (raw) return raw;
+    const c = courses.find((x) => String(x.id) === String(r.courseId));
+    if (c) return ar ? c.title : (c.title_en || c.title);
+    if (r.courseId != null && String(r.courseId)) return String(r.courseId);
+    return "—";
+  }, [courses, ar]);
 
   const tabs = ar
     ? [
@@ -901,6 +951,12 @@ export default function AdminDashboard() {
 
       {/* Content */}
       <div style={{ padding: "22px", overflow: "auto" }}>
+        {currentUser?.role === "admin" && enrollmentLoadError && (
+          <div style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 10, background: "rgba(239,68,68,.12)", border: "1px solid rgba(239,68,68,.35)", fontSize: 12, color: "#fecaca" }}>
+            {tx("تعذر مزامنة طلبات التسجيل في الكورسات. تحقق من صلاحيات الأدمن في Firestore: ", "Could not sync course enrollment requests. Check admin Firestore permissions: ")}
+            {enrollmentLoadError}
+          </div>
+        )}
 
         {/* ── Overview ── */}
         {tab === "overview" && (
@@ -976,7 +1032,10 @@ export default function AdminDashboard() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 13 }}>{r.studentName}</div>
                         <div style={{ color: C.muted, fontSize: 11 }}>{r.studentEmail} · {r.studentPhone}</div>
-                        <Badge color={C.orange}>{r.courseTitle || r.courseId}</Badge>
+                        <Badge color={C.orange}>{enrollmentCourseLabel(r)}</Badge>
+                        {r.courseId != null && String(r.courseId) && (
+                          <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{tx("معرّف الكورس", "Course ID")}: {String(r.courseId)}</div>
+                        )}
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <Btn children={tx("قبول", "Approve")} v="success" sm onClick={async () => { await approveEnrollmentRequest(r.id); await loadEnrollmentRequests(); showT(tx("تم قبول الطلب", "Request approved")); }} />
@@ -1103,7 +1162,10 @@ export default function AdminDashboard() {
                       <Card key={r.id} style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                           <div style={{ flex: 1, minWidth: 200 }}>
-                            <div style={{ fontWeight: 700, fontSize: 14 }}>{r.courseTitle || r.courseId}</div>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{enrollmentCourseLabel(r)}</div>
+                            {r.courseId != null && String(r.courseId) && (
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{tx("معرّف الكورس", "Course ID")}: {String(r.courseId)}</div>
+                            )}
                             <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{r.studentName}</div>
                             <div style={{ color: C.muted, fontSize: 12 }}>{r.studentEmail} · {r.studentPhone}</div>
                             <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -1346,7 +1408,20 @@ export default function AdminDashboard() {
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Badge color={C.orange}>{tr.courses?.length || 0} {tx("كورس", "courses")}</Badge>
-                      <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteTrainer(tr.id); showT(tx("تم حذف المدرب", "Trainer deleted"), "error"); }} />
+                      <Btn
+                        children={tx("حذف", "Delete")}
+                        sm
+                        v="danger"
+                        onClick={async () => {
+                          try {
+                            await deleteTrainer(tr.id);
+                            showT(tx("تم حذف المدرب", "Trainer deleted"));
+                          } catch (e) {
+                            console.error(e);
+                            showT(tx("تعذر حذف المدرب", "Could not delete trainer"), "error");
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                   {tr.bio_ar && <div style={{ color: C.muted, fontSize: 11, marginTop: 8, lineHeight: 1.7 }}>{tr.bio_ar}</div>}
@@ -1676,6 +1751,23 @@ export default function AdminDashboard() {
       {modal?.type === "assign-course" && (
         <Modal title={`${tx("تعيين مدرب لـ","Assign trainer to")}: ${modal.course.title}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {modal.course.instructorId && (
+              <Btn
+                children={tx("إزالة المدرب من الكورس", "Remove instructor from course")}
+                v="danger"
+                sm
+                onClick={async () => {
+                  try {
+                    await unassignInstructorFromCourse(modal.course.id);
+                    setModal((m) => (m?.type === "assign-course" ? { ...m, course: { ...m.course, instructorId: null } } : m));
+                    showT(tx("تمت إزالة المدرب", "Instructor removed"));
+                  } catch (e) {
+                    console.error(e);
+                    showT(tx("تعذرت الإزالة", "Could not remove"), "error");
+                  }
+                }}
+              />
+            )}
             {instructors.filter(u => u.status === "approved").map(u => {
               const isA = modal.course.instructorId === u.id;
               return (
@@ -1683,7 +1775,7 @@ export default function AdminDashboard() {
                   <span style={{ fontWeight: 600, fontSize: 12 }}>{u.name}</span>
                   {isA
                     ? <Badge color={C.success}>{tx("معيّن","Assigned")} ✓</Badge>
-                    : <Btn children={tx("تعيين","Assign")} sm v="success" onClick={() => { assignInstructor(u.id, modal.course.id); showT(tx("تم التعيين","Assigned")); }} />
+                    : <Btn children={tx("تعيين","Assign")} sm v="success" onClick={async () => { try { await assignInstructor(u.id, modal.course.id); setModal((m) => (m?.type === "assign-course" ? { ...m, course: { ...m.course, instructorId: u.id } } : m)); showT(tx("تم التعيين","Assigned")); } catch (e) { console.error(e); showT(tx("تعذر التعيين", "Assign failed"), "error"); } }} />
                   }
                 </div>
               );
@@ -1695,12 +1787,18 @@ export default function AdminDashboard() {
       {modal?.type === "assign" && (
         <Modal title={`${tx("تعيين كورسات للمدرب","Assign courses to")}: ${modal.user.name}`} onClose={() => setModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {courses.map(c => (
-              <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
-                <div style={{ fontWeight: 600, fontSize: 12 }}>{c.title}</div>
-                <Btn children={tx("تعيين","Assign")} sm v="success" onClick={() => { assignInstructor(modal.user.id, c.id); showT(tx("تم التعيين","Assigned")); }} />
-              </div>
-            ))}
+            {courses.map(c => {
+              const isA = c.instructorId === modal.user.id;
+              return (
+                <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12 }}>{c.title}</div>
+                  {isA
+                    ? <Badge color={C.success}>{tx("معيّن","Assigned")} ✓</Badge>
+                    : <Btn children={tx("تعيين","Assign")} sm v="success" onClick={async () => { try { await assignInstructor(modal.user.id, c.id); showT(tx("تم التعيين","Assigned")); } catch (e) { console.error(e); showT(tx("تعذر التعيين", "Assign failed"), "error"); } }} />
+                  }
+                </div>
+              );
+            })}
           </div>
         </Modal>
       )}
