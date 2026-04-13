@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, Card, PBar } from "../../components/UI";
 import GamificationBar from "../../components/GamificationBar";
@@ -34,8 +34,17 @@ export default function StudentDashboard() {
   const { courses } = useData();
   const { lang } = useLang();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [accountCreatedBanner, setAccountCreatedBanner] = useState(false);
   const dir = lang === "ar" ? "rtl" : "ltr";
   const ar = lang === "ar";
+
+  useEffect(() => {
+    if (location.state?.accountCreated) {
+      setAccountCreatedBanner(true);
+      window.history.replaceState({}, document.title, `${location.pathname}${location.search || ""}`);
+    }
+  }, [location.pathname, location.search, location.state?.accountCreated]);
 
   const enrolled = courses.filter((c) => currentUser?.enrolledCourses?.find((e) => e.courseId === c.id));
   const getED = (id) => currentUser?.enrolledCourses?.find((e) => e.courseId === id);
@@ -103,6 +112,24 @@ export default function StudentDashboard() {
 
   return (
     <div dir={dir} style={{ padding: "clamp(20px,4vw,32px) 5%", maxWidth: 1100, margin: "0 auto" }}>
+      {accountCreatedBanner && (
+        <div
+          role="status"
+          style={{
+            background: "rgba(16,185,129,.12)",
+            border: "1px solid rgba(16,185,129,.35)",
+            borderRadius: 12,
+            padding: "12px 16px",
+            marginBottom: 18,
+            fontSize: 13,
+            color: ar ? "#d1fae5" : "#ecfdf5",
+          }}
+        >
+          {ar
+            ? "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة. عند التقديم على كورس سيُراجع الطلب من الإدارة قبل فتح المحتوى."
+            : "Account created successfully — explore the platform. When you apply for a course, the team will review your request before content unlocks."}
+        </div>
+      )}
       <div style={{ marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ color: C.muted, fontSize: 13, marginBottom: 3 }}>

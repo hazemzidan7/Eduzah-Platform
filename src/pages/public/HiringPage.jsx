@@ -5,6 +5,8 @@ import { Btn, Card, DarkDateInput } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const centeredRow = (gap = 18) => ({
   display: "flex",
@@ -71,12 +73,21 @@ export default function HiringPage() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
-    await submitToSheet("hiring", {
-      company: form.company, contact: form.contact,
-      phone: form.phone, email: form.email,
-      specialty: form.specialty, count: form.count,
-      platform: form.platform, date: form.date, notes: form.notes,
-    });
+    await Promise.allSettled([
+      submitToSheet("hiring", {
+        company: form.company, contact: form.contact,
+        phone: form.phone, email: form.email,
+        specialty: form.specialty, count: form.count,
+        platform: form.platform, date: form.date, notes: form.notes,
+      }),
+      addDoc(collection(db, "hiringLeads"), {
+        company: form.company, contact: form.contact,
+        phone: form.phone, email: form.email,
+        specialty: form.specialty, count: form.count,
+        platform: form.platform, date: form.date, notes: form.notes,
+        status: "new", createdAt: new Date().toISOString(),
+      }),
+    ]);
     setLoading(false);
     setDone(true);
   };

@@ -1,5 +1,7 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, getDocs, doc, updateDoc, orderBy, query } from "firebase/firestore";
+import { db } from "../../firebase";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
 import AddSessionModal from "../../components/AddSessionModal";
@@ -37,7 +39,10 @@ const Row = ({ label, children }) => (
 );
 
 export default function AdminDashboard() {
-  const { users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser, createAdminAccount, currentUser } = useAuth();
+  const {
+    users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, adminUpdateUser, createAdminAccount, currentUser,
+    approveEnrollmentRequest, rejectEnrollmentRequest,
+  } = useAuth();
   const {
     courses, news, exams, trainers, programs, testimonials, team,
     vodafoneCash, setVodafoneCash,
@@ -60,6 +65,51 @@ export default function AdminDashboard() {
   const [modal,      setModal]     = useState(null);
   const [toast,      setToast]     = useState(null);
   const [exportingId, setExportingId] = useState(null); // course id being exported
+  const [leadsTab,   setLeadsTab]  = useState("consultation");
+  const [consultationLeads, setConsultationLeads] = useState([]);
+  const [hiringLeads,       setHiringLeads]       = useState([]);
+  const [corporateLeads,    setCorporateLeads]     = useState([]);
+  const [leadsLoading,      setLeadsLoading]       = useState(false);
+  const [enrollmentRequests, setEnrollmentRequests] = useState([]);
+  const [enrollFilter,     setEnrollFilter]      = useState("pending"); // pending | approved | rejected | all
+  const [rejectModal,      setRejectModal]       = useState(null); // { id }
+  const [rejectReason,     setRejectReason]      = useState("");
+
+  const loadEnrollmentRequests = useCallback(async () => {
+    try {
+      const snap = await getDocs(query(collection(db, "enrollmentRequests"), orderBy("createdAt", "desc")));
+      setEnrollmentRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser?.role !== "admin") return;
+    if (tab === "requests" || tab === "overview") loadEnrollmentRequests();
+  }, [tab, currentUser?.role, loadEnrollmentRequests]);
+
+  useEffect(() => {
+    if (tab !== "leads") return;
+    setLeadsLoading(true);
+    Promise.all([
+      getDocs(query(collection(db, "consultationLeads"), orderBy("createdAt", "desc"))),
+      getDocs(query(collection(db, "hiringLeads"),       orderBy("createdAt", "desc"))),
+      getDocs(query(collection(db, "corporateLeads"),    orderBy("createdAt", "desc"))),
+    ]).then(([c, h, co]) => {
+      setConsultationLeads(c.docs.map(d => ({ id: d.id, ...d.data() })));
+      setHiringLeads(h.docs.map(d => ({ id: d.id, ...d.data() })));
+      setCorporateLeads(co.docs.map(d => ({ id: d.id, ...d.data() })));
+    }).catch(console.error).finally(() => setLeadsLoading(false));
+  }, [tab]);
+
+  const markLeadContacted = async (collName, leadId, setter) => {
+    try {
+      await updateDoc(doc(db, collName, leadId), { status: "contacted" });
+      setter(prev => prev.map(l => l.id === leadId ? { ...l, status: "contacted" } : l));
+      showT(ar ? "تم تحديد كـ 'تم التواصل'" : "Marked as contacted");
+    } catch (err) { console.error(err); }
+  };
 
   const showT = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 2800); };
 
@@ -84,6 +134,7 @@ export default function AdminDashboard() {
   }, [users, ar]);
 
   const pending      = users.filter(u => u.status === "pending");
+  const pendingEnrollments = enrollmentRequests.filter((r) => (r.enrollmentStatus ?? "pending") === "pending");
   const adminsList   = users.filter(u => u.role === "admin");
   const instructors  = users.filter(u => u.role === "instructor");
   const studentsEnr  = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved" && (u.enrolledCourses || []).length > 0);
@@ -124,6 +175,7 @@ export default function AdminDashboard() {
         ["overview",   "نظرة عامة"],
         ["users",      "المستخدمون"],
         ["requests",   "الطلبات"],
+        ["leads",      "طلبات الخدمات"],
         ["courses",    "الكورسات"],
         ["news",       "الأخبار"],
         ["exams",      "الامتحانات"],
@@ -138,6 +190,7 @@ export default function AdminDashboard() {
         ["overview",   "Overview"],
         ["users",      "Users"],
         ["requests",   "Requests"],
+        ["leads",      "Service Leads"],
         ["courses",    "Courses"],
         ["news",       "News"],
         ["exams",      "Exams"],
@@ -839,8 +892,8 @@ export default function AdminDashboard() {
           <div key={k} onClick={() => setTab(k)}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", cursor: "pointer", color: tab === k ? C.red : C.muted, background: tab === k ? `${C.red}12` : "transparent", fontWeight: tab === k ? 700 : 400, fontSize: 12, transition: "all .2s" }}>
             {l}
-            {k === "requests" && pending.length > 0 && (
-              <span style={{ background: C.danger, borderRadius: "50%", width: 17, height: 17, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{pending.length}</span>
+            {k === "requests" && pendingEnrollments.length > 0 && (
+              <span style={{ background: C.danger, borderRadius: "50%", width: 17, height: 17, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{pendingEnrollments.length}</span>
             )}
           </div>
         ))}
@@ -858,7 +911,7 @@ export default function AdminDashboard() {
                 { l: tx("الطلاب", "Students"),     v: studentsEnr.length, c: C.red },
                 { l: tx("المدربين", "Instructors"), v: instructors.length, c: C.purple },
                 { l: tx("الكورسات", "Courses"),     v: courses.length,     c: C.orange },
-                { l: tx("الطلبات", "Requests"),     v: pending.length,     c: C.warning },
+                { l: tx("طلبات كورسات", "Course requests"), v: pendingEnrollments.length, c: C.warning },
               ].map(s => (
                 <Card key={s.l} style={{ padding: "14px 12px" }}>
                   <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
@@ -912,26 +965,42 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {pending.length > 0 && (
+            {pendingEnrollments.length > 0 && (
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  {tx("طلبات جديدة", "New requests")} <Badge color={C.danger}>{pending.length}</Badge>
+                  {tx("طلبات تسجيل كورسات", "New course applications")} <Badge color={C.danger}>{pendingEnrollments.length}</Badge>
                 </div>
+                {pendingEnrollments.slice(0, 5).map((r) => (
+                  <Card key={r.id} style={{ padding: "13px 15px", marginBottom: 9 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{r.studentName}</div>
+                        <div style={{ color: C.muted, fontSize: 11 }}>{r.studentEmail} · {r.studentPhone}</div>
+                        <Badge color={C.orange}>{r.courseTitle || r.courseId}</Badge>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <Btn children={tx("قبول", "Approve")} v="success" sm onClick={async () => { await approveEnrollmentRequest(r.id); await loadEnrollmentRequests(); showT(tx("تم قبول الطلب", "Request approved")); }} />
+                        <Btn children={tx("رفض", "Reject")} v="danger" sm onClick={() => { setRejectReason(""); setRejectModal({ id: r.id }); }} />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+            {pending.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, color: C.muted }}>{tx("حسابات قديمة بانتظار الموافقة (ترحيل)", "Legacy accounts pending approval")}</div>
                 {pending.map(u => (
                   <Card key={u.id} style={{ padding: "13px 15px", marginBottom: 9 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.role === "instructor" ? "linear-gradient(135deg,#672d86,#321d3d)" : "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{u.avatar}</div>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{u.avatar}</div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{u.name}</div>
                           <div style={{ color: C.muted, fontSize: 11 }}>{u.email}</div>
-                          <Badge color={u.role === "instructor" ? C.purple : C.orange}>{u.role}</Badge>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <Btn children={tx("قبول", "Approve")} v="success" sm onClick={() => { approveUser(u.id); showT(ar ? `تم قبول ${u.name}` : `${u.name} approved`); }} />
-                        <Btn children={tx("رفض", "Reject")}  v="danger"  sm onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
-                      </div>
+                      <Btn children={tx("تفعيل الحساب", "Activate account")} v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم التفعيل", "Activated")); }} />
                     </div>
                   </Card>
                 ))}
@@ -1003,34 +1072,173 @@ export default function AdminDashboard() {
         {/* ── Requests ── */}
         {tab === "requests" && (
           <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 16 }}>{tx("طلبات التسجيل", "Registration requests")}</h2>
-            {pending.length === 0
-              ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات معلقة", "No pending requests")}</div></Card>
-              : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                  {pending.map(u => (
-                    <Card key={u.id} style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                          <div style={{ width: 40, height: 40, borderRadius: "50%", background: u.role === "instructor" ? "linear-gradient(135deg,#672d86,#321d3d)" : "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{u.avatar}</div>
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: 13 }}>{u.name}</div>
-                            <div style={{ color: C.muted, fontSize: 12 }}>{u.email}</div>
-                            <div style={{ display: "flex", gap: 5, marginTop: 4 }}>
-                              <Badge color={u.role === "instructor" ? C.purple : C.orange}>{u.role}</Badge>
-                              <Badge color={C.warning}>{tx("قيد المراجعة", "Pending review")}</Badge>
+            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>{tx("طلبات التسجيل في الكورسات", "Course enrollment requests")}</h2>
+            <p style={{ color: C.muted, fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
+              {tx("الموافقة هنا تمنح الطالب صلاحية الكورس على المنصة فقط — لا تتحكم في إنشاء الحسابات.", "Approving here grants course access on the platform only — not account creation.")}
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              {[
+                ["pending", tx("معلقة", "Pending")],
+                ["approved", tx("مقبولة", "Approved")],
+                ["rejected", tx("مرفوضة", "Rejected")],
+                ["all", tx("الكل", "All")],
+              ].map(([v, l]) => (
+                <Btn key={v} sm v={enrollFilter === v ? "primary" : "outline"} onClick={() => setEnrollFilter(v)} children={l} />
+              ))}
+            </div>
+            {(() => {
+              const filtered = enrollmentRequests.filter((r) => {
+                const st = r.enrollmentStatus ?? "pending";
+                if (enrollFilter === "all") return true;
+                return st === enrollFilter;
+              });
+              if (filtered.length === 0) {
+                return <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات", "No requests")}</div></Card>;
+              }
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                  {filtered.map((r) => {
+                    const st = r.enrollmentStatus ?? "pending";
+                    return (
+                      <Card key={r.id} style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                          <div style={{ flex: 1, minWidth: 200 }}>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{r.courseTitle || r.courseId}</div>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{r.studentName}</div>
+                            <div style={{ color: C.muted, fontSize: 12 }}>{r.studentEmail} · {r.studentPhone}</div>
+                            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                              <Badge color={st === "approved" ? C.success : st === "rejected" ? C.danger : C.warning}>{st}</Badge>
+                              {r.userId ? <Badge color={C.muted}>user</Badge> : <Badge color={C.muted}>{tx("بدون حساب", "No account")}</Badge>}
+                              {r.trainingType && <Badge color={C.purple}>{r.trainingType}</Badge>}
                             </div>
+                            {r.rejectReason && <div style={{ marginTop: 8, fontSize: 12, color: C.danger }}>{r.rejectReason}</div>}
                           </div>
+                          {st === "pending" && (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <Btn children={tx("قبول", "Approve")} v="success" sm onClick={async () => { await approveEnrollmentRequest(r.id); await loadEnrollmentRequests(); showT(tx("تم القبول", "Approved")); }} />
+                              <Btn children={tx("رفض", "Reject")} v="danger" sm onClick={() => { setRejectReason(""); setRejectModal({ id: r.id }); }} />
+                            </div>
+                          )}
                         </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <Btn children={tx("قبول", "Approve")} v="success" onClick={() => { approveUser(u.id); showT(ar ? `تم قبول ${u.name}` : `${u.name} approved`); }} />
-                          <Btn children={tx("رفض", "Reject")}  v="danger"  onClick={() => { rejectUser(u.id);  showT(tx("تم الرفض", "Rejected"), "error"); }} />
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>}
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {rejectModal && (
+              <Modal title={tx("سبب الرفض (اختياري)", "Rejection reason (optional)")} onClose={() => setRejectModal(null)}>
+                <Input label={tx("السبب", "Reason")} value={rejectReason} onChange={setRejectReason} placeholder={tx("يظهر للطالب في الإشعارات", "Shown to the learner in notifications")} />
+                <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                  <Btn v="outline" children={tx("إلغاء", "Cancel")} onClick={() => setRejectModal(null)} />
+                  <Btn v="danger" children={tx("رفض الطلب", "Reject request")} onClick={async () => {
+                    await rejectEnrollmentRequest(rejectModal.id, rejectReason);
+                    setRejectModal(null);
+                    await loadEnrollmentRequests();
+                    showT(tx("تم الرفض", "Rejected"), "error");
+                  }} />
+                </div>
+              </Modal>
+            )}
           </div>
         )}
+
+        {/* ── Service Leads ── */}
+        {tab === "leads" && (() => {
+          const CONSULT_TYPES = { track:"مسار تعليمي", service:"استشارة خدمة", corporate:"تدريب مؤسسي", kids:"برامج الأطفال", other:"أخرى" };
+          const SPEC_LABELS   = { frontend:"Front-End", backend:"Back-End", flutter:"Flutter", uiux:"UI/UX", ai:"AI/Data", hr:"HR", instructor:"مدرب", other:"أخرى" };
+          const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(ar ? "ar-EG" : "en-US", { day:"numeric", month:"short", year:"numeric" }) : "—";
+
+          const LeadCard = ({ lead, collName, setter, fields }) => (
+            <Card key={lead.id} style={{ padding: "14px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{lead.name || lead.contact || "—"}</div>
+                    {lead.company && <Badge color={C.purple}>{lead.company}</Badge>}
+                    <Badge color={lead.status === "contacted" ? "#1d6f42" : C.orange}>
+                      {lead.status === "contacted" ? (ar ? "تم التواصل" : "Contacted") : (ar ? "جديد" : "New")}
+                    </Badge>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", fontSize: 12, color: C.muted }}>
+                    {lead.phone   && <span>📞 {lead.phone}</span>}
+                    {lead.email   && <span>✉️ {lead.email}</span>}
+                    {fields}
+                    <span>🕐 {fmtDate(lead.createdAt)}</span>
+                  </div>
+                  {lead.message && <div style={{ marginTop: 6, fontSize: 12, color: "#d1c4e9", background: "rgba(255,255,255,.05)", borderRadius: 8, padding: "6px 10px" }}>{lead.message}</div>}
+                  {lead.notes   && <div style={{ marginTop: 6, fontSize: 12, color: "#d1c4e9", background: "rgba(255,255,255,.05)", borderRadius: 8, padding: "6px 10px" }}>{lead.notes}</div>}
+                </div>
+                {lead.status !== "contacted" && (
+                  <Btn children={ar ? "تم التواصل ✓" : "Mark Contacted"} v="success" sm
+                    onClick={() => markLeadContacted(collName, lead.id, setter)} />
+                )}
+              </div>
+            </Card>
+          );
+
+          const subTabs = [
+            { key: "consultation", ar: `استشارات (${consultationLeads.length})`, en: `Consultations (${consultationLeads.length})` },
+            { key: "hiring",       ar: `توظيف (${hiringLeads.length})`,         en: `Hiring (${hiringLeads.length})` },
+            { key: "corporate",    ar: `مؤسسي (${corporateLeads.length})`,      en: `Corporate (${corporateLeads.length})` },
+          ];
+
+          return (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("طلبات الخدمات", "Service Leads")}</h2>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {subTabs.map(st => (
+                    <button key={st.key} onClick={() => setLeadsTab(st.key)} style={{
+                      padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                      fontWeight: 700, fontSize: 12, fontFamily: "'Cairo',sans-serif",
+                      background: leadsTab === st.key ? C.purple : "rgba(255,255,255,.08)",
+                      color: leadsTab === st.key ? "#fff" : C.muted,
+                      transition: "all .2s",
+                    }}>{ar ? st.ar : st.en}</button>
+                  ))}
+                </div>
+              </div>
+
+              {leadsLoading ? (
+                <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("جاري التحميل…", "Loading…")}</div></Card>
+              ) : (
+                <>
+                  {leadsTab === "consultation" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {consultationLeads.length === 0
+                        ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات استشارة بعد", "No consultation requests yet")}</div></Card>
+                        : consultationLeads.map(lead => (
+                            <LeadCard key={lead.id} lead={lead} collName="consultationLeads" setter={setConsultationLeads}
+                              fields={<><span>📋 {CONSULT_TYPES[lead.type] || lead.type}</span></>} />
+                          ))}
+                    </div>
+                  )}
+                  {leadsTab === "hiring" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {hiringLeads.length === 0
+                        ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات توظيف بعد", "No hiring requests yet")}</div></Card>
+                        : hiringLeads.map(lead => (
+                            <LeadCard key={lead.id} lead={{ ...lead, name: lead.contact }} collName="hiringLeads" setter={setHiringLeads}
+                              fields={<><span>👤 {SPEC_LABELS[lead.specialty] || lead.specialty}</span>{lead.count && <span>🔢 {lead.count}</span>}{lead.date && <span>📅 {lead.date}</span>}</>} />
+                          ))}
+                    </div>
+                  )}
+                  {leadsTab === "corporate" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                      {corporateLeads.length === 0
+                        ? <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات تدريب مؤسسي بعد", "No corporate requests yet")}</div></Card>
+                        : corporateLeads.map(lead => (
+                            <LeadCard key={lead.id} lead={{ ...lead, name: lead.contact }} collName="corporateLeads" setter={setCorporateLeads}
+                              fields={<>{lead.program && <span>📚 {lead.program}</span>}{lead.employees && <span>👥 {lead.employees}</span>}{lead.date && <span>📅 {lead.date}</span>}{lead.time && <span>🕐 {lead.time}</span>}</>} />
+                          ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Courses ── */}
         {tab === "courses" && (

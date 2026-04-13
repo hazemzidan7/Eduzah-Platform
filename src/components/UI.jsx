@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { C, font } from "../theme";
 
 export function Btn({ children, onClick, v="primary", sm, full, disabled, style={}, type = "button", ...rest }) {
@@ -48,39 +48,86 @@ export function Stars({ n=5 }) {
   return <span style={{color:C.orange,fontSize:13}}>{"★".repeat(n)}{"☆".repeat(5-n)}</span>;
 }
 
-function whiteCalSvg() {
+function CalSvg() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
 }
 
-function whiteClockSvg() {
+function ClockSvg() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
     </svg>
   );
 }
 
-/** Native date/time with invisible system icon + white SVG (Windows Chrome keeps black glyph otherwise). */
+/** Native date/time with invisible system icon + SVG; opens picker via showPicker() when the icon strip is clicked (WebKit hit-target is unreliable). */
 function DarkPickerWrap({ type, value, onChange, style = {}, placeholder, onFocus, onBlur, ...rest }) {
+  const inputRef = useRef(null);
+  const [hover, setHover] = useState(false);
+  const [focus, setFocus] = useState(false);
   const cls = type === "date" ? "edu-date-input" : "edu-time-input";
+  const iconColor = focus ? C.red : hover ? "#f8fafc" : "rgba(226, 232, 240, 0.92)";
+
+  const openPicker = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = inputRef.current;
+    if (!el || el.disabled || el.readOnly) return;
+    if (typeof el.showPicker === "function") {
+      void el.showPicker().catch(() => {});
+      return;
+    }
+    el.focus();
+  };
+
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div
+      style={{ position: "relative", width: "100%" }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
       <input
+        ref={inputRef}
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        onFocus={onFocus}
-        onBlur={onBlur}
+        onFocus={(e) => {
+          setFocus(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocus(false);
+          onBlur?.(e);
+        }}
         className={cls}
         style={{ ...style, width: "100%", position: "relative", boxSizing: "border-box", paddingInlineEnd: 44 }}
         {...rest}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={type === "date" ? "فتح التقويم" : "فتح اختيار الوقت"}
+        onClick={openPicker}
+        style={{
+          position: "absolute",
+          insetInlineEnd: 0,
+          top: 0,
+          bottom: 0,
+          width: 48,
+          margin: 0,
+          padding: 0,
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          zIndex: 1,
+        }}
       />
       <span
         aria-hidden
@@ -93,9 +140,12 @@ function DarkPickerWrap({ type, value, onChange, style = {}, placeholder, onFocu
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          color: iconColor,
+          transition: "color 0.2s ease",
+          zIndex: 2,
         }}
       >
-        {type === "date" ? whiteCalSvg() : whiteClockSvg()}
+        {type === "date" ? <CalSvg /> : <ClockSvg />}
       </span>
     </div>
   );

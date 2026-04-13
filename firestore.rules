@@ -57,7 +57,7 @@ service cloud.firestore {
         && request.auth.uid == userId
         && (
           ((request.resource.data.role == 'student' || request.resource.data.role == 'user')
-            && request.resource.data.status == 'pending')
+            && request.resource.data.status == 'approved')
           || bootstrapAdminEnabled()
         );
       allow update: if isSignedIn() && (
@@ -119,13 +119,29 @@ service cloud.firestore {
       allow delete: if isAdmin() || bootstrapAdminEnabled();
     }
 
-    /* Enrollment notifications — written when a learner completes course registration (guest or logged-in). */
+    /* Course enrollment applications — status: pending | approved | rejected (admin approves course access). */
     match /enrollmentRequests/{id} {
-      allow create: if request.resource.data.keys().hasAll(['courseId', 'courseTitle', 'studentName', 'studentEmail', 'createdAt'])
+      allow create: if request.resource.data.keys().hasAll([
+          'courseId', 'courseTitle', 'studentName', 'studentEmail', 'studentPhone',
+          'createdAt', 'enrollmentStatus', 'userId'
+        ])
         && request.resource.data.courseId is string
-        && request.resource.data.studentEmail is string;
-      allow read, delete: if isAdmin();
-      allow update: if isAdmin(); // Admin confirms/unconfirms payment
+        && request.resource.data.studentEmail is string
+        && request.resource.data.studentName is string
+        && request.resource.data.studentPhone is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.enrollmentStatus == 'pending'
+        && (
+          (request.auth == null && request.resource.data.userId == null)
+          || (request.auth != null && request.resource.data.userId == request.auth.uid)
+        );
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid)
+        || (isSignedIn()
+          && resource.data.studentEmail is string
+          && resource.data.studentEmail == userDoc().email);
+      allow delete: if isAdmin();
+      allow update: if isAdmin();
     }
 
     /* Path quiz — learners save recommendations (signed-in only). */
@@ -135,6 +151,23 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(['answers', 'recommendedCourseIds', 'createdAt', 'userId']);
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow update, delete: if false;
+    }
+
+    /* Service leads — anyone can create (public forms), only admin can read/update. */
+    match /consultationLeads/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /hiringLeads/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /corporateLeads/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /{document=**} { allow read, write: if false; }

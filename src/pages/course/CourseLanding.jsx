@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { C } from "../../theme";
 import { Btn, Card, Stars, Badge } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
+import { db } from "../../firebase";
 
 const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
@@ -62,6 +64,8 @@ export default function CourseLanding() {
 
   const [openCurr, setOpenCurr] = useState(0);
   const [openFaq,  setOpenFaq]  = useState(null);
+  const [enrollmentReqStatus, setEnrollmentReqStatus] = useState(null);
+  const prevReqStatus = useRef(null);
 
   const FAQ = lang === "ar" ? FAQ_AR : FAQ_EN;
   const WHO = lang === "ar" ? WHO_AR : WHO_EN;
@@ -78,6 +82,33 @@ export default function CourseLanding() {
 
   const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
 
+  useEffect(() => {
+    if (!course?.id || !currentUser?.id) {
+      setEnrollmentReqStatus(null);
+      return undefined;
+    }
+    const emailNorm = (currentUser.email || "").trim().toLowerCase();
+    const q = query(collection(db, "enrollmentRequests"), where("courseId", "==", course.id));
+    const unsub = onSnapshot(q, (snap) => {
+      const rows = snap.docs
+        .map((d) => ({ ...d.data(), _id: d.id }))
+        .filter((row) => row.userId === currentUser.id
+          || (emailNorm && (row.studentEmail || "").trim().toLowerCase() === emailNorm));
+      rows.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      const latest = rows[0];
+      setEnrollmentReqStatus(latest ? (latest.enrollmentStatus ?? "pending") : null);
+    }, () => {});
+    return () => unsub();
+  }, [course?.id, currentUser?.id, currentUser?.email]);
+
+  useEffect(() => {
+    const was = prevReqStatus.current;
+    if (was === "pending" && enrollmentReqStatus === "approved" && enrolled) {
+      navigate(`/learn/${slug}`, { replace: true });
+    }
+    prevReqStatus.current = enrollmentReqStatus;
+  }, [enrollmentReqStatus, enrolled, slug, navigate]);
+
   const displayBullets = lang === "ar"
     ? (course.bullets || [])
     : ((course.bullets_en && course.bullets_en.length) ? course.bullets_en : (course.bullets || []));
@@ -85,7 +116,18 @@ export default function CourseLanding() {
     ? (course.outcomes || [])
     : ((course.outcomes_en && course.outcomes_en.length) ? course.outcomes_en : (course.outcomes || []));
 
-  const handleEnroll = () => { navigate(`/courses/${slug}/register`); };
+  const handleEnroll = () => {
+    if (enrollmentReqStatus === "pending") return;
+    navigate(`/courses/${slug}/register`);
+  };
+
+    const enrollBtnLabel = enrolled
+    ? (lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶")
+    : enrollmentReqStatus === "pending"
+      ? (lang === "ar" ? "طلب قيد المراجعة" : "Request pending")
+      : enrollmentReqStatus === "rejected"
+        ? (lang === "ar" ? "إعادة التقديم" : "Apply again")
+        : (lang === "ar" ? "سجّل الآن" : "Enroll Now");
   const goLearn = () => {
     if (!currentUser) { navigate("/login"); return; }
     navigate(`/learn/${slug}`);
@@ -162,8 +204,8 @@ export default function CourseLanding() {
           {/* CTA buttons */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {enrolled
-              ? <Btn children={lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶"} onClick={goLearn} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12 }} />
-              : <Btn children={lang === "ar" ? "سجّل الآن" : "Enroll Now"} onClick={handleEnroll} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, animation: "pulse 2s infinite" }} />
+              ? <Btn children={enrollBtnLabel} onClick={goLearn} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12 }} />
+              : <Btn children={enrollBtnLabel} onClick={handleEnroll} disabled={enrollmentReqStatus === "pending"} style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, animation: enrollmentReqStatus === "pending" ? "none" : "pulse 2s infinite", opacity: enrollmentReqStatus === "pending" ? 0.75 : 1 }} />
             }
             <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline"
               onClick={openCurriculumPresentation}
@@ -200,8 +242,8 @@ export default function CourseLanding() {
               </div>
               <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, marginBottom: 14 }} />
               {enrolled
-                ? <Btn children={lang === "ar" ? "متابعة التعلم ▶" : "Continue Learning ▶"} full onClick={goLearn} style={{ marginBottom: 8 }} />
-                : <Btn children={lang === "ar" ? "سجّل الآن" : "Enroll Now"} full onClick={handleEnroll} style={{ marginBottom: 8, animation: "pulse 2s infinite" }} />
+                ? <Btn children={enrollBtnLabel} full onClick={goLearn} style={{ marginBottom: 8 }} />
+                : <Btn children={enrollBtnLabel} full onClick={handleEnroll} disabled={enrollmentReqStatus === "pending"} style={{ marginBottom: 8, animation: enrollmentReqStatus === "pending" ? "none" : "pulse 2s infinite", opacity: enrollmentReqStatus === "pending" ? 0.75 : 1 }} />
               }
               <Btn children={lang === "ar" ? "استعرض المنهج" : "View Curriculum"} v="outline" full onClick={openCurriculumPresentation} style={{ fontSize: 12 }} />
               <div style={{ textAlign: "center", marginTop: 10, color: C.muted, fontSize: 10 }}>
@@ -462,7 +504,7 @@ export default function CourseLanding() {
           {lang === "ar" ? "الدفعة القادمة محدودة — الأماكن تمتلئ بسرعة" : "Next batch is limited — spots fill up fast"}
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
-          <Btn children={`${lang === "ar" ? "سجّل الآن" : "Enroll Now"} — ${course.price.toLocaleString()} EGP`} onClick={handleEnroll} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
+          <Btn children={enrolled ? enrollBtnLabel : `${enrollBtnLabel} — ${course.price.toLocaleString()} EGP`} onClick={enrolled ? goLearn : handleEnroll} disabled={!enrolled && enrollmentReqStatus === "pending"} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
           <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
             style={{ background: "#25d366", color: "#fff", padding: "13px 24px", borderRadius: 12, fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
             {lang === "ar" ? "استفسر عبر واتساب" : "Ask on WhatsApp"}
@@ -482,8 +524,8 @@ export default function CourseLanding() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{course.price.toLocaleString()} EGP</div>
           {enrolled
-            ? <Btn children={lang === "ar" ? "متابعة ▶" : "Continue ▶"} sm onClick={goLearn} />
-            : <Btn children={lang === "ar" ? "سجّل الآن" : "Enroll Now"} sm onClick={handleEnroll} />
+            ? <Btn children={enrollBtnLabel} sm onClick={goLearn} />
+            : <Btn children={enrollBtnLabel} sm onClick={handleEnroll} disabled={enrollmentReqStatus === "pending"} />
           }
         </div>
       </div>

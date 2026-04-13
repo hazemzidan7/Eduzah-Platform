@@ -6,15 +6,17 @@ import {
   onAuthStateChanged,
   updatePassword,
   sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
 } from "firebase/auth";
 import {
-  doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where,
+  doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, limit, onSnapshot,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth, db, app } from "../firebase";
 import { courseIdsFromEnrolled } from "../utils/enrollment";
 import { isSuperAdminEmail } from "../config/superAdmin";
 import {
+  appendPlainNotification,
   patchAfterEnroll,
   patchAfterLesson,
   patchCourseComplete,
@@ -75,6 +77,30 @@ export function AuthProvider({ children }) {
     return () => { clearTimeout(timer); unsub(); };
   }, []);
 
+  /* Live-sync profile when admins grant course access or update the user document. */
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+    const uid = currentUser.id;
+    const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setCU((prev) => {
+        if (!prev || prev.id !== uid) return prev;
+        return {
+          ...prev,
+          ...data,
+          id: uid,
+          xp: data.xp ?? 0,
+          level: data.level ?? 1,
+          badges: Array.isArray(data.badges) ? data.badges : [],
+          userNotifications: Array.isArray(data.userNotifications) ? data.userNotifications : [],
+          courseActivity: data.courseActivity && typeof data.courseActivity === "object" ? data.courseActivity : {},
+        };
+      });
+    });
+    return () => unsub();
+  }, [currentUser?.id]);
+
   /* One-time backfill of enrolledCourseIds for profiles created before this field existed. */
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -119,36 +145,43 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Public registration → role `user` (registered, not enrolled until they take a course).
-   * Optional pendingEnrollmentCourseId: applied when admin approves (course checkout with new account).
+   * Public registration — account is active immediately (no admin approval).
    */
   const register = async (d) => {
+    const email = d.email.trim().toLowerCase();
     try {
-      const cred = await createUserWithEmailAndPassword(auth, d.email.trim(), d.pass);
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length > 0) return { ok: false, code: "EMAIL_EXISTS" };
+    } catch {
+      /* If enumeration protection blocks this, we still rely on createUser below. */
+    }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, d.pass);
       const enrolledCourses = [];
-      const pendingCourseId = d.pendingEnrollmentCourseId || null;
+      const welcomeMsg =
+        "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة والتقديم على الكورسات. | "
+        + "Your account is ready — explore the platform and apply for courses.";
+      const userNotifications = appendPlainNotification({ userNotifications: [] }, welcomeMsg);
       await setDoc(doc(db, "users", cred.user.uid), {
         name: d.name,
-        email: d.email.trim().toLowerCase(),
+        email,
         role: "user",
-        status: "pending",
+        status: "approved",
         avatar: (d.name && d.name[0]) ? d.name[0].toUpperCase() : "?",
         phone: d.phone || "",
         enrolledCourses,
         enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
         assignedCourses: [],
-        ...(pendingCourseId ? { pendingEnrollmentCourseId: pendingCourseId } : {}),
         xp: 0,
         level: 1,
         badges: [],
-        userNotifications: [],
+        userNotifications,
         lastViewedCourseId: null,
         lastViewedAt: null,
         courseActivity: {},
         createdAt: new Date().toISOString(),
       });
-      await signOut(auth);
-      return { ok: true };
+      return { ok: true, uid: cred.user.uid };
     } catch (err) {
       if (err.code === "auth/email-already-in-use") return { ok: false, code: "EMAIL_EXISTS" };
       return { ok: false, code: err.message };
@@ -161,7 +194,6 @@ export function AuthProvider({ children }) {
       const snap = await getDoc(doc(db, "users", cred.user.uid));
       if (!snap.exists()) { await signOut(auth); return { ok: false, code: "NO_PROFILE" }; }
       const u = snap.data();
-      if (u.status === "pending")  { await signOut(auth); return { ok: false, code: "PENDING" }; }
       if (u.status === "rejected") { await signOut(auth); return { ok: false, code: "REJECTED" }; }
       setCU({ id: cred.user.uid, ...u });
       return { ok: true, role: u.role };
@@ -174,70 +206,33 @@ export function AuthProvider({ children }) {
 
   const logout = () => signOut(auth).then(() => setCU(null));
 
-  const approveUser = async (id) => {
-    const snap = await getDoc(doc(db, "users", id));
+  /** Re-load Firestore profile for the signed-in user (e.g. after notification writes). */
+  const refreshUserProfile = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return;
-    const u = snap.data();
-    const pendingCid = u.pendingEnrollmentCourseId;
-
-    if (pendingCid && !(u.enrolledCourses || []).find((e) => e.courseId === pendingCid)) {
-      const updated = [...(u.enrolledCourses || []), {
-        courseId: pendingCid,
-        progress: 0,
-        completedLessons: [],
-        enrollDate: new Date().toLocaleDateString("ar-EG"),
-      }];
-      const enrolledCourseIds = courseIdsFromEnrolled(updated);
-      const roleNext = u.role === "user" || u.role === "student" ? "student" : u.role;
-      let courseTitle = "";
-      try {
-        const cs = await getDoc(doc(db, "courses", pendingCid));
-        if (cs.exists()) courseTitle = cs.data().title || "";
-      } catch (_) {}
-      const gam = patchAfterEnroll(u, courseTitle);
-      await updateDoc(doc(db, "users", id), {
-        status: "approved",
-        enrolledCourses: updated,
-        enrolledCourseIds,
-        pendingEnrollmentCourseId: null,
-        ...(roleNext !== u.role ? { role: roleNext } : {}),
-        xp: gam.xp,
-        level: gam.level,
-        badges: gam.badges,
-        userNotifications: gam.userNotifications,
-      });
-      setUsers((p) => p.map((usr) => (usr.id === id ? {
-        ...usr,
-        status: "approved",
-        enrolledCourses: updated,
-        enrolledCourseIds,
-        pendingEnrollmentCourseId: null,
-        role: roleNext,
-        xp: gam.xp,
-        level: gam.level,
-        badges: gam.badges,
-        userNotifications: gam.userNotifications,
-      } : usr)));
-      if (currentUser?.id === id) {
-        setCU((prev) => (prev ? {
-          ...prev,
-          status: "approved",
-          enrolledCourses: updated,
-          enrolledCourseIds,
-          pendingEnrollmentCourseId: null,
-          role: roleNext,
-          xp: gam.xp,
-          level: gam.level,
-          badges: gam.badges,
-          userNotifications: gam.userNotifications,
-        } : prev));
-      }
-      return;
-    }
-
-    await updateDoc(doc(db, "users", id), { status: "approved" });
-    setUsers((p) => p.map((usr) => (usr.id === id ? { ...usr, status: "approved" } : usr)));
+    const data = snap.data();
+    setCU({
+      id: uid,
+      ...data,
+      xp: data.xp ?? 0,
+      level: data.level ?? 1,
+      badges: Array.isArray(data.badges) ? data.badges : [],
+      userNotifications: Array.isArray(data.userNotifications) ? data.userNotifications : [],
+      courseActivity: data.courseActivity && typeof data.courseActivity === "object" ? data.courseActivity : {},
+    });
   };
+
+  /** Legacy / admin: unblock user account only (course access is via enrollment requests). */
+  const approveUser = async (id) => {
+    await updateDoc(doc(db, "users", id), { status: "approved", pendingEnrollmentCourseId: null });
+    setUsers((p) => p.map((usr) => (usr.id === id ? { ...usr, status: "approved", pendingEnrollmentCourseId: null } : usr)));
+    if (currentUser?.id === id) {
+      setCU((prev) => (prev ? { ...prev, status: "approved", pendingEnrollmentCourseId: null } : prev));
+    }
+  };
+
   const rejectUser = async (id) => {
     await updateDoc(doc(db, "users", id), { status: "rejected" });
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, status: "rejected" } : u)));
@@ -253,6 +248,20 @@ export function AuthProvider({ children }) {
     await updateDoc(doc(db, "users", id), clean);
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, ...clean } : u)));
     if (currentUser?.id === id) setCU((prev) => ({ ...prev, ...clean }));
+  };
+
+  /** Guest requests may omit userId; resolve platform uid by profile email (admin approve / notify). */
+  const resolveUserIdForEnrollmentRequest = async (r) => {
+    if (r.userId) return r.userId;
+    const em = String(r.studentEmail || "").trim().toLowerCase();
+    if (!em.includes("@")) return null;
+    try {
+      const qs = await getDocs(query(collection(db, "users"), where("email", "==", em), limit(1)));
+      if (qs.empty) return null;
+      return qs.docs[0].id;
+    } catch (_) {
+      return null;
+    }
   };
 
   const enrollUser = async (uid, cid) => {
@@ -303,6 +312,70 @@ export function AuthProvider({ children }) {
         userNotifications: gam.userNotifications,
       }));
     }
+  };
+
+  const approveEnrollmentRequest = async (requestId) => {
+    const refReq = doc(db, "enrollmentRequests", requestId);
+    const snap = await getDoc(refReq);
+    if (!snap.exists()) return { ok: false, code: "NOT_FOUND" };
+    const r = snap.data();
+    const st = r.enrollmentStatus ?? "pending";
+    if (st === "approved") return { ok: true };
+    if (st === "rejected") return { ok: false, code: "ALREADY_REJECTED" };
+
+    const uid = await resolveUserIdForEnrollmentRequest(r);
+    if (uid) {
+      await enrollUser(uid, r.courseId);
+      const uRef = doc(db, "users", uid);
+      const uSnap = await getDoc(uRef);
+      if (uSnap.exists()) {
+        const u = uSnap.data();
+        const msg =
+          "تمت الموافقة على طلبك — يمكنك الآن البدء في الكورس من «كورساتي». | "
+          + "Your enrollment was approved — open My Courses to start learning.";
+        const userNotifications = appendPlainNotification(u, msg);
+        await updateDoc(uRef, { userNotifications });
+        if (currentUser?.id === uid) setCU((prev) => (prev ? { ...prev, userNotifications } : prev));
+      }
+    }
+
+    await updateDoc(refReq, {
+      enrollmentStatus: "approved",
+      reviewedAt: new Date().toISOString(),
+      ...(currentUser?.id ? { reviewedBy: currentUser.id } : {}),
+      ...(!r.userId && uid ? { userId: uid } : {}),
+    });
+    return { ok: true };
+  };
+
+  const rejectEnrollmentRequest = async (requestId, reason = "") => {
+    const refReq = doc(db, "enrollmentRequests", requestId);
+    const snap = await getDoc(refReq);
+    if (!snap.exists()) return { ok: false, code: "NOT_FOUND" };
+    const r = snap.data();
+    await updateDoc(refReq, {
+      enrollmentStatus: "rejected",
+      rejectReason: String(reason || "").trim(),
+      reviewedAt: new Date().toISOString(),
+      ...(currentUser?.id ? { reviewedBy: currentUser.id } : {}),
+    });
+    const uid = await resolveUserIdForEnrollmentRequest(r);
+    if (uid) {
+      const uRef = doc(db, "users", uid);
+      const uSnap = await getDoc(uRef);
+      if (uSnap.exists()) {
+        const u = uSnap.data();
+        const base =
+          "لم تتم الموافقة على طلب التسجيل في الكورس. | Your course enrollment request was not approved.";
+        const msg = reason?.trim()
+          ? `${base} (${reason.trim()})`
+          : `${base}`;
+        const userNotifications = appendPlainNotification(u, msg);
+        await updateDoc(uRef, { userNotifications });
+        if (currentUser?.id === uid) setCU((prev) => (prev ? { ...prev, userNotifications } : prev));
+      }
+    }
+    return { ok: true };
   };
 
   const removeEnroll = async (uid, cid) => {
@@ -391,11 +464,19 @@ export function AuthProvider({ children }) {
   };
 
   const requestPasswordReset = async (email) => {
+    const e = email.trim().toLowerCase();
+    if (!e.includes("@")) return { ok: false, code: "invalid-email" };
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      const continueUrl = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
+      await sendPasswordResetEmail(
+        auth,
+        e,
+        continueUrl ? { url: continueUrl, handleCodeInApp: true } : undefined,
+      );
       return { ok: true };
     } catch (err) {
       if (err.code === "auth/user-not-found") return { ok: true };
+      if (err.code === "auth/invalid-email") return { ok: false, code: "invalid-email" };
       return { ok: false, code: err.code || "unknown" };
     }
   };
@@ -436,8 +517,9 @@ export function AuthProvider({ children }) {
   return (
     <AuthCtx.Provider value={{
       users, currentUser, loading,
-      fetchUsers, login, logout, register,
-      approveUser, rejectUser, enrollUser, removeEnroll,
+      fetchUsers, login, logout, register, refreshUserProfile,
+      approveUser, rejectUser, approveEnrollmentRequest, rejectEnrollmentRequest,
+      enrollUser, removeEnroll,
       assignInstructor, markLesson, recordCourseView, updateProfile, adminUpdateUser,
       requestPasswordReset, changePassword,
       createAdminAccount,

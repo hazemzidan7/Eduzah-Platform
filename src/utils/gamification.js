@@ -33,6 +33,11 @@ function pushNotif(user, message) {
   return [...prev, row].slice(-25);
 }
 
+/** In-app message without XP (registration, enrollment workflow, etc.) */
+export function appendPlainNotification(user, message) {
+  return pushNotif(user, message);
+}
+
 /** Call when user gains a *new* enrollment row (not duplicate). */
 export function patchAfterEnroll(user, courseTitle) {
   const prevEc = user.enrolledCourses || [];

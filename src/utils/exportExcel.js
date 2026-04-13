@@ -48,6 +48,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
     seen.add(key);
     const profile    = allUsers.find(u => u.email?.toLowerCase() === key);
     const enrollment = profile?.enrolledCourses?.find(e => e.courseId === course.id);
+    const reqSt = r.enrollmentStatus ?? "pending";
+    const status = reqSt === "pending" && enrollment ? "approved" : reqSt;
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       name:             r.studentName || profile?.name || "",
@@ -59,7 +61,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       amount:           r.amountQuoted ?? null,
       level:            fmtLevel(r.level),
       source:           r.source || "—",
-      status:           profile?.status || "no-account",
+      status,
       progress:         enrollment ? `${enrollment.progress || 0}%` : "—",
       enrollDate:       enrollment?.enrollDate || fmtDate(r.createdAt),
       requestedAt:      fmtDate(r.createdAt),
@@ -82,7 +84,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       phone:            u.phone || "",
       training:         "—", payMethod: "—", payPlan: "—",
       amount:           null, level: "—", source: "—",
-      status:           u.status || "",
+      status:           "approved",
       progress:         `${enrollment.progress || 0}%`,
       enrollDate:       enrollment.enrollDate || "",
       requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
@@ -132,7 +134,7 @@ export async function exportCourseStudents(course, allUsers = []) {
     COLS.map(c=>c.label),
     ...rows.map(r => COLS.map(col => {
       if (col.key==="amount") return r.amount??""
-      if (col.key==="status") return r.status==="approved"?"✅ Approved":r.status==="pending"?"⏳ Pending":"❌ No Account"
+      if (col.key==="status") return r.status==="approved"?"Approved":r.status==="pending"?"Pending":r.status==="rejected"?"Rejected":"—"
       return r[col.key]??""
     })),
   ];
@@ -189,6 +191,17 @@ export async function exportCourseStudents(course, allUsers = []) {
 
   const safeName=(course.title_en||course.title||"course").replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,"_").replace(/_+/g,"_").slice(0,40);
   const fileName=`Eduzah_${safeName}_Students.xlsx`;
-  XLSX.writeFile(wb,fileName,{cellStyles:true});
+
+  // Use blob URL download — works reliably in all browsers without xlsx Pro
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob  = new Blob([wbout], { type: "application/octet-stream" });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
   return { ok:true, count:rows.length, fileName, rows };
 }

@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { addDoc, collection } from "firebase/firestore";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { addDoc, collection, getDocs, query, where, doc, updateDoc, getDoc } from "firebase/firestore";
 import { C } from "../../theme";
 import { Btn, Input, Select } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
+import { appendPlainNotification } from "../../utils/gamification";
 import { db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
@@ -17,11 +18,27 @@ const TRAINING_TYPES = [
   { v: "offline", ar: "حضوري في فرع الشركة (Offline)", en: "Offline at company branch" },
 ];
 
+function NextStepsTimeline({ ar }) {
+  const steps = ar
+    ? ["إرسال الطلب والدفع عبر InstaPay", "إرسال إيصال التحويل على واتساب", "مراجعة الإدارة (خلال 24 ساعة)", "منحك صلاحية الكورس على المنصة"]
+    : ["Submit request & pay via InstaPay", "Send the transfer receipt on WhatsApp", "Admin review (within 24 hours)", "Course access unlocked on the platform"];
+  return (
+    <div style={{ background: "rgba(16,185,129,.07)", border: "1px solid rgba(16,185,129,.22)", borderRadius: 14, padding: 16, marginBottom: 20, textAlign: ar ? "right" : "left" }}>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: "#10b981" }}>
+        {ar ? "الخطوات التالية" : "What happens next?"}
+      </div>
+      <ol style={{ margin: 0, paddingInlineStart: 18, color: C.muted, fontSize: 12, lineHeight: 2 }}>
+        {steps.map((s) => <li key={s}>{s}</li>)}
+      </ol>
+    </div>
+  );
+}
+
 export default function CourseRegister() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
   const { courses } = useData();
-  const { currentUser, enrollUser, register } = useAuth();
+  const { currentUser, register, refreshUserProfile } = useAuth();
   const { lang } = useLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
   const ar = lang === "ar";
@@ -41,10 +58,14 @@ export default function CourseRegister() {
     createAccount: false, pass: "",
   });
   const [err, setErr] = useState("");
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
 
   if (!course) return <div style={{ padding: 80, textAlign: "center", color: C.muted }}>{ar ? "الكورس غير موجود" : "Course not found"}</div>;
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    if (k === "email") setEmailAlreadyRegistered(false);
+    setForm((p) => ({ ...p, [k]: v }));
+  };
 
   const fullPayDiscounted = useMemo(
     () => Math.max(0, Math.round((Number(course?.price) || 0) * 0.95)),
@@ -62,22 +83,43 @@ export default function CourseRegister() {
 
   const confirm = async () => {
     setErr("");
+    setEmailAlreadyRegistered(false);
     try {
-      if (currentUser) {
-        await enrollUser(currentUser.id, course.id);
-      } else if (form.createAccount) {
+      const dupSnap = await getDocs(query(collection(db, "enrollmentRequests"), where("courseId", "==", course.id)));
+      const em = form.email.trim().toLowerCase();
+      let uidApply = currentUser?.id || null;
+      const hasPending = dupSnap.docs.some((d) => {
+        const x = d.data();
+        const st = x.enrollmentStatus ?? "pending";
+        if (st !== "pending") return false;
+        if (uidApply && x.userId === uidApply) return true;
+        if (!uidApply && (x.studentEmail || "").toLowerCase().trim() === em) return true;
+        return false;
+      });
+      if (hasPending) {
+        setErr(ar ? "لديك طلب قيد المراجعة لهذا الكورس." : "You already have a pending request for this course.");
+        return;
+      }
+
+      if (!uidApply && form.createAccount) {
         const r = await register({
           name: `${form.fname} ${form.lname}`.trim(),
           email: form.email,
           pass: form.pass,
           phone: form.phone,
-          pendingEnrollmentCourseId: course.id,
         });
         if (!r.ok) {
-          setErr(r.code === "EMAIL_EXISTS" ? (ar ? "هذا البريد مسجل مسبقاً" : "Email already registered") : (ar ? "تعذر إنشاء الحساب" : "Registration failed"));
+          if (r.code === "EMAIL_EXISTS") {
+            setEmailAlreadyRegistered(true);
+            setErr(ar ? "البريد الإلكتروني مسجّل بالفعل." : "This email is already registered.");
+          } else {
+            setErr(ar ? "تعذر إنشاء الحساب" : "Registration failed");
+          }
           setStep(1);
           return;
         }
+        uidApply = r.uid;
+        await refreshUserProfile();
       }
 
       await submitToSheet("enrollment", {
@@ -96,14 +138,32 @@ export default function CourseRegister() {
         courseId: course.id,
         courseTitle: course.title,
         studentName: `${form.fname} ${form.lname}`.trim(),
-        studentEmail: form.email,
+        studentEmail: em,
         studentPhone: form.phone,
+        userId: uidApply || null,
         trainingType: form.trainingType || "",
+        level: form.level || "",
+        source: form.source || "",
         paymentMethod: "instapay",
         paymentPlan,
         amountQuoted,
+        enrollmentStatus: "pending",
         createdAt: new Date().toISOString(),
       });
+
+      if (uidApply) {
+        const uref = doc(db, "users", uidApply);
+        const us = await getDoc(uref);
+        if (us.exists()) {
+          const u = us.data();
+          const msg =
+            "استلمنا طلب التسجيل في الكورس — سنراجعه خلال 24 ساعة وسيتم إشعارك. | "
+            + "We received your course request — we will review it within 24 hours.";
+          const userNotifications = appendPlainNotification(u, msg);
+          await updateDoc(uref, { userNotifications });
+          await refreshUserProfile();
+        }
+      }
     } catch (e) {
       console.error(e);
       setErr(ar ? "حدث خطأ أثناء الحفظ. حاول مرة أخرى." : "Something went wrong. Please try again.");
@@ -162,9 +222,17 @@ export default function CourseRegister() {
             </h1>
             <p style={{ color: C.muted, fontSize: 12, marginBottom: 20, lineHeight: 1.7 }}>
               {currentUser
-                ? (ar ? "بياناتك محفوظة — تأكد وكمّل التسجيل." : "Your details are saved — confirm and complete enrollment.")
+                ? (ar ? "بياناتك محفوظة — أكمل الطلب والدفع. الموافقة على الكورس من الإدارة فقط." : "Your details are saved — complete payment. Course access is approved by the team.")
                 : (ar ? "خطوة واحدة وتبدأ رحلتك. الأماكن محدودة." : "One step and your journey begins. Limited spots available.")}
             </p>
+
+            {!currentUser && (
+              <div style={{ background: "rgba(250,166,51,.1)", border: "1px solid rgba(250,166,51,.35)", borderRadius: 10, padding: "12px 14px", fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.75 }}>
+                {ar
+                  ? "بدون حساب: سيتم التواصل معك يدوياً عبر واتساب. لمتابعة تقدمك على المنصة، فعّل «إنشاء حساب» أو سجّل الدخول."
+                  : "Without an account: we will follow up manually via WhatsApp. To track progress on the platform, turn on «Create a platform account» or sign in."}
+              </div>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Input label={ar ? "الاسم الأول *" : "First name *"} value={form.fname} onChange={v => set("fname", v)} placeholder={ar ? "أحمد" : "John"} />
@@ -225,6 +293,18 @@ export default function CourseRegister() {
             )}
 
             {err && <div style={{ background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 9, padding: "8px 12px", fontSize: 12, color: C.danger, marginBottom: 12 }}>{err}</div>}
+            {emailAlreadyRegistered && (
+              <div style={{ background: "rgba(250,166,51,.12)", border: `1px solid ${C.orange}40`, borderRadius: 10, padding: "10px 12px", fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.7 }}>
+                {ar
+                  ? "سجّل الدخول بهذا البريد، أو استخدم «نسيت كلمة المرور» لاستلام رابط في البريد وتعيين كلمة جديدة."
+                  : "Sign in with this email, or use “Forgot password” to receive a link and set a new password."}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
+                  <Link to="/login" style={{ color: C.orange, fontWeight: 800, textDecoration: "none" }}>{ar ? "تسجيل الدخول" : "Sign in"}</Link>
+                  <span style={{ opacity: 0.5 }}>|</span>
+                  <Link to="/forgot-password" style={{ color: C.orange, fontWeight: 800, textDecoration: "none" }}>{ar ? "نسيت كلمة المرور" : "Forgot password"}</Link>
+                </div>
+              </div>
+            )}
 
             <Btn children={ar ? "التالي — الدفع ←" : "Next — Payment →"} full onClick={next2} style={{ padding: "13px", fontSize: 14, marginTop: 4 }} />
             <p style={{ textAlign: "center", marginTop: 10, fontSize: 11, color: C.muted }}>
@@ -297,44 +377,17 @@ export default function CourseRegister() {
         {step === 3 && (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(16,185,129,.15)", border: "2px solid rgba(16,185,129,.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28, fontWeight: 900, color: "#10b981" }}>✓</div>
-            <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{ar ? "تم التسجيل بنجاح!" : "Enrollment Successful!"}</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{ar ? "تم استلام طلبك" : "Request received"}</h2>
             <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.8, marginBottom: 20 }}>
-              {form.createAccount && !currentUser
-                ? (ar
-                  ? "تم التسجيل بنجاح، سيتم مراجعة بياناتك من قبل الإدارة. بعد الموافقة يمكنك تسجيل الدخول ومتابعة الكورس."
-                  : "Registration saved successfully. The administration will review your details. After approval you can sign in and access the course.")
-                : currentUser
-                  ? (ar ? "تم تسجيلك في الكورس. هيتواصل معاك فريق Eduzah خلال 24 ساعة." : "You have been enrolled. The Eduzah team will contact you within 24 hours.")
-                  : (ar ? "استلمنا بياناتك. هيتواصل معاك فريق Eduzah خلال 24 ساعة لتأكيد التسجيل." : "We received your details. The Eduzah team will contact you within 24 hours to confirm enrollment.")}
+              {ar
+                ? "طلب التسجيل في الكورس قيد المراجعة. لن يُفتح لك المحتوى قبل موافقة الإدارة. يمكنك متابعة الحالة من صفحة الكورس."
+                : "Your course application is under review. You will not get course content until the team approves. Check status on the course page."}
             </p>
-            <div style={{ background: "rgba(16,185,129,.07)", border: "1px solid rgba(16,185,129,.22)", borderRadius: 14, padding: 16, marginBottom: 20, textAlign: ar ? "right" : "left" }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "#10b981" }}>
-                {ar ? "الخطوات القادمة:" : "Next steps:"}
-              </div>
-              <div style={{ color: C.muted, fontSize: 12, lineHeight: 2 }}>
-                {ar ? (
-                  <>
-                    1. راجع بريدك — رسالة تأكيد في الطريق<br />
-                    2. انضم لـ WhatsApp Group الدفعة<br />
-                    3. اتلقى لينك الـ Welcome Session<br />
-                    4. ابدأ الدبلومة وحقق حلمك
-                  </>
-                ) : (
-                  <>
-                    1. Check your email — confirmation on its way<br />
-                    2. Join the batch WhatsApp Group<br />
-                    3. Receive your Welcome Session link<br />
-                    4. Start your diploma journey
-                  </>
-                )}
-              </div>
-            </div>
+            <NextStepsTimeline ar={ar} />
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              {currentUser
-                ? <Btn children={ar ? "اذهب للداشبورد" : "Go to Dashboard"} onClick={() => navigate("/dashboard")} style={{ padding: "12px 24px" }} />
-                : <Btn children={ar ? "سجّل حساب الآن" : "Create an Account"} onClick={() => navigate("/register")} style={{ padding: "12px 24px" }} />
-              }
-              <Btn children={ar ? "رجوع للرئيسية" : "Back to Home"} v="outline" onClick={() => navigate("/")} style={{ padding: "12px 22px" }} />
+              <Btn children={ar ? "صفحة الكورس (حالة الطلب)" : "Course page (status)"} onClick={() => navigate(`/courses/${slug}`)} style={{ padding: "12px 24px" }} />
+              <Btn children={ar ? "كورساتي" : "My courses"} v="outline" onClick={() => navigate("/my-courses")} style={{ padding: "12px 22px" }} />
+              <Btn children={ar ? "لوحة التحكم" : "Dashboard"} v="outline" onClick={() => navigate("/dashboard")} style={{ padding: "12px 22px" }} />
             </div>
             <div style={{ marginTop: 16 }}>
               <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"

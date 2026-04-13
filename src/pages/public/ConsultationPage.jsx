@@ -5,6 +5,8 @@ import { Btn, Card, Input } from "../../components/UI";
 import { useLang } from "../../context/LangContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const centeredRow = (gap = 16) => ({
   display: "flex",
@@ -61,10 +63,17 @@ export default function ConsultationPage() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
-    await submitToSheet("consultation", {
-      name: form.name, phone: form.phone,
-      email: form.email, type: form.type, message: form.message,
-    });
+    await Promise.allSettled([
+      submitToSheet("consultation", {
+        name: form.name, phone: form.phone,
+        email: form.email, type: form.type, message: form.message,
+      }),
+      addDoc(collection(db, "consultationLeads"), {
+        name: form.name, phone: form.phone,
+        email: form.email, type: form.type, message: form.message,
+        status: "new", createdAt: new Date().toISOString(),
+      }),
+    ]);
     setLoading(false);
     setDone(true);
   };

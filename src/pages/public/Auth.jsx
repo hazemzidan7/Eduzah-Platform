@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { confirmPasswordReset } from "firebase/auth";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { auth } from "../../firebase";
@@ -103,7 +103,6 @@ const PassField = ({ label, value, onChange, error, placeholder, lang }) => {
 ══════════════════════════════════════════ */
 const loginErr = (code, lang, msg) => {
   if (code === "BAD_CREDENTIALS") return lang === "ar" ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : "Invalid email or password";
-  if (code === "PENDING")         return lang === "ar" ? "حسابك قيد المراجعة من الإدارة. انتظر الموافقة." : "Your account is pending admin approval";
   if (code === "REJECTED")        return lang === "ar" ? "تم رفض حسابك. تواصل مع الإدارة." : "Your account was rejected. Contact support";
   if (code === "NO_PROFILE")      return lang === "ar" ? "الحساب موجود لكن بياناتك غير مكتملة. تواصل مع الإدارة." : "Account exists but profile missing. Contact support";
   if (code === "FIREBASE_ERROR")  return lang === "ar" ? `خطأ في الاتصال: ${msg}` : `Connection error: ${msg}`;
@@ -184,6 +183,9 @@ export function LoginPage() {
 /* ══════════════════════════════════════════
    REGISTER PAGE
 ══════════════════════════════════════════ */
+const MSG_EMAIL_TAKEN_AR = "البريد الإلكتروني مسجّل بالفعل.";
+const MSG_EMAIL_TAKEN_EN = "This email is already registered.";
+
 export function RegisterPage() {
   const { register } = useAuth();
   const { lang }     = useLang();
@@ -191,9 +193,12 @@ export function RegisterPage() {
 
   const [f,    setF]    = useState({ name: "", email: "", pass: "", confirm: "", phone: "" });
   const [errs, setErrs] = useState({});
-  const [ok,   setOk]   = useState(false);
+  const [emailTaken, setEmailTaken] = useState(false);
 
-  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    if (k === "email") setEmailTaken(false);
+    setF((p) => ({ ...p, [k]: v }));
+  };
 
   const validate = () => {
     const e = {};
@@ -214,31 +219,17 @@ export function RegisterPage() {
     const r = await register(f);
     if (!r.ok) {
       if (r.code === "EMAIL_EXISTS") {
-        setErrs({ email: lang === "ar" ? "هذا البريد مسجل مسبقاً" : "This email is already registered" });
+        setEmailTaken(true);
+        setErrs({ email: lang === "ar" ? MSG_EMAIL_TAKEN_AR : MSG_EMAIL_TAKEN_EN });
       } else {
+        setEmailTaken(false);
         setErrs({ email: lang === "ar" ? "تعذر إنشاء الحساب" : "Registration failed" });
       }
       return;
     }
-    setOk(true);
+    navigate("/dashboard", { state: { accountCreated: true } });
   };
 
-  if (ok) return (
-    <div style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-      <div style={{ textAlign: "center", maxWidth: 420 }}>
-        <div style={{ width: 70, height: 70, borderRadius: "50%", background: `${C.success}22`, border: `2px solid ${C.success}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 28 }}>✓</div>
-        <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>
-          {lang === "ar" ? "تم التسجيل بنجاح" : "Registration successful"}
-        </h2>
-        <p style={{ color: C.muted, marginBottom: 24, lineHeight: 1.75, fontSize: 14 }}>
-          {lang === "ar"
-            ? "تم التسجيل بنجاح، سيتم مراجعة بياناتك من قبل الإدارة. بعد الموافقة يمكنك تسجيل الدخول."
-            : "Your registration was successful. The administration will review your details. You can sign in after approval."}
-        </p>
-        <Btn children={lang === "ar" ? "تسجيل الدخول" : "Login"} onClick={() => navigate("/login")} />
-      </div>
-    </div>
-  );
 
   return (
     <div dir={lang === "ar" ? "rtl" : "ltr"} style={{ minHeight: "calc(100vh - 60px)", background: gHero, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
@@ -271,8 +262,21 @@ export function RegisterPage() {
 
         <Field label={lang === "ar" ? "البريد الإلكتروني *" : "Email *"} error={errs.email}>
           <input value={f.email} onChange={e => set("email", e.target.value)}
-            type="email" placeholder="email@example.com" style={inputSx(errs.email)} />
+            type="email" placeholder="email@example.com" style={inputSx(!!errs.email)} autoComplete="email" />
         </Field>
+
+        {emailTaken && (
+          <div style={{ background: "rgba(250,166,51,.12)", border: `1px solid ${C.orange}40`, borderRadius: 10, padding: "12px 14px", fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.7 }}>
+            {lang === "ar"
+              ? "استخدم تسجيل الدخول إن كان عندك حساب، أو «نسيت كلمة المرور» لاستلام رابط في البريد وتعيين كلمة مرور جديدة."
+              : "Sign in if you already have an account, or use “Forgot password” to get an email link and set a new password."}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
+              <Link to="/login" style={{ color: C.orange, fontWeight: 800, textDecoration: "none" }}>{lang === "ar" ? "تسجيل الدخول" : "Sign in"}</Link>
+              <span style={{ color: C.border }}>|</span>
+              <Link to="/forgot-password" style={{ color: C.orange, fontWeight: 800, textDecoration: "none" }}>{lang === "ar" ? "نسيت كلمة المرور" : "Forgot password"}</Link>
+            </div>
+          </div>
+        )}
 
         <PassField label={lang === "ar" ? "كلمة المرور *" : "Password *"}
           value={f.pass} onChange={v => set("pass", v)}
@@ -287,10 +291,8 @@ export function RegisterPage() {
 
         <div style={{ background: `${C.orange}18`, border: `1px solid ${C.orange}33`, borderRadius: 9, padding: "9px 12px", fontSize: 12, color: C.orange, marginBottom: 14 }}>
           {lang === "ar"
-            ? "التسجيل كطالب فقط. لتسجيل حساب مدرب، تواصل مع الإدارة بعد إنشاء حسابك."
-            : "Student accounts only. For instructor access, contact the team after registering."}
-          {" "}
-          {lang === "ar" ? "سيتم مراجعة حسابك من الإدارة خلال 24 ساعة." : "Your account will be reviewed within 24 hours."}
+            ? "التسجيل كطالب فقط. لتسجيل حساب مدرب، تواصل مع الإدارة بعد إنشاء حسابك. حسابك يعمل فوراً — الموافقة مطلوبة فقط عند التقديم على كورس."
+            : "Student accounts only. For instructor access, contact the team after registering. Your account is active immediately — approval applies only when you apply for a course."}
         </div>
 
         <Btn children={lang === "ar" ? "إنشاء الحساب" : "Create Account"} full onClick={submit}
@@ -331,7 +333,11 @@ export function ForgotPasswordPage() {
     const r = await requestPasswordReset(email);
     setLoading(false);
     if (!r.ok) {
-      setErr(lang === "ar" ? "تعذر إرسال الرسالة. حاول لاحقاً." : "Could not send email. Try again later.");
+      if (r.code === "invalid-email") {
+        setErr(lang === "ar" ? "صيغة البريد غير صحيحة" : "Invalid email format");
+      } else {
+        setErr(lang === "ar" ? "تعذر إرسال الرسالة. حاول لاحقاً أو تحقق من اتصالك." : "Could not send the email. Try again later.");
+      }
       return;
     }
     setDone(true);
@@ -347,8 +353,8 @@ export function ForgotPasswordPage() {
         <h1 style={{ fontSize: 20, marginBottom: 8 }}>{lang === "ar" ? "نسيت كلمة المرور؟" : "Forgot password?"}</h1>
         <p style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
           {lang === "ar"
-            ? "أدخل بريدك المسجل. ستصلك رسالة من Firebase تحتوي رابط إعادة التعيين (تحقق من البريد غير المرغوب)."
-            : "Enter your registered email. Firebase will send a reset link (check spam)."}
+            ? "أدخل البريد المسجّل على المنصة. ستصلك رسالة تحتوي رابط التأكيد: افتحه ثم عيّن كلمة مرور جديدة من صفحتنا. (تحقق من «الرسائل غير المرغوبة» إن لم تجدها.)"
+            : "Enter the email you used on the platform. You will get a message with a confirmation link — open it, then set a new password on our site. (Check spam if you do not see it.)"}
         </p>
         {!done ? (
           <>
@@ -360,10 +366,10 @@ export function ForgotPasswordPage() {
           </>
         ) : (
           <div>
-            <p style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>
+            <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
               {lang === "ar"
-                ? "إذا كان البريد مسجلاً لدينا، ستصلك رابط إعادة التعيين قريباً."
-                : "If the email is registered, you will receive a reset link shortly."}
+                ? "إذا كان هذا البريد مسجّلاً لدينا، ستصلك رسالة خلال دقائق. افتح الرابط من نفس الجهاز ثم أدخل كلمة المرور الجديدة."
+                : "If this email is registered, you will receive a message within a few minutes. Open the link on this device, then enter your new password."}
             </p>
           </div>
         )}
@@ -381,7 +387,16 @@ export function ResetPasswordPage() {
   const { lang } = useLang();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const oobCode = searchParams.get("oobCode") || "";
+  const oobCode = useMemo(() => {
+    const q = searchParams.get("oobCode");
+    if (q) return q;
+    if (typeof window === "undefined") return "";
+    const { hash, search } = window.location;
+    const fromSearch = new URLSearchParams(search).get("oobCode");
+    if (fromSearch) return fromSearch;
+    const h = hash.includes("?") ? hash.slice(hash.indexOf("?")) : hash;
+    return new URLSearchParams(h.replace(/^\?/, "")).get("oobCode") || "";
+  }, [searchParams]);
 
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");

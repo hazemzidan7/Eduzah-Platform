@@ -122,12 +122,14 @@ exports.onEnrollmentRequestCreated = functions.firestore
     const recipients = [...new Set([...notify, SUPER_ADMIN])];
     const subject = `Eduzah — تسجيل جديد في كورس: ${d.courseTitle || courseId}`;
     const text = [
-      `طالب جديد سجّل في كورس.`,
+      `طلب تسجيل جديد في كورس (قيد مراجعة الإدارة).`,
       ``,
       `الكورس: ${d.courseTitle}`,
       `الاسم: ${d.studentName}`,
       `البريد: ${d.studentEmail}`,
       `الهاتف: ${d.studentPhone || "—"}`,
+      `حالة الطلب: ${d.enrollmentStatus || "pending"}`,
+      `معرّف مستخدم: ${d.userId || "—"}`,
       `نوع التدريب: ${d.trainingType || "—"}`,
       `الدفع: ${d.paymentPlan || "—"} / ${d.paymentMethod || "—"}`,
       `المبلغ: ${d.amountQuoted != null ? d.amountQuoted : "—"}`,

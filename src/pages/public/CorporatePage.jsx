@@ -6,6 +6,8 @@ import { useLang } from "../../context/LangContext";
 import { useData } from "../../context/DataContext";
 import { submitToSheet } from "../../utils/sheets";
 import { SITE } from "../../data";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const centeredRow = (gap = 18) => ({
   display: "flex",
@@ -68,13 +70,23 @@ export default function CorporatePage() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
-    await submitToSheet("corporate", {
-      company: form.company, contact: form.contact,
-      phone: form.phone, email: form.email,
-      program: form.program, employees: form.employees,
-      platform: form.platform, date: form.date,
-      time: form.time, notes: form.notes,
-    });
+    await Promise.allSettled([
+      submitToSheet("corporate", {
+        company: form.company, contact: form.contact,
+        phone: form.phone, email: form.email,
+        program: form.program, employees: form.employees,
+        platform: form.platform, date: form.date,
+        time: form.time, notes: form.notes,
+      }),
+      addDoc(collection(db, "corporateLeads"), {
+        company: form.company, contact: form.contact,
+        phone: form.phone, email: form.email,
+        program: form.program, employees: form.employees,
+        platform: form.platform, date: form.date,
+        time: form.time, notes: form.notes,
+        status: "new", createdAt: new Date().toISOString(),
+      }),
+    ]);
     setLoading(false);
     setDone(true);
   };
