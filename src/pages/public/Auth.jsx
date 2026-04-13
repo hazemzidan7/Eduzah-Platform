@@ -252,6 +252,12 @@ export function RegisterPage() {
       if (r.code === "EMAIL_EXISTS") {
         setEmailTaken(true);
         setErrs({ email: lang === "ar" ? MSG_EMAIL_TAKEN_AR : MSG_EMAIL_TAKEN_EN });
+      } else if (r.code === "EMAIL_EXISTS_RESET_NEEDED") {
+        setEmailTaken(true);
+        setErrs({ email: lang === "ar"
+          ? "الإيميل ده كان مسجّل قبل كده — استخدم «نسيت كلمة المرور» لإعادة تعيينها ثم سجّل دخولك."
+          : "This email was registered before — use «Forgot password» to reset it then sign in."
+        });
       } else {
         setEmailTaken(false);
         setErrs({ email: lang === "ar" ? "تعذر إنشاء الحساب" : "Registration failed" });

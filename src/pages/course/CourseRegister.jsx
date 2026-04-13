@@ -135,6 +135,11 @@ export default function CourseRegister() {
           if (r.code === "EMAIL_EXISTS") {
             setEmailAlreadyRegistered(true);
             setErr(ar ? "البريد الإلكتروني مسجّل بالفعل." : "This email is already registered.");
+          } else if (r.code === "EMAIL_EXISTS_RESET_NEEDED") {
+            setEmailAlreadyRegistered(true);
+            setErr(ar
+              ? "الإيميل ده كان مسجّل قبل — استخدم «نسيت كلمة المرور» لإعادة تعيينها."
+              : "This email was registered before — use «Forgot password» to reset it.");
           } else {
             setErr(ar ? "تعذر إنشاء الحساب" : "Registration failed");
           }

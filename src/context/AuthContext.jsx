@@ -153,7 +153,48 @@ export function AuthProvider({ children }) {
     const email = d.email.trim().toLowerCase();
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (methods.length > 0) return { ok: false, code: "EMAIL_EXISTS" };
+      if (methods.length > 0) {
+        // Email exists in Auth — check if Firestore profile also exists
+        const profileSnap = await getDocs(
+          query(collection(db, "users"), where("email", "==", email), limit(1))
+        );
+        if (!profileSnap.empty) {
+          // Real duplicate — profile exists
+          return { ok: false, code: "EMAIL_EXISTS" };
+        }
+        // Orphaned Auth account (e.g. previously deleted by admin) —
+        // try to sign in with the provided password and recreate Firestore profile
+        try {
+          const orphanCred = await signInWithEmailAndPassword(auth, email, d.pass);
+          const uid = orphanCred.user.uid;
+          const enrolledCourses = [];
+          const welcomeMsg =
+            "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة والتقديم على الكورسات. | "
+            + "Your account is ready — explore the platform and apply for courses.";
+          const userNotifications = appendPlainNotification({ userNotifications: [] }, welcomeMsg);
+          await setDoc(doc(db, "users", uid), {
+            name: d.name, email,
+            role: d.role || "user",
+            status: "approved",
+            avatar: (d.name && d.name[0]) ? d.name[0].toUpperCase() : "?",
+            phone: d.phone || "",
+            enrolledCourses,
+            enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
+            assignedCourses: [],
+            xp: 0, level: 1, badges: [],
+            userNotifications,
+            lastViewedCourseId: null, lastViewedAt: null, courseActivity: {},
+            createdAt: new Date().toISOString(),
+          });
+          return { ok: true, uid };
+        } catch (orphanErr) {
+          // Password doesn't match old account — tell user to use forgot-password
+          if (["auth/wrong-password", "auth/invalid-credential"].includes(orphanErr.code)) {
+            return { ok: false, code: "EMAIL_EXISTS_RESET_NEEDED" };
+          }
+          return { ok: false, code: orphanErr.code || "EMAIL_EXISTS" };
+        }
+      }
     } catch {
       /* If enumeration protection blocks this, we still rely on createUser below. */
     }
@@ -252,15 +293,33 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Permanently remove a user's Firestore profile.
-   * Their Firebase Auth account remains but they can no longer access the platform.
-   * Admin-only — cannot delete own account or other admins.
+   * Permanently remove a user's Firestore profile + cascade cleanup.
+   * - Instructor: clears instructorId on all assigned courses.
+   * - Student/User: their enrolledCourses are gone with the doc.
+   * Firebase Auth account is preserved (can't delete from client SDK),
+   * but register() detects the orphaned account and allows re-registration.
    */
   const deleteUser = async (id) => {
     if (!id || id === currentUser?.id) return { ok: false, code: "SELF_DELETE" };
     const snap = await getDoc(doc(db, "users", id));
     if (!snap.exists()) return { ok: false, code: "NOT_FOUND" };
-    if (snap.data().role === "admin") return { ok: false, code: "CANNOT_DELETE_ADMIN" };
+    const userData = snap.data();
+    if (userData.role === "admin") return { ok: false, code: "CANNOT_DELETE_ADMIN" };
+
+    // Cascade: if instructor, unset instructorId on all their courses
+    if (userData.role === "instructor") {
+      try {
+        const coursesSnap = await getDocs(
+          query(collection(db, "courses"), where("instructorId", "==", id))
+        );
+        await Promise.all(
+          coursesSnap.docs.map((cd) => updateDoc(cd.ref, { instructorId: null }))
+        );
+      } catch (e) {
+        console.warn("[deleteUser] course cascade failed:", e?.code);
+      }
+    }
+
     await deleteDoc(doc(db, "users", id));
     setUsers((p) => p.filter((u) => u.id !== id));
     return { ok: true };
