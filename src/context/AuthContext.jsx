@@ -7,12 +7,14 @@ import {
   updatePassword,
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
+  getAuth,
 } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
 import {
-  doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, limit, onSnapshot,
+  doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, limit, onSnapshot,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { auth, db, app } from "../firebase";
+import { auth, db, app, firebaseConfig } from "../firebase";
 import { courseIdsFromEnrolled } from "../utils/enrollment";
 import { isSuperAdminEmail } from "../config/superAdmin";
 import {
@@ -236,6 +238,21 @@ export function AuthProvider({ children }) {
   const rejectUser = async (id) => {
     await updateDoc(doc(db, "users", id), { status: "rejected" });
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, status: "rejected" } : u)));
+  };
+
+  /**
+   * Permanently remove a user's Firestore profile.
+   * Their Firebase Auth account remains but they can no longer access the platform.
+   * Admin-only — cannot delete own account or other admins.
+   */
+  const deleteUser = async (id) => {
+    if (!id || id === currentUser?.id) return { ok: false, code: "SELF_DELETE" };
+    const snap = await getDoc(doc(db, "users", id));
+    if (!snap.exists()) return { ok: false, code: "NOT_FOUND" };
+    if (snap.data().role === "admin") return { ok: false, code: "CANNOT_DELETE_ADMIN" };
+    await deleteDoc(doc(db, "users", id));
+    setUsers((p) => p.filter((u) => u.id !== id));
+    return { ok: true };
   };
 
   const adminUpdateUser = async (id, patch) => {
@@ -580,6 +597,61 @@ export function AuthProvider({ children }) {
     }
   };
 
+  /**
+   * Create an instructor account from the admin panel without affecting the admin's session.
+   * Uses a secondary Firebase app instance so the admin stays signed in.
+   */
+  const createInstructorAccount = async ({ name, email, password, phone = "" }) => {
+    const e = email.trim().toLowerCase();
+    if (!name.trim() || !e.includes("@") || password.length < 6) {
+      return { ok: false, code: "INVALID_INPUT" };
+    }
+    // Check if email already taken
+    try {
+      const methods = await fetchSignInMethodsForEmail(auth, e);
+      if (methods.length > 0) return { ok: false, code: "EMAIL_EXISTS" };
+    } catch (_) {}
+
+    let secondaryApp = null;
+    try {
+      // Create a secondary app instance — doesn't affect the admin's auth session
+      secondaryApp = initializeApp(firebaseConfig, `instructor-create-${Date.now()}`);
+      const secondaryAuth = getAuth(secondaryApp);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, e, password);
+      const uid = cred.user.uid;
+      await signOut(secondaryAuth);
+
+      const welcomeMsg =
+        "تم إنشاء حسابك كمدرب — يمكنك الآن تسجيل الدخول والبدء. | "
+        + "Your instructor account is ready — you can now sign in and get started.";
+      const userNotifications = appendPlainNotification({ userNotifications: [] }, welcomeMsg);
+      await setDoc(doc(db, "users", uid), {
+        name: name.trim(),
+        email: e,
+        role: "instructor",
+        status: "approved",
+        avatar: name.trim()[0]?.toUpperCase() || "I",
+        phone: phone.trim(),
+        enrolledCourses: [],
+        enrolledCourseIds: [],
+        assignedCourses: [],
+        xp: 0, level: 1, badges: [],
+        userNotifications,
+        lastViewedCourseId: null,
+        lastViewedAt: null,
+        courseActivity: {},
+        createdAt: new Date().toISOString(),
+      });
+      await fetchUsers();
+      return { ok: true, uid };
+    } catch (err) {
+      if (err.code === "auth/email-already-in-use") return { ok: false, code: "EMAIL_EXISTS" };
+      return { ok: false, code: err.code || err.message };
+    } finally {
+      if (secondaryApp) deleteApp(secondaryApp).catch(() => {});
+    }
+  };
+
   /** Super Admin only — requires deployed Cloud Function `createAdminAccount`. */
   const createAdminAccount = async ({ name, email, password }) => {
     if (!isSuperAdminEmail(currentUser?.email)) {
@@ -608,11 +680,11 @@ export function AuthProvider({ children }) {
     <AuthCtx.Provider value={{
       users, currentUser, loading,
       fetchUsers, login, logout, register, refreshUserProfile,
-      approveUser, rejectUser, approveEnrollmentRequest, rejectEnrollmentRequest,
+      approveUser, rejectUser, deleteUser, approveEnrollmentRequest, rejectEnrollmentRequest,
       enrollUser, removeEnroll,
       assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, updateProfile, adminUpdateUser,
       requestPasswordReset, startPasswordReset, confirmPasswordResetOtp, changePassword,
-      createAdminAccount,
+      createAdminAccount, createInstructorAccount,
     }}>
       {children}
     </AuthCtx.Provider>

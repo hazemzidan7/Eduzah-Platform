@@ -180,22 +180,29 @@ export default function CourseRegister() {
         createdAt: new Date().toISOString(),
       });
 
-      const notifyUid = uidForDoc;
-      if (notifyUid) {
-        const uref = doc(db, "users", notifyUid);
-        const us = await getDoc(uref);
-        if (us.exists()) {
-          const u = us.data();
-          const msg =
-            "استلمنا طلب التسجيل في الكورس — سنراجعه خلال 24 ساعة وسيتم إشعارك. | "
-            + "We received your course request — we will review it within 24 hours.";
-          const userNotifications = appendPlainNotification(u, msg);
-          await updateDoc(uref, { userNotifications });
-          await refreshUserProfile();
-        }
-      }
-
+      // Proceed to success step — notification is a best-effort side effect
       setStep(3);
+
+      // Fire notification without blocking the UI transition
+      if (uidForDoc) {
+        (async () => {
+          try {
+            const uref = doc(db, "users", uidForDoc);
+            const us = await getDoc(uref);
+            if (us.exists()) {
+              const u = us.data();
+              const msg =
+                "استلمنا طلب التسجيل في الكورس — سنراجعه خلال 24 ساعة وسيتم إشعارك. | "
+                + "We received your course request — we will review it within 24 hours.";
+              const userNotifications = appendPlainNotification(u, msg);
+              await updateDoc(uref, { userNotifications });
+              await refreshUserProfile();
+            }
+          } catch (notifyErr) {
+            console.warn("[CourseRegister] notification update skipped:", notifyErr?.code || notifyErr);
+          }
+        })();
+      }
     } catch (e) {
       console.error(e);
       const code = e?.code || "";

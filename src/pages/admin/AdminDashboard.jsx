@@ -40,7 +40,7 @@ const Row = ({ label, children }) => (
 
 export default function AdminDashboard() {
   const {
-    users, approveUser, rejectUser, enrollUser, removeEnroll, assignInstructor, unassignInstructorFromCourse, adminUpdateUser, createAdminAccount, currentUser,
+    users, approveUser, rejectUser, deleteUser, enrollUser, removeEnroll, assignInstructor, unassignInstructorFromCourse, adminUpdateUser, createAdminAccount, createInstructorAccount, currentUser,
     approveEnrollmentRequest, rejectEnrollmentRequest,
   } = useAuth();
   const {
@@ -508,6 +508,45 @@ export default function AdminDashboard() {
         <Input label="Email" value={f.email} onChange={v => set("email", v)} />
         <Input label={tx("كلمة المرور", "Password")} value={f.password} onChange={v => set("password", v)} type="password" />
         <Btn children={tx("إنشاء المدير", "Create Admin")} full onClick={submit} style={{ marginTop: 12 }} />
+      </Modal>
+    );
+  };
+
+  /* ─────────── Create Instructor Modal ─────────── */
+  const CreateInstructorModal = () => {
+    const [f, setF] = useState({ name: "", email: "", password: "", phone: "" });
+    const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const [creating, setCreating] = useState(false);
+    const submit = async () => {
+      if (!f.name.trim() || !f.email.includes("@") || f.password.length < 6) {
+        showT(tx("أدخل اسماً وبريداً صالحاً وكلمة مرور 6 أحرف على الأقل", "Enter name, valid email, and password (min 6 chars)"), "error");
+        return;
+      }
+      setCreating(true);
+      const r = await createInstructorAccount(f);
+      setCreating(false);
+      if (!r.ok) {
+        showT(
+          r.code === "EMAIL_EXISTS"
+            ? tx("البريد الإلكتروني مسجّل بالفعل", "Email already registered")
+            : tx("تعذر إنشاء الحساب: " + r.code, "Could not create account: " + r.code),
+          "error"
+        );
+        return;
+      }
+      showT(tx("تم إنشاء حساب المدرب بنجاح", "Instructor account created"));
+      setModal(null);
+    };
+    return (
+      <Modal title={tx("إضافة مدرب جديد", "Create Instructor Account")} onClose={() => setModal(null)}>
+        <p style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+          {tx("ينشئ حساب مدرب مباشرةً دون التأثير على جلستك الحالية.", "Creates an instructor account directly without affecting your current session.")}
+        </p>
+        <Input label={tx("الاسم الكامل *", "Full name *")} value={f.name} onChange={v => set("name", v)} />
+        <Input label="Email *" value={f.email} onChange={v => set("email", v)} />
+        <Input label={tx("رقم الهاتف", "Phone (optional)")} value={f.phone} onChange={v => set("phone", v)} placeholder="+201xxxxxxxxx" />
+        <Input label={tx("كلمة المرور * (6 أحرف على الأقل)", "Password * (min 6 chars)")} value={f.password} onChange={v => set("password", v)} type="password" />
+        <Btn children={creating ? tx("جاري الإنشاء…", "Creating…") : tx("إنشاء حساب المدرب", "Create Instructor")} full disabled={creating} onClick={submit} style={{ marginTop: 12, background: C.purple }} />
       </Modal>
     );
   };
@@ -1105,9 +1144,12 @@ export default function AdminDashboard() {
                   {tx("للمتعلمين: زر «إضافة / إزالة كورس» يفتح قائمة كل الكورسات. من تبويب «الكورسات» يمكنك أيضاً «تسجيل» طلاب في كورس محدد.", "For learners: «Add / remove courses» lists all courses. From the «Courses» tab you can also «Enroll» students into one course.")}
                 </p>
               </div>
-              {superAdmin && (
-                <Btn children={tx("إضافة مدير", "Create Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
-              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn children={tx("+ مدرب جديد", "+ New Instructor")} onClick={() => setModal({ type: "create-instructor" })} style={{ background: C.purple }} />
+                {superAdmin && (
+                  <Btn children={tx("+ مدير جديد", "+ New Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
+                )}
+              </div>
             </div>
 
             {[
@@ -1182,6 +1224,16 @@ export default function AdminDashboard() {
                             <Btn children={tx("إضافة / إزالة كورس", "Add / remove courses")} v="orange" sm onClick={() => setModal({ type: "enroll", user: u })} title={tx("تسجيل الطالب في كورس أو إزالته منه", "Enroll this learner in a course or remove them")} />
                           )}
                           {u.role === "instructor" && u.status === "approved" && <Btn children={tx("تعيين", "Assign")} v="purple" sm onClick={() => setModal({ type: "assign", user: u })} />}
+                          {u.role !== "admin" && u.id !== currentUser?.id && (
+                            <Btn children={tx("حذف", "Delete")} sm v="danger"
+                              onClick={async () => {
+                                if (!window.confirm(ar ? `هل تريد حذف حساب "${u.name}" نهائياً؟` : `Permanently delete "${u.name}"?`)) return;
+                                const r = await deleteUser(u.id);
+                                if (r.ok) showT(ar ? `تم حذف ${u.name}` : `${u.name} deleted`);
+                                else showT(ar ? "تعذر الحذف: " + r.code : "Delete failed: " + r.code, "error");
+                              }}
+                              aria-label={tx("حذف المستخدم", "Delete user")} />
+                          )}
                         </div>
                       </div>
                     </Card>
@@ -1226,17 +1278,24 @@ export default function AdminDashboard() {
                       <Card key={r.id} style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                           <div style={{ flex: 1, minWidth: 200 }}>
-                            <div style={{ fontWeight: 700, fontSize: 14 }}>{enrollmentCourseLabel(r)}</div>
-                            {r.courseId != null && String(r.courseId) && (
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{tx("معرّف الكورس", "Course ID")}: {String(r.courseId)}</div>
-                            )}
-                            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{r.studentName}</div>
-                            <div style={{ color: C.muted, fontSize: 12 }}>{r.studentEmail} · {r.studentPhone}</div>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: "#c4b5fd" }}>{enrollmentCourseLabel(r)}</div>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 6 }}>{r.studentName}</div>
+                            <div style={{ color: C.muted, fontSize: 12 }}>{r.studentEmail}{r.studentPhone ? ` · ${r.studentPhone}` : ""}</div>
                             <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                              <Badge color={st === "approved" ? C.success : st === "rejected" ? C.danger : C.warning}>{st}</Badge>
-                              {r.userId ? <Badge color={C.muted}>user</Badge> : <Badge color={C.muted}>{tx("بدون حساب", "No account")}</Badge>}
-                              {r.trainingType && <Badge color={C.purple}>{r.trainingType}</Badge>}
+                              <Badge color={st === "approved" ? C.success : st === "rejected" ? C.danger : C.warning}>
+                                {st === "approved" ? tx("مقبول","Approved") : st === "rejected" ? tx("مرفوض","Rejected") : tx("معلّق","Pending")}
+                              </Badge>
+                              {r.trainingType && (
+                                <Badge color={r.trainingType === "offline" ? C.orange : C.purple}>
+                                  {r.trainingType === "online" ? (ar ? "🖥 أونلاين" : "🖥 Online") : r.trainingType === "offline" ? (ar ? "🏢 حضوري" : "🏢 Offline") : r.trainingType}
+                                </Badge>
+                              )}
+                              {r.paymentPlan && <Badge color={C.muted}>{r.paymentPlan === "full" ? tx("دفع كامل","Full pay") : tx("أقساط","Install.")}</Badge>}
+                              {r.amountQuoted ? <Badge color="#1d6f42">{Number(r.amountQuoted).toLocaleString()} EGP</Badge> : null}
+                              {r.userId ? <Badge color="#555">✓ account</Badge> : <Badge color={C.muted}>{tx("بدون حساب","No account")}</Badge>}
                             </div>
+                            {r.level && <div style={{ marginTop: 4, fontSize: 11, color: C.muted }}>{tx("المستوى:","Level:")} {r.level}</div>}
+                            {r.source && <div style={{ fontSize: 11, color: C.muted }}>{tx("المصدر:","Source:")} {r.source}</div>}
                             {r.rejectReason && <div style={{ marginTop: 8, fontSize: 12, color: C.danger }}>{r.rejectReason}</div>}
                           </div>
                           {st === "pending" && (
@@ -1760,7 +1819,8 @@ export default function AdminDashboard() {
         />
       )}
       {modal?.type === "edit-course"     && modal.course && <EditCourseModal course={modal.course} />}
-      {modal?.type === "create-admin"    && <CreateAdminModal />}
+      {modal?.type === "create-admin"       && <CreateAdminModal />}
+      {modal?.type === "create-instructor"  && <CreateInstructorModal />}
       {modal?.type === "edit-user"       && modal.user && <EditUserModal user={modal.user} />}
       {modal?.type === "add-news"        && <AddNewsModal />}
       {modal?.type === "add-exam"        && <AddExamModal />}
