@@ -220,6 +220,33 @@ export default function AdminDashboard() {
     return "—";
   }, [courses, ar]);
 
+  const requestCreatedMs = (r) => {
+    const c = r?.createdAt;
+    if (c == null) return 0;
+    if (typeof c.toMillis === "function") return c.toMillis();
+    if (typeof c === "object" && typeof c.seconds === "number") return c.seconds * 1000;
+    return Date.parse(String(c)) || 0;
+  };
+
+  /** `enrollmentRequests` rows tied to this platform user (course registration form). */
+  const courseFormRequestsForUser = useCallback(
+    (u) => {
+      const em = String(u.email || "").trim().toLowerCase();
+      return enrollmentRequests.filter((r) => {
+        const byUid = r.userId && String(r.userId) === String(u.id);
+        const byEmail = em.length > 0 && String(r.studentEmail || "").trim().toLowerCase() === em;
+        return byUid || byEmail;
+      });
+    },
+    [enrollmentRequests],
+  );
+
+  /** Learners admins may add/remove from courses (includes pending accounts). */
+  const learnersManageable = useMemo(
+    () => users.filter((u) => (u.role === "student" || u.role === "user") && u.status !== "rejected"),
+    [users],
+  );
+
   const tabs = ar
     ? [
         ["overview",   "نظرة عامة"],
@@ -1072,7 +1099,12 @@ export default function AdminDashboard() {
         {tab === "users" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة المستخدمين", "User management")}</h2>
+              <div>
+                <h2 style={{ fontWeight: 900, fontSize: 18, margin: 0 }}>{tx("إدارة المستخدمين", "User management")}</h2>
+                <p style={{ color: C.muted, fontSize: 11, margin: "8px 0 0", lineHeight: 1.5, maxWidth: 560 }}>
+                  {tx("للمتعلمين: زر «إضافة / إزالة كورس» يفتح قائمة كل الكورسات. من تبويب «الكورسات» يمكنك أيضاً «تسجيل» طلاب في كورس محدد.", "For learners: «Add / remove courses» lists all courses. From the «Courses» tab you can also «Enroll» students into one course.")}
+                </p>
+              </div>
               {superAdmin && (
                 <Btn children={tx("إضافة مدير", "Create Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
               )}
@@ -1103,6 +1135,38 @@ export default function AdminDashboard() {
                               <Badge color={u.status === "approved" ? C.success : u.status === "pending" ? C.warning : C.danger}>{u.status}</Badge>
                               {(u.enrolledCourses || []).length > 0 && <Badge color={C.muted}>{u.enrolledCourses.length} {tx("كورسات", "courses")}</Badge>}
                             </div>
+                            {(u.role === "student" || u.role === "user") && (u.enrolledCourses || []).length > 0 && (
+                              <div style={{ fontSize: 10, color: C.muted, marginTop: 6, lineHeight: 1.5, maxWidth: 420 }}>
+                                <span style={{ fontWeight: 700, color: "#c4b5fd" }}>{tx("مسجّل في:", "Enrolled in:")} </span>
+                                {(u.enrolledCourses || []).map((e) => {
+                                  const c = courses.find((x) => String(x.id) === String(e.courseId));
+                                  return c ? (ar ? c.title : (c.title_en || c.title)) : String(e.courseId);
+                                }).join(ar ? "، " : ", ")}
+                              </div>
+                            )}
+                            {(u.role === "student" || u.role === "user") && (() => {
+                              const reqs = courseFormRequestsForUser(u).sort((a, b) => requestCreatedMs(b) - requestCreatedMs(a));
+                              if (!reqs.length) return null;
+                              return (
+                                <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 10, fontWeight: 700, color: C.orange, marginBottom: 6 }}>{tx("فورم تسجيل كورس", "Course signup form")}</div>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                    {reqs.map((r) => {
+                                      const st = r.enrollmentStatus ?? "pending";
+                                      const col = st === "approved" ? C.success : st === "rejected" ? C.danger : C.warning;
+                                      const stLabel = st === "approved" ? tx("مقبول", "Approved") : st === "rejected" ? tx("مرفوض", "Rejected") : tx("قيد المراجعة", "Pending");
+                                      return (
+                                        <div key={r.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, fontSize: 11 }}>
+                                          <Badge color={col}>{stLabel}</Badge>
+                                          <span style={{ fontWeight: 600 }}>{enrollmentCourseLabel(r)}</span>
+                                          <span style={{ color: C.muted, fontSize: 10 }}>({tx("معرّف", "ID")}: {String(r.courseId || "—")})</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -1114,8 +1178,8 @@ export default function AdminDashboard() {
                             </>
                           )}
                           {u.status === "rejected" && u.role !== "admin" && <Btn children="🔄" v="success" sm onClick={() => { approveUser(u.id); showT(tx("تم التفعيل", "Reactivated")); }} aria-label={tx("إعادة تفعيل", "Reactivate")} />}
-                          {(u.role === "student" || u.role === "user") && u.status === "approved" && (
-                            <Btn children={tx("كورسات", "Courses")} v="orange" sm onClick={() => setModal({ type: "enroll", user: u })} />
+                          {(u.role === "student" || u.role === "user") && u.status !== "rejected" && (
+                            <Btn children={tx("إضافة / إزالة كورس", "Add / remove courses")} v="orange" sm onClick={() => setModal({ type: "enroll", user: u })} title={tx("تسجيل الطالب في كورس أو إزالته منه", "Enroll this learner in a course or remove them")} />
                           )}
                           {u.role === "instructor" && u.status === "approved" && <Btn children={tx("تعيين", "Assign")} v="purple" sm onClick={() => setModal({ type: "assign", user: u })} />}
                         </div>
@@ -1708,7 +1772,13 @@ export default function AdminDashboard() {
       {modal?.type === "edit-team"       && <AddTeamMemberModal editing={modal.member} />}
 
       {modal?.type === "enroll" && (
-        <Modal title={`${tx("كورسات","Courses")}: ${modal.user.name}`} onClose={() => setModal(null)}>
+        <Modal title={`${tx("إدارة كورسات الطالب", "Manage learner courses")}: ${modal.user.name}`} onClose={() => setModal(null)}>
+          {modal.user.status === "pending" && (
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12, lineHeight: 1.6, padding: "10px 12px", background: "rgba(250,166,51,.1)", borderRadius: 10, border: "1px solid rgba(250,166,51,.25)" }}>
+              {tx("الحساب لا يزال بانتظار التفعيل. يمكنك ربطه بكورسات من هنا؛ يفضّل تفعيل الحساب أولاً من أزرار القبول.", "This account is still pending approval. You can link courses here; approving the account first is recommended.")}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{tx("«تسجيل» يضيف الكورس على المنصة. «إزالة» يلغي الوصول فقط (لا يحذف حساب الطالب).", "“Enroll” grants course access on the platform. “Remove” only unenrolls — it does not delete the user.")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {courses.map(c => {
               const isE = !!users.find(u => u.id === modal.user.id)?.enrolledCourses.find(e => e.courseId === c.id);
@@ -1728,14 +1798,18 @@ export default function AdminDashboard() {
 
       {modal?.type === "enroll-course" && (
         <Modal title={`${tx("تسجيل طلاب في","Enroll students in")}: ${modal.course.title}`} onClose={() => setModal(null)}>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{tx("يظهر كل المستخدمين/الطلاب غير المرفوضين (بما فيهم بانتظار التفعيل).", "Shows all non-rejected users/students (including pending approval).")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {approvedLearners.map(u => {
+            {learnersManageable.map(u => {
               const isE = !!u.enrolledCourses.find(e => e.courseId === modal.course.id);
               return (
                 <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: "rgba(255,255,255,.06)", borderRadius: 9 }}>
-                  <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#d91b5b,#b51549)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{u.avatar}</div>
-                    <span style={{ fontWeight: 600, fontSize: 12 }}>{u.name}</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ fontWeight: 600, fontSize: 12 }}>{u.name}</span>
+                      {u.status === "pending" && <Badge color={C.warning}>{tx("حساب بانتظار التفعيل", "Account pending")}</Badge>}
+                    </div>
                   </div>
                   {isE
                     ? <Btn children={tx("إزالة","Remove")}   sm v="danger"  onClick={() => { removeEnroll(u.id, modal.course.id); showT(tx("تم الإزالة","Removed"), "error"); }} />
