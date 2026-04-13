@@ -333,10 +333,23 @@ export function ForgotPasswordPage() {
     const r = await requestPasswordReset(email);
     setLoading(false);
     if (!r.ok) {
-      if (r.code === "invalid-email") {
+      const code = r.code || "";
+      if (code === "invalid-email") {
         setErr(lang === "ar" ? "صيغة البريد غير صحيحة" : "Invalid email format");
+      } else if (code === "auth/operation-not-allowed") {
+        setErr(lang === "ar"
+          ? "تسجيل الدخول بالبريد معطّل في إعدادات Firebase. فعّل «Email/Password» من لوحة المشروع."
+          : "Email sign-in is disabled in Firebase. Enable Email/Password in the Firebase console.");
+      } else if (code === "auth/network-request-failed") {
+        setErr(lang === "ar" ? "لا يوجد اتصال بالإنترنت أو تم حظر الطلب." : "No internet connection or the request was blocked.");
+      } else if (["auth/unauthorized-continue-uri", "auth/invalid-continue-uri"].includes(code)) {
+        setErr(lang === "ar"
+          ? "نطاق الموقع غير مضاف في Firebase → Authentication → Settings → Authorized domains. أضف نطاقك (مثل localhost أو دومين الإنتاج)."
+          : "This site’s domain is not in Firebase → Authentication → Settings → Authorized domains. Add your domain (e.g. localhost or production).");
       } else {
-        setErr(lang === "ar" ? "تعذر إرسال الرسالة. حاول لاحقاً أو تحقق من اتصالك." : "Could not send the email. Try again later.");
+        setErr(lang === "ar"
+          ? `تعذر إرسال الرسالة (${code || "خطأ غير معروف"}). تحقق من الإنترنت وإعدادات Firebase.`
+          : `Could not send the email (${code || "unknown"}). Check your connection and Firebase settings.`);
       }
       return;
     }

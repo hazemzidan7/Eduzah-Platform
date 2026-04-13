@@ -466,17 +466,30 @@ export function AuthProvider({ children }) {
   const requestPasswordReset = async (email) => {
     const e = email.trim().toLowerCase();
     if (!e.includes("@")) return { ok: false, code: "invalid-email" };
+    const withContinueUrl = () => {
+      if (typeof window === "undefined") return undefined;
+      return {
+        url: `${window.location.origin}/reset-password`,
+        /* Web: true breaks the flow; false keeps the link opening our SPA with oobCode. */
+        handleCodeInApp: false,
+      };
+    };
+    const send = (settings) => sendPasswordResetEmail(auth, e, settings);
     try {
-      const continueUrl = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
-      await sendPasswordResetEmail(
-        auth,
-        e,
-        continueUrl ? { url: continueUrl, handleCodeInApp: true } : undefined,
-      );
+      await send(withContinueUrl());
       return { ok: true };
     } catch (err) {
       if (err.code === "auth/user-not-found") return { ok: true };
       if (err.code === "auth/invalid-email") return { ok: false, code: "invalid-email" };
+      if (["auth/unauthorized-continue-uri", "auth/invalid-continue-uri"].includes(err.code)) {
+        try {
+          await send(undefined);
+          return { ok: true, usedDefaultEmailLink: true };
+        } catch (err2) {
+          if (err2.code === "auth/user-not-found") return { ok: true };
+          return { ok: false, code: err2.code || err.code };
+        }
+      }
       return { ok: false, code: err.code || "unknown" };
     }
   };
