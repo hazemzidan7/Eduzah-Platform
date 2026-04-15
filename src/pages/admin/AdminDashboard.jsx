@@ -374,6 +374,33 @@ export default function AdminDashboard() {
   };
 
   const EditCourseModal = ({ course: c }) => {
+    const defaultWhoAr = [
+      "المبتدئين الذين يريدون دخول المجال من الصفر",
+      "أصحاب العمل الذين يريدون فهم التكنولوجيا",
+      "المحترفون من مجالات أخرى الراغبون في التحول إلى التقنية",
+      "المطورون الذين يريدون رفع مستواهم",
+    ];
+    const defaultWhoEn = [
+      "Beginners who want to enter the field from scratch",
+      "Business owners who want to understand technology",
+      "Professionals from other fields looking to switch to Tech",
+      "Developers who want to level up their skills",
+    ];
+    const defaultFaqAr = [
+      { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
+      { q:"إيه طريقة التدريس؟",            a:"تدريب مباشر Online مع مدرب، مع تسجيلات لكل الجلسات. تقدر تشوف أي درس وقت ما تحب." },
+      { q:"هل في شهادة في الآخر؟",          a:"أيوه، بتاخد شهادة معتمدة من Eduzah عند إتمام الدبلومة بنجاح." },
+      { q:"إيه طرق الدفع المتاحة؟",         a:"الدفع عبر InstaPay على الرقم المعلن، مع خيار الدفع الكامل (خصم 5%) أو بالأقساط." },
+      { q:"هل فيه دعم بعد انتهاء الكورس؟", a:"أيوه، بتنضم لمجتمع خريجي Eduzah ومتاح لك دعم التوظيف وربطك بالشركات." },
+    ];
+    const defaultFaqEn = [
+      { q:"Do I need prior experience?",          a:"No, the diploma starts from scratch and takes you to a professional level. All you need is motivation and commitment." },
+      { q:"What is the teaching method?",         a:"Live online training with an instructor, plus recordings of all sessions. You can watch any lesson whenever you want." },
+      { q:"Is there a certificate at the end?",   a:"Yes, you receive an Eduzah-accredited certificate upon successfully completing the diploma." },
+      { q:"What payment methods are available?",  a:"InstaPay to the published wallet number, with full payment (5% discount) or installments." },
+      { q:"Is there support after the course?",   a:"Yes, you join the Eduzah alumni community with access to career support and company connections." },
+    ];
+
     const [f, setF] = useState({
       title: c.title || "",
       title_en: c.title_en || "",
@@ -390,11 +417,17 @@ export default function AdminDashboard() {
       bullets_en: (c.bullets_en || []).join("\n"),
       outcomes: (c.outcomes || []).join("\n"),
       outcomes_en: (c.outcomes_en || []).join("\n"),
-      techStackText: (c.techStack || []).map((g) => `${g.label}${g.ai ? " | ai" : ""}: ${(g.items || []).join(", ")}`).join("\n"),
-      who_ar: (c.who_ar || []).join("\n"),
-      who_en: (c.who_en || []).join("\n"),
-      faq_ar: (c.faq_ar || []).map(x => `${x.q} | ${x.a}`).join("\n"),
-      faq_en: (c.faq_en || []).map(x => `${x.q} | ${x.a}`).join("\n"),
+      techStackText: (Array.isArray(c.techStack) && c.techStack.length)
+        ? c.techStack.map((g) => `${g.label}${g.ai ? " | ai" : ""}: ${(g.items || []).join(", ")}`).join("\n")
+        : "",
+      who_ar: (Array.isArray(c.who_ar) && c.who_ar.length) ? c.who_ar.join("\n") : defaultWhoAr.join("\n"),
+      who_en: (Array.isArray(c.who_en) && c.who_en.length) ? c.who_en.join("\n") : defaultWhoEn.join("\n"),
+      faq_ar: (Array.isArray(c.faq_ar) && c.faq_ar.length)
+        ? c.faq_ar.map(x => `${x.q} | ${x.a}`).join("\n")
+        : defaultFaqAr.map(x => `${x.q} | ${x.a}`).join("\n"),
+      faq_en: (Array.isArray(c.faq_en) && c.faq_en.length)
+        ? c.faq_en.map(x => `${x.q} | ${x.a}`).join("\n")
+        : defaultFaqEn.map(x => `${x.q} | ${x.a}`).join("\n"),
       image: c.image || null,
       presentationUrl: c.presentationUrl || "",
       introVideoUrl: c.introVideoUrl || "",
