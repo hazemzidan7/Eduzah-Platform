@@ -181,6 +181,8 @@ export default function CourseRegister() {
         paymentMethod: "instapay",
         paymentPlan,
         amountQuoted,
+        // Prefer a unified status field; keep enrollmentStatus for backwards compatibility
+        status: "pending",
         enrollmentStatus: "pending",
         createdAt: new Date().toISOString(),
       });

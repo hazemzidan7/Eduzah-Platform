@@ -52,6 +52,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
     const status = reqSt === "pending" && enrollment ? "approved" : reqSt;
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
+      userId:           profile?.id || null,    // platform uid (if exists)
       name:             r.studentName || profile?.name || "",
       email:            r.studentEmail || "",
       phone:            r.studentPhone || profile?.phone || "",
@@ -67,6 +68,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      fmtDate(r.createdAt),
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
+      contactStatus:    enrollment?.contactStatus || "not_contacted",
+      contactUpdatedAt: enrollment?.contactUpdatedAt || null,
     });
   }
 
@@ -79,6 +82,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
     seen.add(key);
     rows.push({
       docId:            null,
+      userId:           u.id || null,
       name:             u.name || "",
       email:            u.email || "",
       phone:            u.phone || "",
@@ -90,6 +94,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
       paymentConfirmed: false,
       confirmedAt:      null,
+      contactStatus:    enrollment?.contactStatus || "not_contacted",
+      contactUpdatedAt: enrollment?.contactUpdatedAt || null,
     });
   }
 

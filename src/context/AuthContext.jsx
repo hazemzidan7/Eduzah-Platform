@@ -359,6 +359,9 @@ export function AuthProvider({ children }) {
     const updated = [...(u.enrolledCourses || []), {
       courseId: cid, progress: 0, completedLessons: [],
       enrollDate: new Date().toLocaleDateString("ar-EG"),
+      // Admin dashboard uses this for follow-up tracking per course enrollment
+      contactStatus: "not_contacted", // not_contacted | contacted
+      contactUpdatedAt: null,
     }];
     const enrolledCourseIds = courseIdsFromEnrolled(updated);
     const roleNext = u.role === "user" ? "student" : u.role;
@@ -427,6 +430,7 @@ export function AuthProvider({ children }) {
     }
 
     await updateDoc(refReq, {
+      status: "approved",
       enrollmentStatus: "approved",
       reviewedAt: new Date().toISOString(),
       ...(currentUser?.id ? { reviewedBy: currentUser.id } : {}),
@@ -441,6 +445,7 @@ export function AuthProvider({ children }) {
     if (!snap.exists()) return { ok: false, code: "NOT_FOUND" };
     const r = snap.data();
     await updateDoc(refReq, {
+      status: "rejected",
       enrollmentStatus: "rejected",
       rejectReason: String(reason || "").trim(),
       reviewedAt: new Date().toISOString(),

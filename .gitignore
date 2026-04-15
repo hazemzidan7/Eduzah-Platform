@@ -8,3 +8,5 @@ imges/
 *.HEIC
 *.heic
 .claude/
+
+.vercel
