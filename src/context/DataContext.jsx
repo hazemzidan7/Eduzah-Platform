@@ -165,6 +165,21 @@ export function DataProvider({ children }) {
       }
       return out;
     };
+    const parseCurriculum = (v) => {
+      // Format per line:
+      // Chapter title: lesson 1, lesson 2, lesson 3
+      const out = [];
+      for (const line of parseLines(v)) {
+        const [lhsRaw, rhsRaw] = line.split(":");
+        const title = String(lhsRaw || "").trim();
+        const rhs = String((rhsRaw ?? "")).trim();
+        if (!title || !rhs) continue;
+        const lessons = rhs.split(",").map(s => s.trim()).filter(Boolean);
+        if (lessons.length === 0) continue;
+        out.push({ title, lessons });
+      }
+      return out;
+    };
     const nc = {
       slug,
       title: form.title, title_en: form.title_en || form.title,
@@ -187,7 +202,7 @@ export function DataProvider({ children }) {
       outcomes: parseLines(form.outcomes),
       outcomes_en: parseLines(form.outcomes_en),
       techStack: parseTechStack(form.techStackText),
-      curriculum: [],
+      curriculum: parseCurriculum(form.curriculumText),
       reviews: [],
       who_ar: parseLines(form.who_ar),
       who_en: parseLines(form.who_en),

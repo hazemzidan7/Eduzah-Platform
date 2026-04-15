@@ -287,6 +287,7 @@ export default function AdminDashboard() {
       presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
       techStackText:"",
+      curriculumText:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
@@ -299,6 +300,47 @@ export default function AdminDashboard() {
       showT("تم إضافة الكورس بنجاح!");
       setModal(null);
     };
+
+    const fillFrontendDiplomaFromPdf = () => {
+      const techStackText =
+        [
+          "Front-End Fundamentals: HTML, HTML5, CSS, CSS3, CSS FLEX, CSS GRID, JavaScript, ES NEXT, Asynchronous Programming, JavaScript Modules, DOM & BOM, TypeScript, Regular Expressions, Functional Programming, AJAX, JSON, Bootstrap 5, JQuery, JQuery Plugins, NPM, SASS, SEO Optimization, Performance Optimization, Hosting and Domains, Figma",
+          "React Path: What is React & SPA, JSX & Virtual DOM, Components & Props, State & Lifecycle, Event Handling, Lists & Conditional Rendering, Forms Handling, HTTP Requests (Axios/Fetch), Routing (React Router), Styling in React (CSS Modules, Inline Styles), Project: Mini App (To-do / Blog), Project: Final E-Commerce Website",
+          "Angular Path + TypeScript: Angular Overview, Angular CLI Setup, Architecture & Modules, Components & Data Binding, Directives & Pipes, TypeScript Syntax & Types, TypeScript OOP Basics, Forms (Template-Driven & Reactive), HTTP Client for RESTful API, Component Lifecycle, Routing & SPA, Styling Angular Apps",
+          "Redux | ai: What is Redux & Why, Store / Actions / Reducers, Redux with React, Redux Thunk & Async Actions, Redux Toolkit Basics, Project: Portfolio or Blog, Project: Semi Project, Project: Final E-Commerce (Products, cart, filters, API, routing)",
+        ].join("\n");
+
+      const curriculumText =
+        [
+          "Front-End Fundamentals (01): HTML, CSS, JavaScript, TypeScript, Bootstrap, JQuery, NPM, SASS, SEO, Performance, Hosting, Figma",
+          "React Path (02): React & SPA, JSX & Virtual DOM, Components & Props, State & Lifecycle, Forms, HTTP Requests, Routing, Styling, Projects",
+          "Angular + TypeScript (03): Angular CLI, Modules, Data Binding, Directives, Pipes, Forms, HTTP Client, Routing, Styling",
+          "Redux + Projects (04-05): Redux concepts, Redux Toolkit, Thunks, Portfolio/Blog, Semi Project, Final E-Commerce",
+        ].join("\n");
+
+      setF((p) => ({
+        ...p,
+        title: "دبلومة Front-End Web Development",
+        title_en: "Front-End Web Development Diploma",
+        cat: "tech",
+        price: "4000",
+        duration: "20 أسبوع",
+        hours: "150",
+        projects: "3",
+        tagline: "دبلومة Front-End كاملة من الأساسيات حتى المشاريع",
+        tagline_en: "Full Front-End diploma from fundamentals to projects",
+        desc: "دبلومة Front-End شاملة تبدأ من HTML/CSS/JS ثم React وAngular وRedux مع مشاريع تطبيقية وتجهيز لسوق العمل.",
+        desc_en: "A complete Front-End diploma covering HTML/CSS/JS, then React, Angular, and Redux with hands-on projects and job-market preparation.",
+        bullets: "منهج شامل ومكثف\nمشاريع تطبيقية حقيقية\nتأهيل لسوق العمل\nتعلم مرن Online/Offline",
+        bullets_en: "Comprehensive curriculum\nReal hands-on projects\nJob market preparation\nFlexible learning (online/offline)",
+        outcomes: "إتقان HTML/CSS وبناء صفحات Responsive\nإتقان JavaScript وTypeScript\nبناء تطبيقات React\nبناء تطبيقات Angular\nإدارة الحالة باستخدام Redux\nتنفيذ مشروع E-Commerce نهائي",
+        outcomes_en: "Master HTML/CSS and responsive layouts\nMaster JavaScript & TypeScript\nBuild React apps\nBuild Angular apps\nState management with Redux\nDeliver a final E-Commerce project",
+        techStackText,
+        curriculumText,
+      }));
+      showT("تم ملء بيانات الدبلومة من الـ PDF (راجعها وعدّل قبل الإضافة).");
+    };
+
     return (
       <Modal title="إضافة كورس جديد" onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -355,6 +397,13 @@ export default function AdminDashboard() {
               placeholder={"Front-End: HTML, CSS, JavaScript\nReact: React, Hooks, Router\nأدوات AI | ai: Prompting, Gemini"}
               rows={4}
             />
+            <Input
+              label={tx("محتوى البرنامج (Curriculum) — كل سطر: الوحدة: lesson1, lesson2", "Curriculum — per line: Unit: lesson1, lesson2")}
+              value={f.curriculumText}
+              onChange={v => set("curriculumText", v)}
+              placeholder={"Front-End Fundamentals: HTML, CSS, JS\nReact Path: Components, Hooks, Router"}
+              rows={4}
+            />
             <Input label={tx("هذا البرنامج مناسب إذا كنت… (عربي) — سطر لكل نقطة", "Who is this for (AR) — one per line")} value={f.who_ar} onChange={v => set("who_ar", v)} placeholder={"المبتدئين الذين يريدون دخول المجال من الصفر\nالمطورون الذين يريدون رفع مستواهم"} rows={3} />
             <Input label={tx("Who is this for (EN) — one per line", "Who is this for (EN) — one per line")} value={f.who_en} onChange={v => set("who_en", v)} placeholder={"Beginners who want to enter from scratch\nDevelopers who want to level up"} rows={3} />
             <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر...\nإيه طرق الدفع؟ | الدفع عبر InstaPay..."} rows={4} />
@@ -367,6 +416,9 @@ export default function AdminDashboard() {
             <Input label={tx("تبويب Google Sheet", "Google Sheet tab name")} value={f.sheetsTabName} onChange={v => set("sheetsTabName", v)} placeholder="course-tab" />
             <Input label={tx("إيميلات إشعار التسجيل (فاصلة)", "Notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="a@x.com, b@x.com" rows={2} />
           </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          <Btn children={tx("تعبئة Front-End Diploma (PDF)", "Fill Front-End Diploma (PDF)")} v="outline" onClick={fillFrontendDiplomaFromPdf} />
         </div>
         <Btn children={tx("إضافة الكورس", "Add Course")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
@@ -420,6 +472,9 @@ export default function AdminDashboard() {
       techStackText: (Array.isArray(c.techStack) && c.techStack.length)
         ? c.techStack.map((g) => `${g.label}${g.ai ? " | ai" : ""}: ${(g.items || []).join(", ")}`).join("\n")
         : "",
+      curriculumText: (Array.isArray(c.curriculum) && c.curriculum.length)
+        ? c.curriculum.map((u) => `${u.title}: ${(u.lessons || []).join(", ")}`).join("\n")
+        : "",
       who_ar: (Array.isArray(c.who_ar) && c.who_ar.length) ? c.who_ar.join("\n") : defaultWhoAr.join("\n"),
       who_en: (Array.isArray(c.who_en) && c.who_en.length) ? c.who_en.join("\n") : defaultWhoEn.join("\n"),
       faq_ar: (Array.isArray(c.faq_ar) && c.faq_ar.length)
@@ -469,6 +524,19 @@ export default function AdminDashboard() {
         }
         return out;
       };
+      const parseCurriculum = (v) => {
+        const out = [];
+        for (const line of parseLines(v)) {
+          const [lhsRaw, rhsRaw] = line.split(":");
+          const title = String(lhsRaw || "").trim();
+          const rhs = String((rhsRaw ?? "")).trim();
+          if (!title || !rhs) continue;
+          const lessons = rhs.split(",").map(s => s.trim()).filter(Boolean);
+          if (!lessons.length) continue;
+          out.push({ title, lessons });
+        }
+        return out;
+      };
       updateCourse(c.id, {
         title: f.title,
         title_en: f.title_en || f.title,
@@ -487,6 +555,7 @@ export default function AdminDashboard() {
         outcomes: f.outcomes.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes_en: f.outcomes_en.split("\n").map(s => s.trim()).filter(Boolean),
         techStack: parseTechStack(f.techStackText),
+        curriculum: parseCurriculum(f.curriculumText),
         who_ar: parseLines(f.who_ar),
         who_en: parseLines(f.who_en),
         faq_ar: parseFaq(f.faq_ar),
