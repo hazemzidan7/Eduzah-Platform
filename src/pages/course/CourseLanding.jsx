@@ -118,6 +118,11 @@ export default function CourseLanding() {
     ? (course.outcomes || [])
     : ((course.outcomes_en && course.outcomes_en.length) ? course.outcomes_en : (course.outcomes || []));
 
+  const priceNum = Number(course.price) || 0;
+  const installmentNum = Number(course.installment) || (priceNum ? Math.round(priceNum / 3) : 0);
+  const hoursNum = Number(course.hours) || 0;
+  const projectsNum = Number(course.projects) || 0;
+
   const handleEnroll = () => {
     if (enrollmentReqStatus === "pending") return;
     navigate(`/courses/${slug}/register`);
@@ -225,15 +230,15 @@ export default function CourseLanding() {
               {course.badge && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
             </div>
             <div style={{ padding: 18 }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{course.price.toLocaleString()} EGP</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{priceNum.toLocaleString()} EGP</div>
               <div style={{ color: C.muted, fontSize: 11, marginBottom: 14 }}>
-                {lang === "ar" ? `أو 3 أقساط × ${course.installment.toLocaleString()} EGP` : `or 3 installments × ${course.installment.toLocaleString()} EGP`}
+                {lang === "ar" ? `أو 3 أقساط × ${installmentNum.toLocaleString()} EGP` : `or 3 installments × ${installmentNum.toLocaleString()} EGP`}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
                 {[
                   [course.duration?.split(" ")[0] || "—", lang === "ar" ? "أسبوع" : "weeks"],
-                  [course.hours + "", lang === "ar" ? "ساعة" : "hours"],
-                  [(course.projects || 0) + "+", lang === "ar" ? "مشروع" : "projects"],
+                  [hoursNum + "", lang === "ar" ? "ساعة" : "hours"],
+                  [projectsNum + "+", lang === "ar" ? "مشروع" : "projects"],
                   [(course.rating || 5) + "", lang === "ar" ? "تقييم" : "rating"],
                 ].map(([v, l]) => (
                   <div key={l} style={{ textAlign: "center" }}>
@@ -506,7 +511,7 @@ export default function CourseLanding() {
           {lang === "ar" ? "الدفعة القادمة محدودة — الأماكن تمتلئ بسرعة" : "Next batch is limited — spots fill up fast"}
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
-          <Btn children={enrolled ? enrollBtnLabel : `${enrollBtnLabel} — ${course.price.toLocaleString()} EGP`} onClick={enrolled ? goLearn : handleEnroll} disabled={!enrolled && enrollmentReqStatus === "pending"} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
+          <Btn children={enrolled ? enrollBtnLabel : `${enrollBtnLabel} — ${priceNum.toLocaleString()} EGP`} onClick={enrolled ? goLearn : handleEnroll} disabled={!enrolled && enrollmentReqStatus === "pending"} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
           <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
             style={{ background: "#25d366", color: "#fff", padding: "13px 24px", borderRadius: 12, fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
             {lang === "ar" ? "استفسر عبر واتساب" : "Ask on WhatsApp"}
@@ -521,10 +526,10 @@ export default function CourseLanding() {
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(26,10,46,.97)", backdropFilter: "blur(16px)", borderTop: `1px solid ${C.border}`, padding: "10px 4%", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 90, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 13 }}>{lang === "ar" ? course.title : (course.title_en || course.title)}</div>
-          <div style={{ color: C.muted, fontSize: 11 }}>{dur(course.duration)} · {course.hours}h · {course.projects}+ {lang === "ar" ? "مشروع" : "projects"}</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>{dur(course.duration)} · {hoursNum}h · {projectsNum}+ {lang === "ar" ? "مشروع" : "projects"}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{course.price.toLocaleString()} EGP</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{priceNum.toLocaleString()} EGP</div>
           {enrolled
             ? <Btn children={enrollBtnLabel} sm onClick={goLearn} />
             : <Btn children={enrollBtnLabel} sm onClick={handleEnroll} disabled={enrollmentReqStatus === "pending"} />
