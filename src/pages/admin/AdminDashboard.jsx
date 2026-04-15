@@ -286,6 +286,7 @@ export default function AdminDashboard() {
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
       presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
+      techStackText:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
@@ -347,6 +348,13 @@ export default function AdminDashboard() {
             <Input label="Key points — English (one per line)" value={f.bullets_en} onChange={v => set("bullets_en", v)} placeholder={"Point 1\nPoint 2"} rows={3} />
             <Input label="المهارات — عربي (سطر لكل مهارة)" value={f.outcomes} onChange={v => set("outcomes", v)} placeholder={"مهارة 1\nمهارة 2"} rows={2} />
             <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
+            <Input
+              label={tx("ما ستتعلمه (Tech Stack) — كل سطر: المجموعة: item1, item2 (واكتب | ai للمجموعة)", "Tech Stack — per line: Group: item1, item2 (use | ai to highlight)")}
+              value={f.techStackText}
+              onChange={v => set("techStackText", v)}
+              placeholder={"Front-End: HTML, CSS, JavaScript\nReact: React, Hooks, Router\nأدوات AI | ai: Prompting, Gemini"}
+              rows={4}
+            />
             <Input label={tx("هذا البرنامج مناسب إذا كنت… (عربي) — سطر لكل نقطة", "Who is this for (AR) — one per line")} value={f.who_ar} onChange={v => set("who_ar", v)} placeholder={"المبتدئين الذين يريدون دخول المجال من الصفر\nالمطورون الذين يريدون رفع مستواهم"} rows={3} />
             <Input label={tx("Who is this for (EN) — one per line", "Who is this for (EN) — one per line")} value={f.who_en} onChange={v => set("who_en", v)} placeholder={"Beginners who want to enter from scratch\nDevelopers who want to level up"} rows={3} />
             <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر...\nإيه طرق الدفع؟ | الدفع عبر InstaPay..."} rows={4} />
@@ -382,6 +390,7 @@ export default function AdminDashboard() {
       bullets_en: (c.bullets_en || []).join("\n"),
       outcomes: (c.outcomes || []).join("\n"),
       outcomes_en: (c.outcomes_en || []).join("\n"),
+      techStackText: (c.techStack || []).map((g) => `${g.label}${g.ai ? " | ai" : ""}: ${(g.items || []).join(", ")}`).join("\n"),
       who_ar: (c.who_ar || []).join("\n"),
       who_en: (c.who_en || []).join("\n"),
       faq_ar: (c.faq_ar || []).map(x => `${x.q} | ${x.a}`).join("\n"),
@@ -411,6 +420,22 @@ export default function AdminDashboard() {
         }
         return out;
       };
+      const parseTechStack = (v) => {
+        const out = [];
+        for (const line of parseLines(v)) {
+          const [lhsRaw, rhsRaw] = line.split(":");
+          const lhs = String(lhsRaw || "").trim();
+          const rhs = String((rhsRaw ?? "")).trim();
+          if (!lhs || !rhs) continue;
+          const lhsParts = lhs.split("|").map(s => s.trim()).filter(Boolean);
+          const label = lhsParts[0] || "";
+          const ai = lhsParts.slice(1).some(p => p.toLowerCase() === "ai");
+          const items = rhs.split(",").map(s => s.trim()).filter(Boolean);
+          if (!label || items.length === 0) continue;
+          out.push({ label, items, ...(ai ? { ai: true } : {}) });
+        }
+        return out;
+      };
       updateCourse(c.id, {
         title: f.title,
         title_en: f.title_en || f.title,
@@ -428,6 +453,7 @@ export default function AdminDashboard() {
         bullets_en: f.bullets_en.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes: f.outcomes.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes_en: f.outcomes_en.split("\n").map(s => s.trim()).filter(Boolean),
+        techStack: parseTechStack(f.techStackText),
         who_ar: parseLines(f.who_ar),
         who_en: parseLines(f.who_en),
         faq_ar: parseFaq(f.faq_ar),

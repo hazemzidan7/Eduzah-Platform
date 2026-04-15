@@ -144,6 +144,27 @@ export function DataProvider({ children }) {
       }
       return out;
     };
+    const parseTechStack = (v) => {
+      // Format per line:
+      // Group label [| ai]: item1, item2, item3
+      // Example:
+      // Front-End: HTML, CSS, JS
+      // أدوات AI | ai: Prompting, Gemini
+      const out = [];
+      for (const line of parseLines(v)) {
+        const [lhsRaw, rhsRaw] = line.split(":");
+        const lhs = String(lhsRaw || "").trim();
+        const rhs = String((rhsRaw ?? "")).trim();
+        if (!lhs || !rhs) continue;
+        const lhsParts = lhs.split("|").map(s => s.trim()).filter(Boolean);
+        const label = lhsParts[0] || "";
+        const ai = lhsParts.slice(1).some(p => p.toLowerCase() === "ai");
+        const items = rhs.split(",").map(s => s.trim()).filter(Boolean);
+        if (!label || items.length === 0) continue;
+        out.push({ label, items, ...(ai ? { ai: true } : {}) });
+      }
+      return out;
+    };
     const nc = {
       slug,
       title: form.title, title_en: form.title_en || form.title,
@@ -165,7 +186,9 @@ export function DataProvider({ children }) {
       bullets_en: parseLines(form.bullets_en),
       outcomes: parseLines(form.outcomes),
       outcomes_en: parseLines(form.outcomes_en),
-      techStack: [], curriculum: [], reviews: [],
+      techStack: parseTechStack(form.techStackText),
+      curriculum: [],
+      reviews: [],
       who_ar: parseLines(form.who_ar),
       who_en: parseLines(form.who_en),
       faq_ar: parseFaq(form.faq_ar),
