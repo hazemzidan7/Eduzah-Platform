@@ -118,6 +118,8 @@ export default function CourseLanding() {
     ? (course.outcomes || [])
     : ((course.outcomes_en && course.outcomes_en.length) ? course.outcomes_en : (course.outcomes || []));
 
+  const durationStr = String(course.duration ?? "");
+  const durationBadge = dur(durationStr || (lang === "ar" ? "—" : "—"));
   const priceNum = Number(course.price) || 0;
   const installmentNum = Number(course.installment) || (priceNum ? Math.round(priceNum / 3) : 0);
   const hoursNum = Number(course.hours) || 0;
@@ -204,8 +206,8 @@ export default function CourseLanding() {
               <span style={{ fontWeight: 800, color: C.orange, fontSize: 13 }}>{course.rating || "5.0"}</span>
             </div>
             <span style={{ color: C.muted, fontSize: 12 }}>({course.students || 0}+ {lang === "ar" ? "خريج" : "graduates"})</span>
-            <Badge color={C.orange}>{dur(course.duration)}</Badge>
-            <Badge color={C.purple}>{course.hours}h</Badge>
+            <Badge color={C.orange}>{durationBadge}</Badge>
+            <Badge color={C.purple}>{hoursNum}h</Badge>
           </div>
 
           {/* CTA buttons */}
@@ -236,7 +238,7 @@ export default function CourseLanding() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
                 {[
-                  [course.duration?.split(" ")[0] || "—", lang === "ar" ? "أسبوع" : "weeks"],
+                  [(durationStr.split(" ")[0] || "—"), lang === "ar" ? "أسبوع" : "weeks"],
                   [hoursNum + "", lang === "ar" ? "ساعة" : "hours"],
                   [projectsNum + "+", lang === "ar" ? "مشروع" : "projects"],
                   [(course.rating || 5) + "", lang === "ar" ? "تقييم" : "rating"],
@@ -526,7 +528,7 @@ export default function CourseLanding() {
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(26,10,46,.97)", backdropFilter: "blur(16px)", borderTop: `1px solid ${C.border}`, padding: "10px 4%", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 90, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 13 }}>{lang === "ar" ? course.title : (course.title_en || course.title)}</div>
-          <div style={{ color: C.muted, fontSize: 11 }}>{dur(course.duration)} · {hoursNum}h · {projectsNum}+ {lang === "ar" ? "مشروع" : "projects"}</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>{durationBadge} · {hoursNum}h · {projectsNum}+ {lang === "ar" ? "مشروع" : "projects"}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: C.orange }}>{priceNum.toLocaleString()} EGP</div>
