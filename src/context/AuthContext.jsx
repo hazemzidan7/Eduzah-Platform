@@ -360,7 +360,7 @@ export function AuthProvider({ children }) {
       courseId: cid, progress: 0, completedLessons: [],
       enrollDate: new Date().toLocaleDateString("ar-EG"),
       // Admin dashboard uses this for follow-up tracking per course enrollment
-      contactStatus: "not_contacted", // not_contacted | contacted
+      contactStatus: "no_response",
       contactUpdatedAt: null,
     }];
     const enrolledCourseIds = courseIdsFromEnrolled(updated);

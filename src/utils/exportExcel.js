@@ -69,7 +69,14 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      fmtDate(r.createdAt),
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
-      contactStatus:    enrollment?.contactStatus || "not_contacted",
+      contactStatus:    (() => {
+        const v = enrollment?.contactStatus;
+        if (!v) return "no_response";
+        // Backwards compatibility (old toggle values)
+        if (v === "not_contacted") return "no_response";
+        if (v === "contacted") return "confirmed_will_pay";
+        return v;
+      })(),
       contactUpdatedAt: enrollment?.contactUpdatedAt || null,
     });
   }
@@ -95,7 +102,13 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
       paymentConfirmed: false,
       confirmedAt:      null,
-      contactStatus:    enrollment?.contactStatus || "not_contacted",
+      contactStatus:    (() => {
+        const v = enrollment?.contactStatus;
+        if (!v) return "no_response";
+        if (v === "not_contacted") return "no_response";
+        if (v === "contacted") return "confirmed_will_pay";
+        return v;
+      })(),
       contactUpdatedAt: enrollment?.contactUpdatedAt || null,
     });
   }

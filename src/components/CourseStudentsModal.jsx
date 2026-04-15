@@ -38,6 +38,22 @@ function Pill({ children, color }) {
   );
 }
 
+const CONTACT_CFG = {
+  no_response:         { label: "مردش",                   color: "#94a3b8" },
+  wont_book:          { label: "مش هيحجز",               color: "#f87171" },
+  thinking:           { label: "هيفكر ويحجز",             color: "#fbbf24" },
+  confirmed_will_pay: { label: "أكد وهيدفع",              color: "#a78bfa" },
+  booked_paid:        { label: "حجز حالياً ودفع",         color: "#34d399" },
+  future_round:       { label: "هيحجز في راوند قادمة",    color: "#60a5fa" },
+  booked_previous:    { label: "حاجز في راوند سابقة",     color: "#fb7185" },
+  attending_current:  { label: "بيحضر في الراوند الحالية", color: "#22c55e" },
+};
+
+function ContactPill({ value }) {
+  const cfg = CONTACT_CFG[value] || CONTACT_CFG.no_response;
+  return <Pill color={cfg.color}>{cfg.label}</Pill>;
+}
+
 function Stat({ label, value, sub, color="#fff", accent=false }) {
   return (
     <div style={{ background: accent ? "rgba(52,211,153,.08)" : "rgba(255,255,255,.04)",
@@ -216,14 +232,17 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     }
   };
 
-  // ── Toggle contact status (per enrolled course) ──────────────────────────
-  const handleToggleContact = async (row) => {
+  // ── Set contact status (per enrolled course) ─────────────────────────────
+  const handleSetContact = async (row, nextStatusRaw) => {
     if (!row.userId || savingContact) return;
+    const approved = (row.status || "pending") === "approved";
+    if (!approved) return;
+    const nextStatus = CONTACT_CFG[nextStatusRaw] ? nextStatusRaw : "no_response";
+
     setSavingContact(row.userId);
     try {
       const u = allUsers.find((x) => x.id === row.userId);
       const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
-      const nextStatus = (row.contactStatus || "not_contacted") === "contacted" ? "not_contacted" : "contacted";
       const nextAt = new Date().toISOString();
       const updatedEnrollments = enrolled.map((e) => {
         if (String(e.courseId) !== String(course.id)) return e;
@@ -304,42 +323,46 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       )},
     { key:"phone", label:"الهاتف", w:130,
       render:(r) => <span style={{fontFamily:"monospace",fontSize:12}}>{r.phone||"—"}</span> },
-    { key:"contactStatus", label:"حالة التواصل", w:140,
+    { key:"contactStatus", label:"حالة التواصل", w:260,
       render:(r) => {
-        const st = r.contactStatus || "not_contacted";
-        const contacted = st === "contacted";
         const approved = (r.status || "pending") === "approved";
         const disabled = !approved || !r.userId;
-        const loadingBtn = savingContact === r.userId;
+        const loadingSel = savingContact === r.userId;
+        const st = r.contactStatus || "no_response";
+        const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
         return (
-          <button
-            onClick={() => handleToggleContact(r)}
-            disabled={disabled || loadingBtn}
-            title={
-              !approved
-                ? "متاح بعد قبول الطلب وتسجيل الطالب في الكورس"
-                : (!r.userId ? "لا يوجد حساب على المنصة لهذا البريد" : "تغيير حالة التواصل")
-            }
-            style={{
-              display:"inline-flex", alignItems:"center", gap:6,
-              padding:"6px 10px", borderRadius:9, border:"none",
-              cursor: (disabled || loadingBtn) ? "not-allowed" : "pointer",
-              fontFamily:font, fontWeight:800, fontSize:11,
-              background: contacted ? "rgba(52,211,153,.16)" : "rgba(255,255,255,.06)",
-              color: contacted ? "#34d399" : C.muted,
-              outline: `1.5px solid ${contacted ? "rgba(52,211,153,.45)" : C.border}`,
-              opacity: (disabled || loadingBtn) ? 0.55 : 1,
-              whiteSpace:"nowrap",
-            }}
-          >
-            {loadingBtn
-              ? <span style={{ width:12, height:12, border:"2px solid currentColor",
-                  borderTopColor:"transparent", borderRadius:"50%",
-                  animation:"spin .6s linear infinite", display:"inline-block" }}/>
-              : <span style={{ fontSize: 12 }}>{contacted ? "✓" : "○"}</span>
-            }
-            {contacted ? "تم التواصل" : "لم يتم التواصل"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+            <ContactPill value={st} />
+            <select
+              value={st}
+              onChange={(e) => handleSetContact(r, e.target.value)}
+              disabled={disabled || loadingSel}
+              title={
+                !approved
+                  ? "متاح بعد قبول الطلب وتسجيل الطالب في الكورس"
+                  : (!r.userId ? "لا يوجد حساب على المنصة لهذا البريد" : "اختر حالة التواصل")
+              }
+              style={{
+                padding: "6px 10px",
+                borderRadius: 9,
+                background: disabled ? "rgba(255,255,255,.04)" : `${cfg.color}14`,
+                color: disabled ? "rgba(255,255,255,.35)" : "#fff",
+                border: `1.5px solid ${disabled ? C.border : `${cfg.color}55`}`,
+                outline: "none",
+                fontFamily: font,
+                fontWeight: 800,
+                fontSize: 11,
+                cursor: (disabled || loadingSel) ? "not-allowed" : "pointer",
+                minWidth: 180,
+              }}
+            >
+              {Object.entries(CONTACT_CFG).map(([k, v]) => (
+                <option key={k} value={k} style={{ color: "#111827" }}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </div>
         );
       }},
     { key:"payPlan", label:"خطة الدفع", w:130,
