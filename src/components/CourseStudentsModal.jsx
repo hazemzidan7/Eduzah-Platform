@@ -642,8 +642,10 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
             </div>
 
             {/* ── Table ── */}
-            <div style={{overflowX:"auto",borderRadius:12,border:`1px solid ${C.border}`}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:12}}>
+            <div style={{ overflow: "visible", borderRadius: 12, border: `1px solid ${C.border}` }}>
+              {/* Keep horizontal scroll without clipping dropdown menus */}
+              <div style={{ overflowX: "auto", overflowY: "visible" }}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:12}}>
                 <thead>
                   <tr style={{background:"linear-gradient(135deg,#2a1540,#3d1f5c)"}}>
                     {COLS.map(col => (
@@ -704,7 +706,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                     );
                   })}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
 
             {/* ── Footer ── */}
