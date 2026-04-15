@@ -234,23 +234,37 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
 
   // ── Set contact status (per enrolled course) ─────────────────────────────
   const handleSetContact = async (row, nextStatusRaw) => {
-    if (!row.userId || savingContact) return;
-    const approved = (row.status || "pending") === "approved";
-    if (!approved) return;
+    if (savingContact) return;
     const nextStatus = CONTACT_CFG[nextStatusRaw] ? nextStatusRaw : "no_response";
 
-    setSavingContact(row.userId);
+    const lockKey = row.userId || row.docId || "x";
+    setSavingContact(lockKey);
     try {
-      const u = allUsers.find((x) => x.id === row.userId);
-      const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
       const nextAt = new Date().toISOString();
-      const updatedEnrollments = enrolled.map((e) => {
-        if (String(e.courseId) !== String(course.id)) return e;
-        return { ...e, contactStatus: nextStatus, contactUpdatedAt: nextAt };
-      });
-      await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      const approved = (row.status || "pending") === "approved";
+
+      // Always persist on enrollment request if we have it (works for guests + pending)
+      if (row.docId) {
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), {
+          contactStatus: nextStatus,
+          contactUpdatedAt: nextAt,
+        });
+      }
+
+      // If approved + has platform userId, also persist on user enrollment entry
+      if (approved && row.userId) {
+        const u = allUsers.find((x) => x.id === row.userId);
+        const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
+        const updatedEnrollments = enrolled.map((e) => {
+          if (String(e.courseId) !== String(course.id)) return e;
+          return { ...e, contactStatus: nextStatus, contactUpdatedAt: nextAt };
+        });
+        await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      }
+
+      // Update UI
       setRows((prev) => prev.map((r) => (
-        r.userId === row.userId
+        (row.docId && r.docId === row.docId) || (row.userId && r.userId === row.userId)
           ? { ...r, contactStatus: nextStatus, contactUpdatedAt: nextAt }
           : r
       )));
@@ -326,8 +340,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     { key:"contactStatus", label:"حالة التواصل", w:260,
       render:(r) => {
         const approved = (r.status || "pending") === "approved";
-        const disabled = !approved || !r.userId;
-        const loadingSel = savingContact === r.userId;
+        const disabled = !r.docId && !r.userId;
+        const loadingSel = savingContact === (r.userId || r.docId);
         const st = r.contactStatus || "no_response";
         const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
         return (
@@ -338,9 +352,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               onChange={(e) => handleSetContact(r, e.target.value)}
               disabled={disabled || loadingSel}
               title={
-                !approved
-                  ? "متاح بعد قبول الطلب وتسجيل الطالب في الكورس"
-                  : (!r.userId ? "لا يوجد حساب على المنصة لهذا البريد" : "اختر حالة التواصل")
+                disabled
+                  ? "لا يوجد طلب أو حساب مرتبط بهذا الصف"
+                  : (!approved ? "حالة متابعة للطلب (Pending)" : "حالة متابعة للطالب (Approved)")
               }
               style={{
                 padding: "6px 10px",

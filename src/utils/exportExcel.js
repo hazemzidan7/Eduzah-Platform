@@ -51,6 +51,14 @@ export async function fetchCourseStudents(course, allUsers = []) {
     const enrollment = profile?.enrolledCourses?.find(e => e.courseId === course.id);
     const reqSt = r.enrollmentStatus ?? "pending";
     const status = reqSt === "pending" && enrollment ? "approved" : reqSt;
+    const contactStatus = (() => {
+      const v = enrollment?.contactStatus ?? r.contactStatus;
+      if (!v) return "no_response";
+      // Backwards compatibility (old toggle values)
+      if (v === "not_contacted") return "no_response";
+      if (v === "contacted") return "confirmed_will_pay";
+      return v;
+    })();
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       userId:           profile?.id || null,    // platform uid (if exists)
@@ -69,14 +77,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      fmtDate(r.createdAt),
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
-      contactStatus:    (() => {
-        const v = enrollment?.contactStatus;
-        if (!v) return "no_response";
-        // Backwards compatibility (old toggle values)
-        if (v === "not_contacted") return "no_response";
-        if (v === "contacted") return "confirmed_will_pay";
-        return v;
-      })(),
+      contactStatus,
       contactUpdatedAt: enrollment?.contactUpdatedAt || null,
     });
   }

@@ -351,7 +351,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const enrollUser = async (uid, cid) => {
+  const normalizeContactStatus = (v) => {
+    const s = String(v || "").trim();
+    if (!s) return "no_response";
+    if (s === "not_contacted") return "no_response";
+    if (s === "contacted") return "confirmed_will_pay";
+    return s;
+  };
+
+  const enrollUser = async (uid, cid, opts = null) => {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return;
     const u = snap.data();
@@ -360,7 +368,7 @@ export function AuthProvider({ children }) {
       courseId: cid, progress: 0, completedLessons: [],
       enrollDate: new Date().toLocaleDateString("ar-EG"),
       // Admin dashboard uses this for follow-up tracking per course enrollment
-      contactStatus: "no_response",
+      contactStatus: normalizeContactStatus(opts?.contactStatus),
       contactUpdatedAt: null,
     }];
     const enrolledCourseIds = courseIdsFromEnrolled(updated);
@@ -415,7 +423,7 @@ export function AuthProvider({ children }) {
 
     const uid = await resolveUserIdForEnrollmentRequest(r);
     if (uid) {
-      await enrollUser(uid, r.courseId);
+      await enrollUser(uid, r.courseId, { contactStatus: r.contactStatus || r.enrollmentContactStatus || null });
       const uRef = doc(db, "users", uid);
       const uSnap = await getDoc(uRef);
       if (uSnap.exists()) {
