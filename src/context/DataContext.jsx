@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   addDoc,
   setDoc,
   updateDoc,
@@ -110,8 +111,30 @@ export function DataProvider({ children }) {
     if (currentUser?.role !== "admin") return;
     let cancelled = false;
     (async () => {
+      // Prevent re-seeding after first successful seed.
+      // Otherwise, deleting all docs in a collection will make them come back automatically.
+      let seeded = {};
+      try {
+        const s = await getDoc(doc(db, "settings", "seedState"));
+        if (s.exists()) seeded = s.data() || {};
+      } catch (_) {}
+
+      const markSeeded = async (patch) => {
+        try {
+          await setDoc(
+            doc(db, "settings", "seedState"),
+            { ...(seeded || {}), ...patch, updatedAt: new Date().toISOString() },
+            { merge: true },
+          );
+        } catch (_) {}
+      };
+
       await Promise.all([
-        seedCollection("courses",      INIT_COURSES.map(c => ({ ...c, id: c.slug || c.id }))),
+        // Seed courses only once (unless settings/seedState.coursesSeeded !== true)
+        seeded.coursesSeeded === true
+          ? Promise.resolve()
+          : seedCollection("courses", INIT_COURSES.map(c => ({ ...c, id: c.slug || c.id })))
+              .then(() => markSeeded({ coursesSeeded: true })),
         seedCollection("news",         INIT_NEWS.map(n => ({ ...n, id: String(n.id) }))),
         seedCollection("exams",        INIT_EXAMS.map(e => ({ ...e, id: String(e.id) }))),
         seedCollection("trainers",     INIT_TRAINERS),
