@@ -166,7 +166,10 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const loadRows = useCallback(() => {
     setLoading(true);
     fetchCourseStudents(course, allUsers)
-      .then((list) => setRows((list || []).filter((r) => (r.status || "pending") === "approved")))
+      // Show in 2 places:
+      // - Requests tab: all enrollmentRequests
+      // - Students tab (this modal): pending + approved (exclude rejected)
+      .then((list) => setRows((list || []).filter((r) => (r.status || "pending") !== "rejected")))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [course, allUsers]);
@@ -305,13 +308,18 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       render:(r) => {
         const st = r.contactStatus || "not_contacted";
         const contacted = st === "contacted";
-        const disabled = !r.userId;
+        const approved = (r.status || "pending") === "approved";
+        const disabled = !approved || !r.userId;
         const loadingBtn = savingContact === r.userId;
         return (
           <button
             onClick={() => handleToggleContact(r)}
             disabled={disabled || loadingBtn}
-            title={disabled ? "لا يوجد حساب على المنصة لهذا البريد" : "تغيير حالة التواصل"}
+            title={
+              !approved
+                ? "متاح بعد قبول الطلب وتسجيل الطالب في الكورس"
+                : (!r.userId ? "لا يوجد حساب على المنصة لهذا البريد" : "تغيير حالة التواصل")
+            }
             style={{
               display:"inline-flex", alignItems:"center", gap:6,
               padding:"6px 10px", borderRadius:9, border:"none",
