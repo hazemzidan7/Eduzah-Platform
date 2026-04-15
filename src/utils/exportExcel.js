@@ -24,8 +24,9 @@ export const fmtLevel    = (v) => ({ beginner:"مبتدئ", basic:"أساسيا�
 export async function fetchCourseStudents(course, allUsers = []) {
   let requests = [];
   try {
+    const courseIdStr = String(course?.id ?? "");
     const snap = await getDocs(
-      query(collection(db, "enrollmentRequests"), where("courseId", "==", course.id))
+      query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr))
     );
     requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
