@@ -285,6 +285,7 @@ export default function AdminDashboard() {
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
       presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
+      who_ar:"", who_en:"", faq_ar:"", faq_en:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
@@ -346,6 +347,10 @@ export default function AdminDashboard() {
             <Input label="Key points — English (one per line)" value={f.bullets_en} onChange={v => set("bullets_en", v)} placeholder={"Point 1\nPoint 2"} rows={3} />
             <Input label="المهارات — عربي (سطر لكل مهارة)" value={f.outcomes} onChange={v => set("outcomes", v)} placeholder={"مهارة 1\nمهارة 2"} rows={2} />
             <Input label="Outcomes — English (one per line)" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} placeholder={"Skill 1\nSkill 2"} rows={2} />
+            <Input label={tx("هذا البرنامج مناسب إذا كنت… (عربي) — سطر لكل نقطة", "Who is this for (AR) — one per line")} value={f.who_ar} onChange={v => set("who_ar", v)} placeholder={"المبتدئين الذين يريدون دخول المجال من الصفر\nالمطورون الذين يريدون رفع مستواهم"} rows={3} />
+            <Input label={tx("Who is this for (EN) — one per line", "Who is this for (EN) — one per line")} value={f.who_en} onChange={v => set("who_en", v)} placeholder={"Beginners who want to enter from scratch\nDevelopers who want to level up"} rows={3} />
+            <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر...\nإيه طرق الدفع؟ | الدفع عبر InstaPay..."} rows={4} />
+            <Input label={tx("FAQ (EN) — per line: Question | Answer", "FAQ (EN) — per line: Question | Answer")} value={f.faq_en} onChange={v => set("faq_en", v)} placeholder={"Do I need prior experience? | No, it starts from scratch...\nWhat payment methods? | InstaPay..."} rows={4} />
             <Input label={tx("رابط عرض المنهج (PDF)", "Curriculum presentation URL")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
             <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} placeholder="https://..." />
@@ -377,6 +382,10 @@ export default function AdminDashboard() {
       bullets_en: (c.bullets_en || []).join("\n"),
       outcomes: (c.outcomes || []).join("\n"),
       outcomes_en: (c.outcomes_en || []).join("\n"),
+      who_ar: (c.who_ar || []).join("\n"),
+      who_en: (c.who_en || []).join("\n"),
+      faq_ar: (c.faq_ar || []).map(x => `${x.q} | ${x.a}`).join("\n"),
+      faq_en: (c.faq_en || []).map(x => `${x.q} | ${x.a}`).join("\n"),
       image: c.image || null,
       presentationUrl: c.presentationUrl || "",
       introVideoUrl: c.introVideoUrl || "",
@@ -390,6 +399,18 @@ export default function AdminDashboard() {
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
+      const parseLines = (v) => String(v || "").split("\n").map(s => s.trim()).filter(Boolean);
+      const parseFaq = (v) => {
+        const out = [];
+        for (const line of parseLines(v)) {
+          const parts = line.split("|");
+          const q = String(parts[0] || "").trim();
+          const a = String(parts.slice(1).join("|") || "").trim();
+          if (!q || !a) continue;
+          out.push({ q, a });
+        }
+        return out;
+      };
       updateCourse(c.id, {
         title: f.title,
         title_en: f.title_en || f.title,
@@ -407,6 +428,10 @@ export default function AdminDashboard() {
         bullets_en: f.bullets_en.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes: f.outcomes.split("\n").map(s => s.trim()).filter(Boolean),
         outcomes_en: f.outcomes_en.split("\n").map(s => s.trim()).filter(Boolean),
+        who_ar: parseLines(f.who_ar),
+        who_en: parseLines(f.who_en),
+        faq_ar: parseFaq(f.faq_ar),
+        faq_en: parseFaq(f.faq_en),
         image: f.image,
         presentationUrl: f.presentationUrl?.trim() || null,
         introVideoUrl: f.introVideoUrl?.trim() || null,

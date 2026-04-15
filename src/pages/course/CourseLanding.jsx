@@ -67,8 +67,10 @@ export default function CourseLanding() {
   const [enrollmentReqStatus, setEnrollmentReqStatus] = useState(null);
   const prevReqStatus = useRef(null);
 
-  const FAQ = lang === "ar" ? FAQ_AR : FAQ_EN;
-  const WHO = lang === "ar" ? WHO_AR : WHO_EN;
+  const courseFaq = lang === "ar" ? (course.faq_ar || course.faq || null) : (course.faq_en || course.faq || null);
+  const courseWho = lang === "ar" ? (course.who_ar || course.who || null) : (course.who_en || course.who || null);
+  const FAQ = (Array.isArray(courseFaq) && courseFaq.length) ? courseFaq : (lang === "ar" ? FAQ_AR : FAQ_EN);
+  const WHO = (Array.isArray(courseWho) && courseWho.length) ? courseWho : (lang === "ar" ? WHO_AR : WHO_EN);
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
 
   const course = courses.find(c => c.slug === slug);

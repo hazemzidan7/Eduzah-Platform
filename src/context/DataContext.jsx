@@ -131,6 +131,19 @@ export function DataProvider({ children }) {
   // ── COURSES ──────────────────────────────────────────
   const addCourse = async (form) => {
     const slug = form.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const parseLines = (v) => (String(v || "").split("\n").map(s => s.trim()).filter(Boolean));
+    const parseFaq = (v) => {
+      const lines = parseLines(v);
+      const out = [];
+      for (const line of lines) {
+        const parts = line.split("|");
+        const q = String(parts[0] || "").trim();
+        const a = String(parts.slice(1).join("|") || "").trim();
+        if (!q || !a) continue;
+        out.push({ q, a });
+      }
+      return out;
+    };
     const nc = {
       slug,
       title: form.title, title_en: form.title_en || form.title,
@@ -148,11 +161,15 @@ export function DataProvider({ children }) {
       rating: 0, students: 0, featured: false, badge: null,
       tagline: form.tagline || form.title, tagline_en: form.tagline_en || form.tagline || form.title,
       desc: form.desc || "", desc_en: form.desc_en || form.desc || "",
-      bullets: form.bullets ? form.bullets.split("\n").filter(Boolean) : [],
-      bullets_en: form.bullets_en ? form.bullets_en.split("\n").filter(Boolean) : [],
-      outcomes: form.outcomes ? form.outcomes.split("\n").filter(Boolean) : [],
-      outcomes_en: form.outcomes_en ? form.outcomes_en.split("\n").filter(Boolean) : [],
+      bullets: parseLines(form.bullets),
+      bullets_en: parseLines(form.bullets_en),
+      outcomes: parseLines(form.outcomes),
+      outcomes_en: parseLines(form.outcomes_en),
       techStack: [], curriculum: [], reviews: [],
+      who_ar: parseLines(form.who_ar),
+      who_en: parseLines(form.who_en),
+      faq_ar: parseFaq(form.faq_ar),
+      faq_en: parseFaq(form.faq_en),
       instructorId: form.instructorId || null,
       presentationUrl: form.presentationUrl || null,
       introVideoUrl: form.introVideoUrl || null,
