@@ -177,7 +177,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
   const [savingAmount, setSavingAmount] = useState(null); // docId being saved
   const [savingContact, setSavingContact] = useState(null); // userId being updated
-  const [contactMenuOpen, setContactMenuOpen] = useState(null); // row key (userId|docId)
+  const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
 
   const loadRows = useCallback(() => {
@@ -193,23 +193,13 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
 
   useEffect(() => { loadRows(); }, [loadRows]);
 
-  // Close contact menu on outside click / ESC
+  // Close popup on ESC
   useEffect(() => {
-    if (!contactMenuOpen) return undefined;
-    const onDoc = (e) => {
-      // Any click outside menu closes it (menu stops propagation)
-      setContactMenuOpen(null);
-    };
-    const onKey = (e) => {
-      if (e.key === "Escape") setContactMenuOpen(null);
-    };
-    document.addEventListener("click", onDoc);
+    if (!contactPopup) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setContactPopup(null); };
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("click", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [contactMenuOpen]);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [contactPopup]);
 
   // ── Toggle payment confirmation ───────────────────────────────────────────
   const handleTogglePay = async (row) => {
@@ -364,17 +354,15 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         const st = r.contactStatus || "no_response";
         const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
         const rowKey = r.userId || r.docId || null;
-        const open = rowKey && contactMenuOpen === rowKey;
         return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
             <ContactPill value={st} />
 
             <button
               type="button"
               onClick={(e) => {
-                e.stopPropagation();
                 if (disabled || loadingSel || !rowKey) return;
-                setContactMenuOpen((prev) => (prev === rowKey ? null : rowKey));
+                setContactPopup({ rowKey, row: r });
               }}
               disabled={disabled || loadingSel || !rowKey}
               title={
@@ -409,67 +397,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                 ▾
               </span>
             </button>
-
-            {open && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  right: 0,
-                  width: 260,
-                  background: "rgba(26,10,46,.98)",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 14,
-                  boxShadow: "0 18px 60px rgba(0,0,0,.6)",
-                  padding: 8,
-                  zIndex: 50,
-                }}
-              >
-                <div style={{ fontSize: 10, color: C.muted, padding: "4px 8px 8px", display: "flex", justifyContent: "space-between" }}>
-                  <span>{approved ? "طالب (Approved)" : "طلب (Pending)"}</span>
-                  {loadingSel && <span style={{ color: cfg.color, fontWeight: 800 }}>جاري الحفظ…</span>}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {Object.entries(CONTACT_CFG).map(([k, v]) => {
-                    const active = k === st;
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={async () => {
-                          await handleSetContact(r, k);
-                          setContactMenuOpen(null);
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          width: "100%",
-                          textAlign: "right",
-                          padding: "9px 10px",
-                          borderRadius: 12,
-                          border: `1px solid ${active ? `${v.color}66` : "rgba(255,255,255,.08)"}`,
-                          background: active ? `${v.color}18` : "rgba(255,255,255,.04)",
-                          color: "#fff",
-                          cursor: "pointer",
-                          fontFamily: font,
-                          fontWeight: active ? 900 : 800,
-                          fontSize: 12,
-                          transition: "all .15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = `${v.color}22`; e.currentTarget.style.borderColor = `${v.color}77`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = active ? `${v.color}18` : "rgba(255,255,255,.04)"; e.currentTarget.style.borderColor = active ? `${v.color}66` : "rgba(255,255,255,.08)"; }}
-                      >
-                        <span style={{ width: 10, height: 10, borderRadius: 99, background: v.color, boxShadow: `0 0 0 3px ${v.color}22` }} />
-                        <span style={{ flex: 1 }}>{v.label}</span>
-                        {active && <span style={{ color: v.color, fontWeight: 900 }}>✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         );
       }},
@@ -726,6 +653,112 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
           </div>
         </div>
       </div>
+
+      {/* ── Contact status popup ── */}
+      {contactPopup?.row && (
+        <div
+          onClick={() => setContactPopup(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,.62)",
+            zIndex: 1400,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 14,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(520px, 96vw)",
+              background: "linear-gradient(135deg,#1a0a2e,#2a1540)",
+              border: `1px solid ${C.border}`,
+              borderRadius: 18,
+              boxShadow: "0 30px 90px rgba(0,0,0,.7)",
+              overflow: "hidden",
+            }}
+          >
+            {(() => {
+              const r = contactPopup.row;
+              const approved = (r.status || "pending") === "approved";
+              const st = r.contactStatus || "no_response";
+              const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
+              const lockKey = r.userId || r.docId;
+              const saving = savingContact === lockKey;
+              return (
+                <>
+                  <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ fontWeight: 900, fontSize: 14 }}>حالة التواصل</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>
+                        {approved ? "طالب (Approved)" : "طلب (Pending)"} · {r.name} · {r.email}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setContactPopup(null)}
+                      style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, color: "#fff", cursor: "pointer", fontSize: 18 }}
+                      aria-label="close"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div style={{ padding: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 99, background: cfg.color, boxShadow: `0 0 0 4px ${cfg.color}22` }} />
+                        <div style={{ fontWeight: 900, fontSize: 13 }}>{cfg.label}</div>
+                      </div>
+                      {saving && <div style={{ fontSize: 11, color: cfg.color, fontWeight: 900 }}>جاري الحفظ…</div>}
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+                      {Object.entries(CONTACT_CFG).map(([k, v]) => {
+                        const active = k === st;
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            disabled={saving}
+                            onClick={async () => {
+                              await handleSetContact(r, k);
+                              setContactPopup(null);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              width: "100%",
+                              textAlign: "right",
+                              padding: "12px 12px",
+                              borderRadius: 14,
+                              border: `1px solid ${active ? `${v.color}66` : "rgba(255,255,255,.10)"}`,
+                              background: active ? `${v.color}18` : "rgba(255,255,255,.05)",
+                              color: "#fff",
+                              cursor: saving ? "wait" : "pointer",
+                              fontFamily: font,
+                              fontWeight: active ? 900 : 800,
+                              fontSize: 13,
+                              opacity: saving ? 0.8 : 1,
+                              transition: "all .15s",
+                            }}
+                          >
+                            <span style={{ width: 11, height: 11, borderRadius: 99, background: v.color, boxShadow: `0 0 0 4px ${v.color}22` }} />
+                            <span style={{ flex: 1 }}>{v.label}</span>
+                            {active && <span style={{ color: v.color, fontWeight: 900 }}>✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </>
   );
 }
