@@ -620,6 +620,24 @@ export default function AdminDashboard() {
             <Input label="Bullets EN" value={f.bullets_en} onChange={v => set("bullets_en", v)} rows={3} />
             <Input label="Outcomes AR" value={f.outcomes} onChange={v => set("outcomes", v)} rows={2} />
             <Input label="Outcomes EN" value={f.outcomes_en} onChange={v => set("outcomes_en", v)} rows={2} />
+            <Input
+              label={tx("ما ستتعلمه (Tech Stack) — كل سطر: المجموعة: item1, item2 (واكتب | ai للمجموعة)", "Tech Stack — per line: Group: item1, item2 (use | ai to highlight)")}
+              value={f.techStackText}
+              onChange={v => set("techStackText", v)}
+              placeholder={"Front-End: HTML, CSS, JavaScript\nReact: React, Hooks, Router"}
+              rows={4}
+            />
+            <Input
+              label={tx("محتوى البرنامج (Curriculum) — كل سطر: الوحدة: lesson1, lesson2", "Curriculum — per line: Unit: lesson1, lesson2")}
+              value={f.curriculumText}
+              onChange={v => set("curriculumText", v)}
+              placeholder={"Front-End Fundamentals: HTML, CSS, JS\nReact Path: Components, Hooks, Router"}
+              rows={4}
+            />
+            <Input label={tx("هذا البرنامج مناسب إذا كنت… (عربي) — سطر لكل نقطة", "Who is this for (AR) — one per line")} value={f.who_ar} onChange={v => set("who_ar", v)} placeholder={"المبتدئين الذين يريدون دخول المجال من الصفر\nالمطورون الذين يريدون رفع مستواهم"} rows={3} />
+            <Input label={tx("Who is this for (EN) — one per line", "Who is this for (EN) — one per line")} value={f.who_en} onChange={v => set("who_en", v)} placeholder={"Beginners who want to enter from scratch\nDevelopers who want to level up"} rows={3} />
+            <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر..."} rows={4} />
+            <Input label={tx("FAQ (EN) — per line: Question | Answer", "FAQ (EN) — per line: Question | Answer")} value={f.faq_en} onChange={v => set("faq_en", v)} placeholder={"Do I need prior experience? | No, it starts from scratch..."} rows={4} />
             <Input label={tx("رابط عرض المنهج (PDF أو رابط)", "Curriculum presentation URL (PDF or link)")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
             <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} />
