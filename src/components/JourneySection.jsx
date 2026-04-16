@@ -49,31 +49,15 @@ export default function JourneySection({ lang }) {
         display: "grid",
         gridTemplateColumns: "repeat(5, 1fr)",
         gap: "0 12px",
-        position: "relative",
-        alignItems: "start",
+        alignItems: "stretch",
       }}>
-        {/* Connecting line behind cards */}
-        <div className="journey-line" style={{
-          position: "absolute",
-          top: 88,
-          left: "10%",
-          right: "10%",
-          height: 2,
-          background: "linear-gradient(90deg, #d91b5b, #f59e0b, #7d3d9e, #0ea5e9, #34d399)",
-          opacity: inView ? 0.45 : 0,
-          transition: "opacity 1s ease .4s",
-          zIndex: 0,
-          borderRadius: 999,
-        }} />
 
         {STEPS.map((step, i) => (
           <div key={step.num} style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            padding: "0 8px",
-            position: "relative",
-            zIndex: 1,
+            padding: "0 6px",
             opacity: inView ? 1 : 0,
             transform: inView ? "translateY(0)" : "translateY(40px)",
             transition: `opacity .6s ease ${i * 0.13}s, transform .6s ease ${i * 0.13}s`,
@@ -102,6 +86,7 @@ export default function JourneySection({ lang }) {
             {/* Card */}
             <div style={{
               width: "100%",
+              flex: 1,
               background: "linear-gradient(165deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.02) 100%)",
               border: `1px solid ${step.color}35`,
               borderTop: `3px solid ${step.color}`,
@@ -180,7 +165,6 @@ export default function JourneySection({ lang }) {
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 20px !important;
           }
-          .journey-line { display: none !important; }
         }
         @media (max-width: 640px) {
           .journey-grid {
