@@ -131,7 +131,18 @@ export default function CoursesPage() {
                 <div style={{ position: "relative", height: 160, overflow: "hidden", flexShrink: 0 }}>
                   {c.image
                     ? <img src={c.image} alt={lang==="ar"?c.title:(c.title_en||c.title)} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-                    : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${c.color||C.red},#321d3d)`}}/>
+                    : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${c.color||C.red}cc,#1a0f2e)`,position:"relative",overflow:"hidden"}}>
+                        {/* decorative circles */}
+                        <div style={{position:"absolute",top:-28,right:-28,width:110,height:110,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
+                        <div style={{position:"absolute",bottom:-32,left:-18,width:130,height:130,borderRadius:"50%",background:"rgba(255,255,255,.05)"}}/>
+                        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:70,height:70,borderRadius:"50%",background:"rgba(255,255,255,.06)",border:"1.5px solid rgba(255,255,255,.12)"}}/>
+                        {/* big faded initial */}
+                        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <span style={{fontSize:64,fontWeight:900,color:"rgba(255,255,255,.13)",lineHeight:1,userSelect:"none",letterSpacing:-2}}>
+                            {((lang==="ar"?c.title:(c.title_en||c.title))||"").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
                   }
                   <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
                   <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>
