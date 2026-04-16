@@ -398,7 +398,7 @@ export default function CourseLanding() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: C.muted, fontSize: 11 }}>{ch.lessons?.length || 0} {lang === "ar" ? "درس" : "lessons"}</span>
-                    <span style={{ color: C.muted, fontSize: 16, transition: "transform .25s", transform: openCurr === ci ? "rotate(180deg)" : "" }}>⌄</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={openCurr === ci ? C.red : C.muted} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform .25s", transform: openCurr === ci ? "rotate(180deg)" : "", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"/></svg>
                   </div>
                 </div>
                 {openCurr === ci && (
