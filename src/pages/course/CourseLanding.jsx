@@ -183,9 +183,14 @@ export default function CourseLanding() {
             </div>
           )}
 
-          <h1 style={{ fontSize: "clamp(1.5rem,4vw,2.7rem)", fontWeight: 900, lineHeight: 1.2, marginBottom: 12 }}>
-            {lang === "ar" ? (course.tagline || course.title) : (course.tagline_en || course.title_en || course.title)}
+          <h1 style={{ fontSize: "clamp(1.5rem,4vw,2.7rem)", fontWeight: 900, lineHeight: 1.2, marginBottom: 8 }}>
+            {lang === "ar" ? course.title : (course.title_en || course.title)}
           </h1>
+          {(lang === "ar" ? course.tagline : (course.tagline_en || course.tagline)) && (
+            <p style={{ fontSize: "clamp(0.95rem,2vw,1.2rem)", fontWeight: 600, color: "rgba(255,255,255,.7)", lineHeight: 1.5, marginBottom: 14, maxWidth: 520 }}>
+              {lang === "ar" ? course.tagline : (course.tagline_en || course.tagline)}
+            </p>
+          )}
           <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.9, marginBottom: 20, maxWidth: 500 }}>
             {lang === "ar" ? course.desc : (course.desc_en || course.desc)}
           </p>

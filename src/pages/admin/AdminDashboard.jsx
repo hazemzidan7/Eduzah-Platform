@@ -519,7 +519,16 @@ export default function AdminDashboard() {
           const lhsParts = lhs.split("|").map(s => s.trim()).filter(Boolean);
           const label = lhsParts[0] || "";
           const ai = lhsParts.slice(1).some(p => p.toLowerCase() === "ai");
-          const items = rhs.split(",").map(s => s.trim()).filter(Boolean);
+          // Split by comma but ignore commas inside parentheses
+          const items = [];
+          let cur2 = "", depth2 = 0;
+          for (const ch of rhs) {
+            if (ch === "(") depth2++;
+            else if (ch === ")") depth2--;
+            if (ch === "," && depth2 === 0) { const t = cur2.trim(); if (t) items.push(t); cur2 = ""; }
+            else cur2 += ch;
+          }
+          if (cur2.trim()) items.push(cur2.trim());
           if (!label || items.length === 0) continue;
           out.push({ label, items, ...(ai ? { ai: true } : {}) });
         }
@@ -533,7 +542,16 @@ export default function AdminDashboard() {
           const title = line.slice(0, colonIdx).trim();
           const rhs = line.slice(colonIdx + 1).trim();
           if (!title || !rhs) continue;
-          const lessons = rhs.split(",").map(s => s.trim()).filter(Boolean);
+          // Split by comma but ignore commas inside parentheses
+          const lessons = [];
+          let cur = "", depth = 0;
+          for (const ch of rhs) {
+            if (ch === "(") depth++;
+            else if (ch === ")") depth--;
+            if (ch === "," && depth === 0) { const t = cur.trim(); if (t) lessons.push(t); cur = ""; }
+            else cur += ch;
+          }
+          if (cur.trim()) lessons.push(cur.trim());
           if (!lessons.length) continue;
           out.push({ title, lessons });
         }
