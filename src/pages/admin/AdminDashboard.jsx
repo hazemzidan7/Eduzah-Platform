@@ -461,6 +461,8 @@ export default function AdminDashboard() {
       hours: String(c.hours ?? ""),
       projects: String(c.projects ?? ""),
       duration: c.duration || "",
+      rating: String(c.rating ?? "5"),
+      students: String(c.students ?? "0"),
       tagline: c.tagline || "",
       tagline_en: c.tagline_en || "",
       desc: c.desc || "",
@@ -566,6 +568,8 @@ export default function AdminDashboard() {
         hours: Number(f.hours) || 0,
         projects: Number(f.projects) || 0,
         duration: f.duration,
+        rating: Math.min(5, Math.max(0, Number(f.rating) || 5)),
+        students: Number(f.students) || 0,
         tagline: f.tagline,
         tagline_en: f.tagline_en || f.tagline,
         desc: f.desc,
@@ -605,6 +609,8 @@ export default function AdminDashboard() {
           <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} />
           <Input label="الساعات" value={f.hours} onChange={v => set("hours", v)} />
           <Input label="المشاريع" value={f.projects} onChange={v => set("projects", v)} />
+          <Input label="التقييم (1-5)" value={f.rating} onChange={v => set("rating", v)} placeholder="5" />
+          <Input label="عدد الخريجين" value={f.students} onChange={v => set("students", v)} placeholder="0" />
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
             options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
