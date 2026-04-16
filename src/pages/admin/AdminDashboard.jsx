@@ -511,9 +511,10 @@ export default function AdminDashboard() {
       const parseTechStack = (v) => {
         const out = [];
         for (const line of parseLines(v)) {
-          const [lhsRaw, rhsRaw] = line.split(":");
-          const lhs = String(lhsRaw || "").trim();
-          const rhs = String((rhsRaw ?? "")).trim();
+          const colonIdx = line.indexOf(":");
+          if (colonIdx === -1) continue;
+          const lhs = line.slice(0, colonIdx).trim();
+          const rhs = line.slice(colonIdx + 1).trim();
           if (!lhs || !rhs) continue;
           const lhsParts = lhs.split("|").map(s => s.trim()).filter(Boolean);
           const label = lhsParts[0] || "";
@@ -527,9 +528,10 @@ export default function AdminDashboard() {
       const parseCurriculum = (v) => {
         const out = [];
         for (const line of parseLines(v)) {
-          const [lhsRaw, rhsRaw] = line.split(":");
-          const title = String(lhsRaw || "").trim();
-          const rhs = String((rhsRaw ?? "")).trim();
+          const colonIdx = line.indexOf(":");
+          if (colonIdx === -1) continue;
+          const title = line.slice(0, colonIdx).trim();
+          const rhs = line.slice(colonIdx + 1).trim();
           if (!title || !rhs) continue;
           const lessons = rhs.split(",").map(s => s.trim()).filter(Boolean);
           if (!lessons.length) continue;
