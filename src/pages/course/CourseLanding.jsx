@@ -7,6 +7,7 @@ import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { db } from "../../firebase";
+import { shouldShowCourseHero, courseCardCoverUrl } from "../../courseMedia";
 
 const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
@@ -155,12 +156,13 @@ export default function CourseLanding() {
   const introEmbed = course.introVideoUrl ? toEmbedIntro(course.introVideoUrl) : null;
   const freePreviewEmbed = !enrolled && course.previewVideoUrl ? toEmbedIntro(course.previewVideoUrl) : null;
   const freeNote = !enrolled && course.freeLessonNote?.trim();
+  const cardCoverSrc = courseCardCoverUrl(course);
 
   return (
     <div style={{ paddingBottom: 70 }} dir={dir}>
 
-      {/* ── Course hero (full width) — not used when cover is a title banner (coverTitleInImage) ── */}
-      {course.image && !course.coverTitleInImage && (
+      {/* ── Course hero (full width) — uses `image` only; see courseMedia.shouldShowCourseHero ── */}
+      {shouldShowCourseHero(course) && (
         <div style={{ width: "100%", maxHeight: "min(48vh, 420px)", overflow: "hidden", borderBottom: `1px solid ${C.border}` }}>
           <img
             src={course.image}
@@ -232,9 +234,9 @@ export default function CourseLanding() {
         <div style={{ flex: "0 1 290px", position: "relative", zIndex: 2 }}>
           <div style={{ background: "rgba(255,255,255,.05)", backdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.45)" }}>
             <div style={{ height: 160, position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${course.color||C.red},#321d3d)` }}>
-              {course.image ? (
+              {cardCoverSrc ? (
                 <img
-                  src={course.image}
+                  src={cardCoverSrc}
                   alt={lang === "ar" ? course.title : (course.title_en || course.title)}
                   loading="lazy"
                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}

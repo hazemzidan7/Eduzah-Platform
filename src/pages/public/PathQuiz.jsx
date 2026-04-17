@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { db } from "../../firebase";
+import { courseCardCoverUrl } from "../../courseMedia";
 
 const Q_AR = [
   {
@@ -248,7 +249,9 @@ export default function PathQuiz() {
               {ar ? "\u0627\u0642\u062a\u0631\u0627\u062d\u0627\u062a \u0644\u0643" : "Suggested for you"}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {picks.map((c) => (
+              {picks.map((c) => {
+                const cov = courseCardCoverUrl(c);
+                return (
                 <div
                   key={c.id}
                   role="button"
@@ -273,7 +276,7 @@ export default function PathQuiz() {
                       width: 52,
                       height: 52,
                       borderRadius: 10,
-                      background: c.image ? `url(${c.image}) center/cover` : `linear-gradient(135deg,${c.color || C.red},#321d3d)`,
+                      background: cov ? `url(${cov}) center/cover` : `linear-gradient(135deg,${c.color || C.red},#321d3d)`,
                       flexShrink: 0,
                     }}
                   />
@@ -285,7 +288,8 @@ export default function PathQuiz() {
                   </div>
                   <span style={{ color: C.red, fontWeight: 800 }}>{"\u2190"}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
