@@ -3,7 +3,7 @@
  * Requires Blaze plan. Set Resend (optional): firebase functions:config:set resend.key="re_..."
  * Password reset OTP: needs RESEND_API_KEY (same as enrollment). Optional OTP_PEPPER for hashing.
  *
- * createAdminAccount — only callable by Super Admin email (see SUPER_ADMIN below).
+ * createAdminAccount — callable by any user with role "admin" in Firestore users/{uid}.
  * onEnrollmentRequestCreated — emails course notifyEmails + Super Admin when possible (Resend).
  * requestPasswordResetOtp / confirmPasswordResetOtp — 8-digit code email + set password (Admin SDK).
  */
@@ -197,8 +197,13 @@ exports.confirmPasswordResetOtp = functions.https.onCall(async (data) => {
 });
 
 exports.createAdminAccount = functions.https.onCall(async (data, context) => {
-  if (!context.auth?.token?.email || context.auth.token.email.toLowerCase() !== SUPER_ADMIN) {
-    throw new functions.https.HttpsError("permission-denied", "Super Admin only.");
+  if (!context.auth?.uid) {
+    throw new functions.https.HttpsError("unauthenticated", "Sign in required.");
+  }
+  const callerSnap = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+  const caller = callerSnap.data();
+  if (!caller || caller.role !== "admin") {
+    throw new functions.https.HttpsError("permission-denied", "Admin only.");
   }
   const name = String(data?.name || "").trim();
   const email = String(data?.email || "").trim().toLowerCase();

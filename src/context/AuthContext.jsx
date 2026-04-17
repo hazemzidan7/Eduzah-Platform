@@ -16,7 +16,6 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth, db, app, firebaseConfig } from "../firebase";
 import { courseIdsFromEnrolled } from "../utils/enrollment";
-import { isSuperAdminEmail } from "../config/superAdmin";
 import {
   appendPlainNotification,
   patchAfterEnroll,
@@ -326,11 +325,14 @@ export function AuthProvider({ children }) {
   };
 
   const adminUpdateUser = async (id, patch) => {
+    const allowedRoles = ["user", "student", "instructor", "admin"];
+    const roleNext = patch.role != null && allowedRoles.includes(patch.role) ? patch.role : null;
     const clean = {
       ...(patch.name  != null && { name:  String(patch.name).trim()  }),
       ...(patch.email != null && { email: String(patch.email).trim().toLowerCase() }),
       ...(patch.phone != null && { phone: String(patch.phone).trim() }),
-      ...(patch.role != null && ["user", "student", "instructor"].includes(patch.role) && { role: patch.role }),
+      ...(roleNext != null && { role: roleNext }),
+      ...(roleNext === "admin" && { status: "approved" }),
     };
     await updateDoc(doc(db, "users", id), clean);
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, ...clean } : u)));
@@ -735,9 +737,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /** Super Admin only — requires deployed Cloud Function `createAdminAccount`. */
+  /** Any signed-in admin — requires deployed Cloud Function `createAdminAccount`. */
   const createAdminAccount = async ({ name, email, password }) => {
-    if (!isSuperAdminEmail(currentUser?.email)) {
+    if (currentUser?.role !== "admin") {
       return { ok: false, code: "FORBIDDEN" };
     }
     try {

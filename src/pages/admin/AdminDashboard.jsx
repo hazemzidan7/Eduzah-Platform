@@ -9,7 +9,6 @@ import AddSessionModal from "../../components/AddSessionModal";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
-import { isSuperAdminEmail } from "../../config/superAdmin";
 import { exportCourseStudents } from "../../utils/exportExcel";
 import CourseStudentsModal from "../../components/CourseStudentsModal";
 import { StatCard, BarChart, DonutChart } from "../../components/Charts";
@@ -182,7 +181,6 @@ export default function AdminDashboard() {
   const studentsEnr  = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved" && (u.enrolledCourses || []).length > 0);
   const usersOnly    = users.filter(u => (u.role === "user" || u.role === "student") && u.status === "approved" && !(u.enrolledCourses || []).length);
   const approvedLearners = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved");
-  const superAdmin   = isSuperAdminEmail(currentUser?.email);
 
   const [analyticsRange, setAnalyticsRange] = useState("all");
   const cutoffMs = useMemo(() => {
@@ -781,7 +779,7 @@ export default function AdminDashboard() {
     return (
       <Modal title={tx("إضافة مدير جديد", "Create Admin Account")} onClose={() => setModal(null)}>
         <p style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
-          {tx("يُنشئ حساباً بصلاحيات مدير كاملة. يتطلب نشر دالة createAdminAccount على Firebase.", "Creates a full-permission admin account. Requires the createAdminAccount Cloud Function to be deployed.")}
+          {tx("يُنشئ حساب مدير إضافي بنفس صلاحيات لوحة التحكم. يتطلب نشر دالة createAdminAccount على Firebase.", "Creates another full admin account. Requires the createAdminAccount Cloud Function to be deployed.")}
         </p>
         <Input label={tx("الاسم الكامل", "Full name")} value={f.name} onChange={v => set("name", v)} />
         <Input label="Email" value={f.email} onChange={v => set("email", v)} />
@@ -967,6 +965,7 @@ export default function AdminDashboard() {
               { v: "user", l: tx("مستخدم (بدون كورس)", "User (no course yet)") },
               { v: "student", l: tx("طالب", "Student") },
               { v: "instructor", l: tx("مدرب", "Instructor") },
+              { v: "admin", l: tx("مدير (صلاحيات كاملة)", "Admin (full access)") },
             ]}
           />
         )}
@@ -1422,9 +1421,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Btn children={tx("+ مدرب جديد", "+ New Instructor")} onClick={() => setModal({ type: "create-instructor" })} style={{ background: C.purple }} />
-                {superAdmin && (
-                  <Btn children={tx("+ مدير جديد", "+ New Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
-                )}
+                <Btn children={tx("+ مدير جديد", "+ New Admin")} onClick={() => setModal({ type: "create-admin" })} style={{ background: C.orange, color: "#1a0f24" }} />
               </div>
             </div>
 
