@@ -245,9 +245,9 @@ export default function CourseLanding() {
                 </div>
               ) : (
                 <div style={{ height: 160, position: "relative", overflow: "hidden" }}>
-                  {course.image ? (
+                  {course.priceCardImage ? (
                     <img
-                      src={course.image}
+                      src={course.priceCardImage}
                       alt={lang === "ar" ? course.title : (course.title_en || course.title)}
                       loading="lazy"
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}

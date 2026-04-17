@@ -204,6 +204,7 @@ export const COURSES = [
     icon: null,
     color: "#d91b5b",
     image: "/images/course-covers/programming-fundamentals-header.png",
+    priceCardImage: "/images/course-covers/programming-fundamentals-header.png",
     coverTitleInImage: true,
     price: 4500,
     installment: 1500,

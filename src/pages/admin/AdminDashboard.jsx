@@ -284,13 +284,14 @@ export default function AdminDashboard() {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null, coverTitleInImage:false,
-      presentationUrl:"", priceCardVideoUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
+      presentationUrl:"", priceCardImage:null, priceCardVideoUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
       techStackText:"",
       curriculumText:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
+    const pickPriceCardImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("priceCardImage", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
       addCourse({
@@ -388,7 +389,7 @@ export default function AdminDashboard() {
             <div style={{ gridColumn: "1/-1" }}>
               <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>{tx("صورة وفيديوهات العرض", "Cover & preview media")}</div>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم + كارت السعر)", "Course cover image (listings & price card)")}</label>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم الكورسات والبطاقات فقط)", "Course cover image (course listings only)")}</label>
                 <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
                   {f.image
                     ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
@@ -419,6 +420,29 @@ export default function AdminDashboard() {
                   />
                   <span>{tx("الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)", "Cover already includes title (no extra overlay on cards)")}</span>
                 </label>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة أعلى كارت السعر (منفصلة عن غلاف القوائم)", "Price card image (separate from listing cover)")}</label>
+                <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px", lineHeight: 1.5 }}>{tx("تظهر في صفحة الكورس فقط فوق السعر. إن أضفت فيديو كارت السعر أدناه يُفضّل الفيديو على الصورة.", "Shown only on the course page above the price. Price card video below takes priority over this image.")}</p>
+                <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.priceCardImage ? "transparent" : C.border}` }}>
+                  {f.priceCardImage
+                    ? <img src={f.priceCardImage} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                    : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span style={{ fontSize: 12, color: C.muted }}>{tx("رفع صورة لأعلى كارت التسجيل", "Upload price card header image")}</span>
+                      </div>
+                  }
+                  <input type="file" accept="image/*" onChange={pickPriceCardImg} style={{ display: "none" }} />
+                </label>
+                {f.priceCardImage && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                    <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                      {tx("تغيير", "Change")}
+                      <input type="file" accept="image/*" onChange={pickPriceCardImg} style={{ display: "none" }} />
+                    </label>
+                    <Btn children={tx("إزالة", "Remove")} sm v="danger" onClick={() => set("priceCardImage", null)} />
+                  </div>
+                )}
               </div>
             </div>
             <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />
@@ -501,6 +525,7 @@ export default function AdminDashboard() {
       image: c.image || null,
       coverTitleInImage: !!c.coverTitleInImage,
       presentationUrl: c.presentationUrl || "",
+      priceCardImage: c.priceCardImage || null,
       priceCardVideoUrl: c.priceCardVideoUrl || "",
       introVideoUrl: c.introVideoUrl || "",
       previewVideoUrl: c.previewVideoUrl || "",
@@ -511,6 +536,7 @@ export default function AdminDashboard() {
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
+    const pickPriceCardImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("priceCardImage", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
       const parseLines = (v) => String(v || "").split("\n").map(s => s.trim()).filter(Boolean);
@@ -602,6 +628,7 @@ export default function AdminDashboard() {
         image: f.image || null,
         coverTitleInImage: !!f.coverTitleInImage,
         presentationUrl: f.presentationUrl?.trim() || null,
+        priceCardImage: f.priceCardImage || null,
         priceCardVideoUrl: f.priceCardVideoUrl?.trim() || null,
         introVideoUrl: f.introVideoUrl?.trim() || null,
         previewVideoUrl: f.previewVideoUrl?.trim() || null,
@@ -661,7 +688,7 @@ export default function AdminDashboard() {
             <div style={{ gridColumn: "1/-1" }}>
               <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>{tx("صورة وفيديوهات العرض", "Cover & preview media")}</div>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم + كارت السعر)", "Course cover image (listings & price card)")}</label>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم الكورسات والبطاقات فقط)", "Course cover image (course listings only)")}</label>
                 <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
                   {f.image
                     ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
@@ -692,6 +719,29 @@ export default function AdminDashboard() {
                   />
                   <span>{tx("الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)", "Cover already includes title (no extra overlay on cards)")}</span>
                 </label>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة أعلى كارت السعر (منفصلة عن غلاف القوائم)", "Price card image (separate from listing cover)")}</label>
+                <p style={{ fontSize: 11, color: C.muted, margin: "0 0 8px", lineHeight: 1.5 }}>{tx("تظهر في صفحة الكورس فقط فوق السعر. إن أضفت فيديو كارت السعر أدناه يُفضّل الفيديو على الصورة.", "Shown only on the course page above the price. Price card video below takes priority over this image.")}</p>
+                <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.priceCardImage ? "transparent" : C.border}` }}>
+                  {f.priceCardImage
+                    ? <img src={f.priceCardImage} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                    : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span style={{ fontSize: 12, color: C.muted }}>{tx("رفع صورة لأعلى كارت التسجيل", "Upload price card header image")}</span>
+                      </div>
+                  }
+                  <input type="file" accept="image/*" onChange={pickPriceCardImg} style={{ display: "none" }} />
+                </label>
+                {f.priceCardImage && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                    <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                      {tx("تغيير", "Change")}
+                      <input type="file" accept="image/*" onChange={pickPriceCardImg} style={{ display: "none" }} />
+                    </label>
+                    <Btn children={tx("إزالة", "Remove")} sm v="danger" onClick={() => set("priceCardImage", null)} />
+                  </div>
+                )}
               </div>
             </div>
             <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />

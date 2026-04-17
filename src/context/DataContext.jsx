@@ -237,6 +237,7 @@ export function DataProvider({ children }) {
       introVideoUrl: form.introVideoUrl || null,
       previewVideoUrl: form.previewVideoUrl || null,
       priceCardVideoUrl: form.priceCardVideoUrl || null,
+      priceCardImage: form.priceCardImage || null,
       freeLessonNote: form.freeLessonNote || "",
       upcomingSessionNote: form.upcomingSessionNote || "",
       sheetsTabName: form.sheetsTabName || slug,
