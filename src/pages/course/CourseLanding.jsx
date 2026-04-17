@@ -159,8 +159,8 @@ export default function CourseLanding() {
   return (
     <div style={{ paddingBottom: 70 }} dir={dir}>
 
-      {/* ── Course cover (full width) ── */}
-      {course.image && (
+      {/* ── Course hero (full width) — not used when cover is a title banner (coverTitleInImage) ── */}
+      {course.image && !course.coverTitleInImage && (
         <div style={{ width: "100%", maxHeight: "min(48vh, 420px)", overflow: "hidden", borderBottom: `1px solid ${C.border}` }}>
           <img
             src={course.image}
@@ -231,10 +231,21 @@ export default function CourseLanding() {
         {/* Price Card */}
         <div style={{ flex: "0 1 290px", position: "relative", zIndex: 2 }}>
           <div style={{ background: "rgba(255,255,255,.05)", backdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.45)" }}>
-            <div style={{ height: 160, background: `linear-gradient(135deg,${course.color||C.red},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <span style={{ fontWeight: 900, color: "rgba(255,255,255,.35)", fontSize: "0.75rem", textAlign: "center", padding: "0 16px", lineHeight: 1.4 }}>
-                {lang === "ar" ? course.title : (course.title_en || course.title)}
-              </span>
+            <div style={{ height: 160, position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${course.color||C.red},#321d3d)` }}>
+              {course.image ? (
+                <img
+                  src={course.image}
+                  alt={lang === "ar" ? course.title : (course.title_en || course.title)}
+                  loading="lazy"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : (
+                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontWeight: 900, color: "rgba(255,255,255,.35)", fontSize: "0.75rem", textAlign: "center", padding: "0 16px", lineHeight: 1.4 }}>
+                    {lang === "ar" ? course.title : (course.title_en || course.title)}
+                  </span>
+                </div>
+              )}
               {course.badge && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
             </div>
             <div style={{ padding: 18 }}>

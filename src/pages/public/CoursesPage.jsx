@@ -105,6 +105,7 @@ export default function CoursesPage() {
             const enrolled  = currentUser?.enrolledCourses?.find(e=>e.courseId===c.id);
             const prog      = enrolled?.progress||0;
             const trackData = TRACKS.find(tr=>tr.id===c.trackId);
+            const graphicCover = c.image && c.coverTitleInImage;
             return (
               <div
                 key={c.id}
@@ -144,10 +145,14 @@ export default function CoursesPage() {
                         </div>
                       </div>
                   }
-                  <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
-                  <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>
-                    {lang==="ar"?c.title:(c.title_en||c.title)}
-                  </span>
+                  {!graphicCover && (
+                    <>
+                      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
+                      <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>
+                        {lang==="ar"?c.title:(c.title_en||c.title)}
+                      </span>
+                    </>
+                  )}
                   {c.featured&&<div style={{position:"absolute",top:10,right:10,background:`${C.orange}dd`,borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang==="ar"?"مميز":"Featured"}</div>}
                 </div>
                 <div style={{padding:"14px 16px 18px"}}>

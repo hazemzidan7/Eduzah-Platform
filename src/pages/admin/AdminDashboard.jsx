@@ -283,7 +283,7 @@ export default function AdminDashboard() {
   const AddCourseModal = () => {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
-      tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null,
+      tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null, coverTitleInImage:false,
       presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
       techStackText:"",
@@ -295,6 +295,7 @@ export default function AdminDashboard() {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
       addCourse({
         ...f,
+        coverTitleInImage: !!f.coverTitleInImage,
         notifyEmails: f.notifyEmailsStr.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(e => e.includes("@")),
       });
       showT("تم إضافة الكورس بنجاح!");
@@ -378,9 +379,19 @@ export default function AdminDashboard() {
                     تغيير الصورة
                     <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
                   </label>
-                  <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
+                  <Btn children="إزالة" sm v="danger" onClick={() => { set("image", null); set("coverTitleInImage", false); }} />
                 </div>
               )}
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: f.image ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: f.image ? "#ccc" : "rgba(255,255,255,.35)" }}>
+                <input
+                  type="checkbox"
+                  checked={!!f.coverTitleInImage}
+                  disabled={!f.image}
+                  onChange={(e) => set("coverTitleInImage", e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: C.red }}
+                />
+                <span>الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)</span>
+              </label>
             </div>
             <Input label="Tagline (عربي)" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
             <Input label="Tagline (English)" value={f.tagline_en} onChange={v => set("tagline_en", v)} placeholder="Professional diploma with AI" />
@@ -486,6 +497,7 @@ export default function AdminDashboard() {
         ? c.faq_en.map(x => `${x.q} | ${x.a}`).join("\n")
         : defaultFaqEn.map(x => `${x.q} | ${x.a}`).join("\n"),
       image: c.image || null,
+      coverTitleInImage: !!c.coverTitleInImage,
       presentationUrl: c.presentationUrl || "",
       introVideoUrl: c.introVideoUrl || "",
       previewVideoUrl: c.previewVideoUrl || "",
@@ -585,6 +597,7 @@ export default function AdminDashboard() {
         faq_ar: parseFaq(f.faq_ar),
         faq_en: parseFaq(f.faq_en),
         image: f.image,
+        coverTitleInImage: !!f.coverTitleInImage,
         presentationUrl: f.presentationUrl?.trim() || null,
         introVideoUrl: f.introVideoUrl?.trim() || null,
         previewVideoUrl: f.previewVideoUrl?.trim() || null,
@@ -634,9 +647,19 @@ export default function AdminDashboard() {
                     تغيير الصورة
                     <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
                   </label>
-                  <Btn children="إزالة" sm v="danger" onClick={() => set("image", null)} />
+                  <Btn children="إزالة" sm v="danger" onClick={() => { set("image", null); set("coverTitleInImage", false); }} />
                 </div>
               )}
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: f.image ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: f.image ? "#ccc" : "rgba(255,255,255,.35)" }}>
+                <input
+                  type="checkbox"
+                  checked={!!f.coverTitleInImage}
+                  disabled={!f.image}
+                  onChange={(e) => set("coverTitleInImage", e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: C.red }}
+                />
+                <span>الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)</span>
+              </label>
             </div>
             <Input label="Tagline AR" value={f.tagline} onChange={v => set("tagline", v)} />
             <Input label="Tagline EN" value={f.tagline_en} onChange={v => set("tagline_en", v)} />

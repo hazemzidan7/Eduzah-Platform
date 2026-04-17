@@ -277,10 +277,36 @@ export default function StudentDashboard() {
                   transition: "all .25s",
                 }}
               >
-                <div style={{ height: 110, background: `linear-gradient(135deg,${c.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                  <span style={{ fontWeight: 900, color: "rgba(255,255,255,.4)", fontSize: "0.75rem", textAlign: "center", padding: "0 12px", lineHeight: 1.4 }}>
-                    {ar ? c.title : (c.title_en || c.title)}
-                  </span>
+                <div style={{ height: 110, position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${c.color},#321d3d)` }}>
+                  {c.image ? (
+                    <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  ) : null}
+                  {!(c.image && c.coverTitleInImage) && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: c.image ? "linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 55%)" : "transparent",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 900,
+                          color: c.image ? "#fff" : "rgba(255,255,255,.4)",
+                          fontSize: "0.75rem",
+                          textAlign: "center",
+                          padding: "0 12px",
+                          lineHeight: 1.4,
+                          textShadow: c.image ? "0 1px 3px rgba(0,0,0,.55)" : undefined,
+                        }}
+                      >
+                        {ar ? c.title : (c.title_en || c.title)}
+                      </span>
+                    </div>
+                  )}
                   {prog === 100 && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(16,185,129,.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <span style={{ fontWeight: 900, fontSize: 13, color: "#fff" }}>{ar ? "مكتمل" : "Complete"}</span>

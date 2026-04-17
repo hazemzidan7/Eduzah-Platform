@@ -35,6 +35,7 @@ const CourseCard = memo(function CourseCard({ course, lang }) {
   const title = lang === "ar" ? course.title : (course.title_en || course.title);
   const desc = lang === "ar" ? (course.desc || "") : (course.desc_en || course.desc || "");
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
+  const graphicCover = course.image && course.coverTitleInImage;
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -55,8 +56,12 @@ const CourseCard = memo(function CourseCard({ course, lang }) {
                 transform: hovered ? "scale(1.06)" : "scale(1)", transition:"transform .4s ease"}}/>
           : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`}}/>
         }
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
-        <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{title}</span>
+        {!graphicCover && (
+          <>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
+            <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{title}</span>
+          </>
+        )}
         {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.92)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang==="ar"?course.badge:(course.badge_en||course.badge)}</div>}
         {/* Hover preview overlay */}
         {desc && (
