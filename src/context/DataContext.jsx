@@ -22,6 +22,7 @@ import {
   TEAM_MEMBERS as INIT_TEAM,
   SITE,
 } from "../data";
+import { normalizeCourseCategory } from "../constants/courseCategories";
 
 const DataCtx = createContext(null);
 
@@ -57,7 +58,9 @@ async function patchMissingFields(colName, localItems, matchKey, fields) {
 
 export function DataProvider({ children }) {
   const { currentUser } = useAuth();
-  const [courses,      setCourses]      = useState(INIT_COURSES);
+  const [courses,      setCourses]      = useState(
+    INIT_COURSES.map((c) => ({ ...c, cat: normalizeCourseCategory(c.cat) })),
+  );
   const [news,         setNews]         = useState(INIT_NEWS);
   const [exams,        setExams]        = useState(INIT_EXAMS);
   const [trainers,     setTrainers]     = useState(INIT_TRAINERS);
@@ -71,8 +74,20 @@ export function DataProvider({ children }) {
   useEffect(() => {
     const snap = (col, setter) =>
       onSnapshot(collection(db, col), s => setter(s.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+    const snapCourses = (setter) =>
+      onSnapshot(
+        collection(db, "courses"),
+        (s) =>
+          setter(
+            s.docs.map((d) => {
+              const data = d.data();
+              return { id: d.id, ...data, cat: normalizeCourseCategory(data.cat) };
+            }),
+          ),
+        () => {},
+      );
     const unsubs = [
-      snap("courses",      setCourses),
+      snapCourses(setCourses),
       snap("news",         setNews),
       snap("trainers",     setTrainers),
       snap("programs",     setPrograms),
@@ -207,7 +222,7 @@ export function DataProvider({ children }) {
       slug,
       title: form.title, title_en: form.title_en || form.title,
       trackId: form.trackId || "technology", subtracks: [],
-      cat: form.cat || "tech",
+      cat: normalizeCourseCategory(form.cat),
       icon: form.icon || "📚",
       color: form.color || "#d91b5b",
       image: form.image || null,

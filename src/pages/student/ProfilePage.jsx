@@ -5,6 +5,7 @@ import { Btn, Card, PBar, Badge } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import { courseCategoryLabel } from "../../constants/courseCategories";
 
 const readFile = (file, cb) => {
   const r = new FileReader();
@@ -286,7 +287,7 @@ export default function ProfilePage() {
                       return c ? (
                         <div key={cid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,.05)", borderRadius: 10, padding: "10px 14px" }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
-                          <Badge color={C.purple}>{c.cat}</Badge>
+                          <Badge color={C.purple}>{courseCategoryLabel(c.cat, lang)}</Badge>
                         </div>
                       ) : null;
                     })}

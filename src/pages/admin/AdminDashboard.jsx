@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { courseCategorySelectOptions, normalizeCourseCategory, courseCategoryLabel } from "../../constants/courseCategories";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, doc, updateDoc, orderBy, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -60,6 +61,7 @@ export default function AdminDashboard() {
   const ar = lang === "ar";
   const dir = ar ? "rtl" : "ltr";
   const tx = (a, e) => (ar ? a : e);
+  const categoryOptions = useMemo(() => courseCategorySelectOptions(lang), [lang]);
 
   const [tab,        setTab]       = useState("overview");
   const [modal,      setModal]     = useState(null);
@@ -357,7 +359,7 @@ export default function AdminDashboard() {
           <Input label="الساعات" value={f.hours} onChange={v => set("hours", v)} placeholder="120" />
           <Input label="المشاريع" value={f.projects} onChange={v => set("projects", v)} placeholder="6" />
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
-            options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
+            options={categoryOptions} />
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="Tagline (عربي)" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
             <Input label="Tagline (English)" value={f.tagline_en} onChange={v => set("tagline_en", v)} placeholder="Professional diploma with AI" />
@@ -493,7 +495,7 @@ export default function AdminDashboard() {
     const [f, setF] = useState({
       title: c.title || "",
       title_en: c.title_en || "",
-      cat: c.cat || "tech",
+      cat: normalizeCourseCategory(c.cat),
       price: String(c.price ?? ""),
       hours: String(c.hours ?? ""),
       projects: String(c.projects ?? ""),
@@ -656,7 +658,7 @@ export default function AdminDashboard() {
           <Input label="التقييم (1-5)" value={f.rating} onChange={v => set("rating", v)} placeholder="5" />
           <Input label="عدد الخريجين" value={f.students} onChange={v => set("students", v)} placeholder="0" />
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
-            options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
+            options={categoryOptions} />
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="Tagline AR" value={f.tagline} onChange={v => set("tagline", v)} />
             <Input label="Tagline EN" value={f.tagline_en} onChange={v => set("tagline_en", v)} />
@@ -890,10 +892,7 @@ export default function AdminDashboard() {
           <Input label="اسم المستخدم (Email) *" value={f.username} onChange={v => set("username", v)} placeholder="trainer@eduzah.com" />
           <Input label="كلمة المرور *" value={f.password} onChange={v => set("password", v)} placeholder="password123" type="password" />
           <Select label="التخصص" value={f.specialty_ar} onChange={v => set("specialty_ar", v)}
-            options={[
-              ...([...new Set(courses.map(c => c.cat))].map(cat => ({ v: cat, l: cat }))),
-              {v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"},{v:"english",l:"English"},{v:"kids",l:"Kids"},
-            ].filter((o, i, arr) => arr.findIndex(x => x.v === o.v) === i)} />
+            options={categoryOptions} />
           <Input label="Specialty (English)" value={f.specialty_en} onChange={v => set("specialty_en", v)} placeholder="Web Development" />
           <div style={{ gridColumn: "1/-1" }}>
             <Input label="نبذة (عربي)" value={f.bio_ar} onChange={v => set("bio_ar", v)} placeholder="نبذة مختصرة عن المدرب..." rows={2} />
@@ -1722,7 +1721,7 @@ export default function AdminDashboard() {
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
                           <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{c.price.toLocaleString()} EGP · {sc} {tx("طالب", "students")} · {inst ? inst.name : tx("بدون مدرب", "No instructor")}</div>
                           <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                            <Badge color={C.orange}>{c.cat}</Badge>
+                            <Badge color={C.orange}>{courseCategoryLabel(c.cat, lang)}</Badge>
                             {c.featured && <Badge color={C.red}>{tx("مميز","Featured")}</Badge>}
                           </div>
                         </div>

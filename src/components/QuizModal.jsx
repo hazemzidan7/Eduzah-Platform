@@ -2,15 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLang } from "../context/LangContext";
 import { C, font } from "../theme";
+import { normalizeCourseCategory } from "../constants/courseCategories";
 
 const QUESTIONS_AR = [
   {
     q: "ما هدفك؟",
     opts: [
       { id: "job",         label: "الحصول على وظيفة 💼",       interest: "tech" },
-      { id: "business",    label: "تطوير أعمالي 🏢",           interest: "leadership" },
+      { id: "business",    label: "تطوير أعمالي 🏢",           interest: "management" },
       { id: "freelancing", label: "العمل الحر 🌍",             interest: "tech" },
-      { id: "skills",      label: "تطوير مهاراتي ✨",          interest: "soft" },
+      { id: "skills",      label: "تطوير مهاراتي ✨",          interest: "english" },
     ],
   },
   {
@@ -33,9 +34,9 @@ const QUESTIONS_AR = [
     q: "أيه اللي بيشدك أكتر؟",
     opts: [
       { id: "tech",       label: "تكنولوجيا 💻",  cat: "tech" },
-      { id: "management", label: "إدارة 📊",       cat: "leadership" },
-      { id: "design",     label: "تصميم 🎨",      cat: "design" },
-      { id: "english",    label: "إنجليزي 🗣️",    cat: "soft" },
+      { id: "management", label: "إدارة 📊",       cat: "management" },
+      { id: "kids",       label: "تدريب الأطفال 👶", cat: "kids" },
+      { id: "english",    label: "اللغة الإنجليزية 🗣️", cat: "english" },
     ],
   },
 ];
@@ -45,9 +46,9 @@ const QUESTIONS_EN = [
     q: "What's your goal?",
     opts: [
       { id: "job",         label: "Get a Job 💼",             interest: "tech" },
-      { id: "business",    label: "Grow my Business 🏢",      interest: "leadership" },
+      { id: "business",    label: "Grow my Business 🏢",      interest: "management" },
       { id: "freelancing", label: "Freelancing 🌍",           interest: "tech" },
-      { id: "skills",      label: "Improve my Skills ✨",     interest: "soft" },
+      { id: "skills",      label: "Improve my Skills ✨",     interest: "english" },
     ],
   },
   {
@@ -70,9 +71,9 @@ const QUESTIONS_EN = [
     q: "What interests you most?",
     opts: [
       { id: "tech",       label: "Technology 💻", cat: "tech" },
-      { id: "management", label: "Management 📊", cat: "leadership" },
-      { id: "design",     label: "Design 🎨",    cat: "design" },
-      { id: "english",    label: "English 🗣️",   cat: "soft" },
+      { id: "management", label: "Management 📊", cat: "management" },
+      { id: "kids",       label: "Children training 👶", cat: "kids" },
+      { id: "english",    label: "English language 🗣️", cat: "english" },
     ],
   },
 ];
@@ -83,9 +84,11 @@ function scoreCourses(courses, answers) {
 
   return courses.map((course) => {
     let score = 0;
-    const cat = (course.cat || "tech").toLowerCase();
-    if (cat === interestCat) score += 3;
-    else if (cat === goalAns?.interest) score += 1;
+    const cat = normalizeCourseCategory(course.cat);
+    const interestNorm = normalizeCourseCategory(interestCat);
+    const goalInterestNorm = normalizeCourseCategory(goalAns?.interest);
+    if (cat === interestNorm) score += 3;
+    else if (cat === goalInterestNorm) score += 1;
 
     // Default bonus for any enrolled / featured
     if (course.featured) score += 1;

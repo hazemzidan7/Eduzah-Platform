@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { db } from "../../firebase";
+import { normalizeCourseCategory } from "../../constants/courseCategories";
 
 const Q_AR = [
   {
@@ -22,10 +23,10 @@ const Q_AR = [
     id: "field",
     q: "\u0623\u064a \u0645\u062c\u0627\u0644 \u064a\u0634\u062f\u0643 \u0623\u0643\u062b\u0631 \u0627\u0644\u0622\u0646\u061f",
     options: [
-      { v: "tech", l: "\u062a\u0642\u0646\u064a\u0629 \u0648\u0628\u0631\u0645\u062c\u0629" },
-      { v: "hr", l: "\u0645\u0648\u0627\u0631\u062f \u0628\u0634\u0631\u064a\u0629" },
-      { v: "leadership", l: "\u0642\u064a\u0627\u062f\u0629 \u0648\u0625\u062f\u0627\u0631\u0629" },
-      { v: "soft", l: "\u0645\u0647\u0627\u0631\u0627\u062a \u0634\u062e\u0635\u064a\u0629" },
+      { v: "tech", l: "\u062a\u0643\u0646\u0648\u0644\u0648\u062c\u064a\u0627" },
+      { v: "management", l: "\u0625\u062f\u0627\u0631\u0629" },
+      { v: "english", l: "\u0627\u0644\u0644\u063a\u0629 \u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629" },
+      { v: "kids", l: "\u062a\u062f\u0631\u064a\u0628 \u0627\u0644\u0623\u0637\u0641\u0627\u0644" },
     ],
   },
   {
@@ -63,10 +64,10 @@ const Q_EN = [
     id: "field",
     q: "Which area interests you most?",
     options: [
-      { v: "tech", l: "Technology & coding" },
-      { v: "hr", l: "Human resources" },
-      { v: "leadership", l: "Leadership & management" },
-      { v: "soft", l: "Soft skills" },
+      { v: "tech", l: "Technology" },
+      { v: "management", l: "Management" },
+      { v: "english", l: "English language" },
+      { v: "kids", l: "Children training" },
     ],
   },
   {
@@ -98,7 +99,7 @@ function recommend(answers, courses, activity) {
 
   const scored = courses.map((c) => {
     let s = 0;
-    if (c.cat === field) s += 5;
+    if (normalizeCourseCategory(c.cat) === field) s += 5;
     if (c.featured) s += 2;
     const v = activity?.[c.id]?.views || 0;
     s += Math.min(2, v);

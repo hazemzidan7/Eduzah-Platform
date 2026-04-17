@@ -7,6 +7,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
+import { normalizeCourseCategory } from "../../constants/courseCategories";
 
 const MOTIS_AR = ["أنت على بعد خطوات من إتقان المهارة! استمر!", "الاستمرارية هي قوتك.", "كل درس يقربك من هدفك!", "متابعة رائعة!"];
 const MOTIS_EN = ["You're steps away from mastering this skill!", "Consistency is your strength.", "Every lesson brings you closer!", "Great momentum!"];
@@ -21,7 +22,7 @@ function recommendCourses(courses, currentUser, enrolledIds) {
       const last = currentUser?.lastViewedCourseId;
       if (last) {
         const lc = courses.find((x) => x.id === last);
-        if (lc && lc.cat === c.cat) s += 2;
+        if (lc && normalizeCourseCategory(lc.cat) === normalizeCourseCategory(c.cat)) s += 2;
       }
       return { c, s };
     })
