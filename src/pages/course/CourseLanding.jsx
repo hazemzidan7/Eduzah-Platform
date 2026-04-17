@@ -154,6 +154,7 @@ export default function CourseLanding() {
 
   const introEmbed = course.introVideoUrl ? toEmbedIntro(course.introVideoUrl) : null;
   const freePreviewEmbed = !enrolled && course.previewVideoUrl ? toEmbedIntro(course.previewVideoUrl) : null;
+  const priceCardVideoEmbed = course.priceCardVideoUrl?.trim() ? toEmbedIntro(course.priceCardVideoUrl.trim()) : null;
   const freeNote = !enrolled && course.freeLessonNote?.trim();
 
   return (
@@ -231,22 +232,36 @@ export default function CourseLanding() {
         {/* Price Card */}
         <div style={{ flex: "0 1 290px", position: "relative", zIndex: 2 }}>
           <div style={{ background: "rgba(255,255,255,.05)", backdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.45)" }}>
-            <div style={{ height: 160, position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${course.color||C.red},#321d3d)` }}>
-              {course.image ? (
-                <img
-                  src={course.image}
-                  alt={lang === "ar" ? course.title : (course.title_en || course.title)}
-                  loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                />
+            <div style={{ position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${course.color||C.red},#321d3d)` }}>
+              {priceCardVideoEmbed ? (
+                <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, background: "#0a0612" }}>
+                  <iframe
+                    title={lang === "ar" ? "فيديو كارت التسجيل" : "Enrollment card video"}
+                    src={priceCardVideoEmbed}
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
               ) : (
-                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontWeight: 900, color: "rgba(255,255,255,.35)", fontSize: "0.75rem", textAlign: "center", padding: "0 16px", lineHeight: 1.4 }}>
-                    {lang === "ar" ? course.title : (course.title_en || course.title)}
-                  </span>
+                <div style={{ height: 160, position: "relative", overflow: "hidden" }}>
+                  {course.image ? (
+                    <img
+                      src={course.image}
+                      alt={lang === "ar" ? course.title : (course.title_en || course.title)}
+                      loading="lazy"
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontWeight: 900, color: "rgba(255,255,255,.35)", fontSize: "0.75rem", textAlign: "center", padding: "0 16px", lineHeight: 1.4 }}>
+                        {lang === "ar" ? course.title : (course.title_en || course.title)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
-              {course.badge && <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
+              {course.badge && <div style={{ position: "absolute", top: 10, right: 10, zIndex: 2, background: "rgba(217,27,91,.9)", borderRadius: 7, padding: "3px 9px", fontSize: 10, fontWeight: 700 }}>{lang === "ar" ? course.badge : (course.badge_en || course.badge)}</div>}
             </div>
             <div style={{ padding: 18 }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: C.orange, marginBottom: 2 }}>{priceNum.toLocaleString()} EGP</div>

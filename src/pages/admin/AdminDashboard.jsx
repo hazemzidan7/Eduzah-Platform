@@ -284,7 +284,7 @@ export default function AdminDashboard() {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
       tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null, coverTitleInImage:false,
-      presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
+      presentationUrl:"", priceCardVideoUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
       techStackText:"",
       curriculumText:"",
@@ -421,6 +421,7 @@ export default function AdminDashboard() {
                 </label>
               </div>
             </div>
+            <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} placeholder="https://..." />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
@@ -500,6 +501,7 @@ export default function AdminDashboard() {
       image: c.image || null,
       coverTitleInImage: !!c.coverTitleInImage,
       presentationUrl: c.presentationUrl || "",
+      priceCardVideoUrl: c.priceCardVideoUrl || "",
       introVideoUrl: c.introVideoUrl || "",
       previewVideoUrl: c.previewVideoUrl || "",
       freeLessonNote: c.freeLessonNote || "",
@@ -600,6 +602,7 @@ export default function AdminDashboard() {
         image: f.image || null,
         coverTitleInImage: !!f.coverTitleInImage,
         presentationUrl: f.presentationUrl?.trim() || null,
+        priceCardVideoUrl: f.priceCardVideoUrl?.trim() || null,
         introVideoUrl: f.introVideoUrl?.trim() || null,
         previewVideoUrl: f.previewVideoUrl?.trim() || null,
         freeLessonNote: f.freeLessonNote?.trim() || "",
@@ -691,6 +694,7 @@ export default function AdminDashboard() {
                 </label>
               </div>
             </div>
+            <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
