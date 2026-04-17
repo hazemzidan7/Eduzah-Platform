@@ -5,7 +5,6 @@ import { Btn, Card, PBar, Badge } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
-import { courseThumbUrl } from "../../courseMedia";
 
 const readFile = (file, cb) => {
   const r = new FileReader();
@@ -233,14 +232,12 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {enrolled.map(({ course, progress, enrollDate, completedLessons }) => {
-                      const thumb = courseThumbUrl(course);
-                      return (
+                    {enrolled.map(({ course, progress, enrollDate, completedLessons }) => (
                       <div key={course.id} style={{ background: "rgba(255,255,255,.05)", borderRadius: 12, padding: "14px 16px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {thumb
-                              ? <img src={thumb} alt={course.title} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", marginBottom: 6 }} />
+                            {course.image
+                              ? <img src={course.image} alt={course.title} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", marginBottom: 6 }} />
                               : null
                             }
                             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{course.title}</div>
@@ -266,8 +263,7 @@ export default function ProfilePage() {
                           </span>
                         </div>
                       </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 )}
               </Card>

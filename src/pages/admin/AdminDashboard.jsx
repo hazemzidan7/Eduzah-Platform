@@ -283,14 +283,13 @@ export default function AdminDashboard() {
   const AddCourseModal = () => {
     const [f, setF] = useState({
       title:"", title_en:"", cat:"tech", price:"", hours:"", projects:"", duration:"12 أسبوع",
-      tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", coverImage:null, image:null, coverTitleInImage:false,
+      tagline:"", tagline_en:"", desc:"", desc_en:"", bullets:"", bullets_en:"", outcomes:"", outcomes_en:"", image:null, coverTitleInImage:false,
       presentationUrl:"", introVideoUrl:"", previewVideoUrl:"", freeLessonNote:"", upcomingSessionNote:"", sheetsTabName:"", notifyEmailsStr:"",
       who_ar:"", who_en:"", faq_ar:"", faq_en:"",
       techStackText:"",
       curriculumText:"",
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-    const pickCoverImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("coverImage", d)); };
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
@@ -359,64 +358,6 @@ export default function AdminDashboard() {
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
             options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
-            {/* ── Card banner (title strip) ── */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>بانر أعلى الكارت (اختياري)</label>
-              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.coverImage ? "transparent" : C.border}` }}>
-                {f.coverImage
-                  ? <img src={f.coverImage} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
-                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      <span style={{ fontSize: 12, color: C.muted }}>رفع بانر أفقي (مثلاً العنوان داخل التصميم)</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
-                    </div>
-                }
-                <input type="file" accept="image/*" onChange={pickCoverImg} style={{ display: "none" }} />
-              </label>
-              {f.coverImage && (
-                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
-                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
-                    تغيير البانر
-                    <input type="file" accept="image/*" onChange={pickCoverImg} style={{ display: "none" }} />
-                  </label>
-                  <Btn children="إزالة البانر" sm v="danger" onClick={() => set("coverImage", null)} />
-                </div>
-              )}
-            </div>
-            {/* ── Full-width hero on course page ── */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>صورة الهيرو أعلى صفحة الكورس (اختياري)</label>
-              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
-                {f.image
-                  ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
-                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      <span style={{ fontSize: 12, color: C.muted }}>صورة عريضة لأعلى صفحة تفاصيل الكورس</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
-                    </div>
-                }
-                <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
-              </label>
-              {f.image && (
-                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
-                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
-                    تغيير الهيرو
-                    <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
-                  </label>
-                  <Btn children="إزالة الهيرو" sm v="danger" onClick={() => set("image", null)} />
-                </div>
-              )}
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: (f.coverImage || f.image) ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: (f.coverImage || f.image) ? "#ccc" : "rgba(255,255,255,.35)" }}>
-                <input
-                  type="checkbox"
-                  checked={!!f.coverTitleInImage}
-                  disabled={!(f.coverImage || f.image)}
-                  onChange={(e) => set("coverTitleInImage", e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: C.red }}
-                />
-                <span>العنوان داخل صورة البانر (لا يُكرَّر نص فوق صورة أعلى الكارت)</span>
-              </label>
-            </div>
             <Input label="Tagline (عربي)" value={f.tagline} onChange={v => set("tagline", v)} placeholder="دبلومة احترافية مدمجة بالـ AI" />
             <Input label="Tagline (English)" value={f.tagline_en} onChange={v => set("tagline_en", v)} placeholder="Professional diploma with AI" />
             <Input label="وصف الكورس (عربي)" value={f.desc} onChange={v => set("desc", v)} placeholder="وصف مختصر للكورس..." rows={2} />
@@ -444,6 +385,42 @@ export default function AdminDashboard() {
             <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر...\nإيه طرق الدفع؟ | الدفع عبر InstaPay..."} rows={4} />
             <Input label={tx("FAQ (EN) — per line: Question | Answer", "FAQ (EN) — per line: Question | Answer")} value={f.faq_en} onChange={v => set("faq_en", v)} placeholder={"Do I need prior experience? | No, it starts from scratch...\nWhat payment methods? | InstaPay..."} rows={4} />
             <Input label={tx("رابط عرض المنهج (PDF)", "Curriculum presentation URL")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
+            <div style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>{tx("صورة وفيديوهات العرض", "Cover & preview media")}</div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم + كارت السعر)", "Course cover image (listings & price card)")}</label>
+                <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
+                  {f.image
+                    ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                    : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span style={{ fontSize: 12, color: C.muted }}>{tx("اضغط لرفع صورة الغلاف", "Click to upload cover image")}</span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
+                      </div>
+                  }
+                  <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                </label>
+                {f.image && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                    <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                      {tx("تغيير الصورة", "Change image")}
+                      <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                    </label>
+                    <Btn children={tx("إزالة", "Remove")} sm v="danger" onClick={() => { set("image", null); set("coverTitleInImage", false); }} />
+                  </div>
+                )}
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: f.image ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: f.image ? "#ccc" : "rgba(255,255,255,.35)" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!f.coverTitleInImage}
+                    disabled={!f.image}
+                    onChange={(e) => set("coverTitleInImage", e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: C.red }}
+                  />
+                  <span>{tx("الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)", "Cover already includes title (no extra overlay on cards)")}</span>
+                </label>
+              </div>
+            </div>
             <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} placeholder="https://..." />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
@@ -520,7 +497,6 @@ export default function AdminDashboard() {
       faq_en: (Array.isArray(c.faq_en) && c.faq_en.length)
         ? c.faq_en.map(x => `${x.q} | ${x.a}`).join("\n")
         : defaultFaqEn.map(x => `${x.q} | ${x.a}`).join("\n"),
-      coverImage: c.coverImage || null,
       image: c.image || null,
       coverTitleInImage: !!c.coverTitleInImage,
       presentationUrl: c.presentationUrl || "",
@@ -532,7 +508,6 @@ export default function AdminDashboard() {
       notifyEmailsStr: (Array.isArray(c.notifyEmails) ? c.notifyEmails : []).join(", "),
     });
     const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-    const pickCoverImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("coverImage", d)); };
     const pickImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("image", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
@@ -622,7 +597,6 @@ export default function AdminDashboard() {
         who_en: parseLines(f.who_en),
         faq_ar: parseFaq(f.faq_ar),
         faq_en: parseFaq(f.faq_en),
-        coverImage: f.coverImage || null,
         image: f.image || null,
         coverTitleInImage: !!f.coverTitleInImage,
         presentationUrl: f.presentationUrl?.trim() || null,
@@ -654,62 +628,6 @@ export default function AdminDashboard() {
           <Select label="الفئة" value={f.cat} onChange={v => set("cat", v)}
             options={[{v:"tech",l:"Tech"},{v:"hr",l:"HR"},{v:"leadership",l:"Leadership"},{v:"soft",l:"Soft Skills"}]} />
           <div style={{ gridColumn: "1/-1" }}>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>بانر أعلى الكارت (اختياري)</label>
-              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.coverImage ? "transparent" : C.border}` }}>
-                {f.coverImage
-                  ? <img src={f.coverImage} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
-                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      <span style={{ fontSize: 12, color: C.muted }}>رفع بانر أفقي (مثلاً العنوان داخل التصميم)</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
-                    </div>
-                }
-                <input type="file" accept="image/*" onChange={pickCoverImg} style={{ display: "none" }} />
-              </label>
-              {f.coverImage && (
-                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
-                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
-                    تغيير البانر
-                    <input type="file" accept="image/*" onChange={pickCoverImg} style={{ display: "none" }} />
-                  </label>
-                  <Btn children="إزالة البانر" sm v="danger" onClick={() => set("coverImage", null)} />
-                </div>
-              )}
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>صورة الهيرو أعلى صفحة الكورس (اختياري)</label>
-              <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
-                {f.image
-                  ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
-                  : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      <span style={{ fontSize: 12, color: C.muted }}>صورة عريضة لأعلى صفحة تفاصيل الكورس</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
-                    </div>
-                }
-                <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
-              </label>
-              {f.image && (
-                <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
-                  <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
-                    تغيير الهيرو
-                    <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
-                  </label>
-                  <Btn children="إزالة الهيرو" sm v="danger" onClick={() => set("image", null)} />
-                </div>
-              )}
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: (f.coverImage || f.image) ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: (f.coverImage || f.image) ? "#ccc" : "rgba(255,255,255,.35)" }}>
-                <input
-                  type="checkbox"
-                  checked={!!f.coverTitleInImage}
-                  disabled={!(f.coverImage || f.image)}
-                  onChange={(e) => set("coverTitleInImage", e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: C.red }}
-                />
-                <span>العنوان داخل صورة البانر (لا يُكرَّر نص فوق صورة أعلى الكارت)</span>
-              </label>
-            </div>
             <Input label="Tagline AR" value={f.tagline} onChange={v => set("tagline", v)} />
             <Input label="Tagline EN" value={f.tagline_en} onChange={v => set("tagline_en", v)} />
             <Input label="وصف AR" value={f.desc} onChange={v => set("desc", v)} rows={2} />
@@ -737,6 +655,42 @@ export default function AdminDashboard() {
             <Input label={tx("FAQ (عربي) — كل سطر: سؤال | إجابة", "FAQ (AR) — per line: Question | Answer")} value={f.faq_ar} onChange={v => set("faq_ar", v)} placeholder={"هل محتاج خبرة سابقة؟ | لا، الدبلومة تبدأ من الصفر..."} rows={4} />
             <Input label={tx("FAQ (EN) — per line: Question | Answer", "FAQ (EN) — per line: Question | Answer")} value={f.faq_en} onChange={v => set("faq_en", v)} placeholder={"Do I need prior experience? | No, it starts from scratch..."} rows={4} />
             <Input label={tx("رابط عرض المنهج (PDF أو رابط)", "Curriculum presentation URL (PDF or link)")} value={f.presentationUrl} onChange={v => set("presentationUrl", v)} placeholder="https://..." />
+            <div style={{ gridColumn: "1/-1" }}>
+              <div style={{ fontSize: 11, color: "#888", fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>{tx("صورة وفيديوهات العرض", "Cover & preview media")}</div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: "#aaa", fontWeight: 700, display: "block", marginBottom: 8 }}>{tx("صورة غلاف الكورس (قوائم + كارت السعر)", "Course cover image (listings & price card)")}</label>
+                <label style={{ display: "block", cursor: "pointer", borderRadius: 12, overflow: "hidden", position: "relative", border: `2px dashed ${f.image ? "transparent" : C.border}` }}>
+                  {f.image
+                    ? <img src={f.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                    : <div style={{ height: 130, background: "rgba(255,255,255,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span style={{ fontSize: 12, color: C.muted }}>{tx("اضغط لرفع صورة الغلاف", "Click to upload cover image")}</span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>JPG / PNG / WEBP</span>
+                      </div>
+                  }
+                  <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                </label>
+                {f.image && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8 }}>
+                    <label style={{ flex: 1, cursor: "pointer", background: "rgba(255,255,255,.06)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.muted, textAlign: "center" }}>
+                      {tx("تغيير الصورة", "Change image")}
+                      <input type="file" accept="image/*" onChange={pickImg} style={{ display: "none" }} />
+                    </label>
+                    <Btn children={tx("إزالة", "Remove")} sm v="danger" onClick={() => { set("image", null); set("coverTitleInImage", false); }} />
+                  </div>
+                )}
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: f.image ? "pointer" : "not-allowed", marginTop: 10, marginBottom: 4, fontSize: 12, color: f.image ? "#ccc" : "rgba(255,255,255,.35)" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!f.coverTitleInImage}
+                    disabled={!f.image}
+                    onChange={(e) => set("coverTitleInImage", e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: C.red }}
+                  />
+                  <span>{tx("الغلاف صورة جاهزة فيها العنوان (بدون نص إضافي فوق الصورة)", "Cover already includes title (no extra overlay on cards)")}</span>
+                </label>
+              </div>
+            </div>
             <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />

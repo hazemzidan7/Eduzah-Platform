@@ -7,7 +7,6 @@ import { Skeleton } from "../../components/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
-import { courseCardCoverUrl, courseCoverIsGraphic } from "../../courseMedia";
 
 const MOTIS_AR = ["أنت على بعد خطوات من إتقان المهارة! استمر!", "الاستمرارية هي قوتك.", "كل درس يقربك من هدفك!", "متابعة رائعة!"];
 const MOTIS_EN = ["You're steps away from mastering this skill!", "Consistency is your strength.", "Every lesson brings you closer!", "Great momentum!"];
@@ -281,10 +280,10 @@ export default function StudentDashboard() {
                 }}
               >
                 <div style={{ height: 110, position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${c.color},#321d3d)` }}>
-                  {coverSrc ? (
-                    <img src={coverSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  {c.image ? (
+                    <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   ) : null}
-                  {!hideTitleOverlay && (
+                  {!(c.image && c.coverTitleInImage) && (
                     <div
                       style={{
                         position: "absolute",
@@ -292,18 +291,18 @@ export default function StudentDashboard() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: coverSrc ? "linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 55%)" : "transparent",
+                        background: c.image ? "linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 55%)" : "transparent",
                       }}
                     >
                       <span
                         style={{
                           fontWeight: 900,
-                          color: coverSrc ? "#fff" : "rgba(255,255,255,.4)",
+                          color: c.image ? "#fff" : "rgba(255,255,255,.4)",
                           fontSize: "0.75rem",
                           textAlign: "center",
                           padding: "0 12px",
                           lineHeight: 1.4,
-                          textShadow: coverSrc ? "0 1px 3px rgba(0,0,0,.55)" : undefined,
+                          textShadow: c.image ? "0 1px 3px rgba(0,0,0,.55)" : undefined,
                         }}
                       >
                         {ar ? c.title : (c.title_en || c.title)}

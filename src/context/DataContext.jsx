@@ -211,7 +211,6 @@ export function DataProvider({ children }) {
       icon: form.icon || "📚",
       color: form.color || "#d91b5b",
       image: form.image || null,
-      coverImage: form.coverImage || null,
       coverTitleInImage: !!form.coverTitleInImage,
       price: Number(form.price) || 0,
       installment: Math.round((Number(form.price) || 0) / 3),

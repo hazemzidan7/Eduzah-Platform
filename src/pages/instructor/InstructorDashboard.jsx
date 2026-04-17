@@ -6,7 +6,6 @@ import { flattenLessonsWithVideos } from "../../utils/courseVideos";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
-import { courseCardCoverUrl } from "../../courseMedia";
 
 // ── Image upload helper ──
 const readFile = (file, cb) => {
@@ -298,11 +297,10 @@ export default function InstructorDashboard() {
                   const sc = users.filter(u => u.enrolledCourses.find(e => e.courseId === c.id)).length;
                   const vids = (c.curriculum || []).flatMap(ch => ch.lessons || []).length;
                   const mats = (c.materials || []).length;
-                  const coverSrc = courseCardCoverUrl(c);
                   return (
                     <Card key={c.id} style={{ padding: 18 }}>
-                      {coverSrc
-                        ? <img src={coverSrc} alt={c.title} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 12 }} />
+                      {c.image
+                        ? <img src={c.image} alt={c.title} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 10, marginBottom: 12 }} />
                         : <div style={{ height: 90, borderRadius: 10, background: `linear-gradient(135deg,${c.color},#321d3d)`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                             <span style={{ fontWeight: 900, color: "rgba(255,255,255,.4)", fontSize: "0.75rem", textAlign: "center", padding: "0 10px" }}>{c.title}</span>
                           </div>

@@ -9,7 +9,6 @@ import { useLang } from "../../context/LangContext";
 import { Seo } from "../../components/Seo";
 import JourneySection from "../../components/JourneySection";
 import { useInView } from "../../hooks/useInView";
-import { courseCardCoverUrl, courseCoverIsGraphic } from "../../courseMedia";
 
 /** Cards stay centered as a group when items are added or removed */
 const centeredRow = (gap = 20) => ({
@@ -36,8 +35,7 @@ const CourseCard = memo(function CourseCard({ course, lang }) {
   const title = lang === "ar" ? course.title : (course.title_en || course.title);
   const desc = lang === "ar" ? (course.desc || "") : (course.desc_en || course.desc || "");
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
-  const coverSrc = courseCardCoverUrl(course);
-  const graphicCover = courseCoverIsGraphic(course);
+  const graphicCover = course.image && course.coverTitleInImage;
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -51,8 +49,8 @@ const CourseCard = memo(function CourseCard({ course, lang }) {
         boxShadow: hovered ? `0 20px 50px rgba(217,27,91,.3)` : "none",
       }}>
       <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
-        {coverSrc
-          ? <img src={coverSrc} alt={title} loading="lazy" decoding="async"
+        {course.image
+          ? <img src={course.image} alt={title} loading="lazy" decoding="async"
               width="400" height="160"
               style={{width:"100%",height:"100%",objectFit:"cover",display:"block",
                 transform: hovered ? "scale(1.06)" : "scale(1)", transition:"transform .4s ease"}}/>

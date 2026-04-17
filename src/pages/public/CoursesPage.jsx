@@ -6,7 +6,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { TRACKS } from "../../data";
-import { courseCardCoverUrl, courseCoverIsGraphic } from "../../courseMedia";
 
 const TRAINING_TYPES = [
   { v: "all",      ar: "الكل",      en: "All" },
@@ -106,8 +105,7 @@ export default function CoursesPage() {
             const enrolled  = currentUser?.enrolledCourses?.find(e=>e.courseId===c.id);
             const prog      = enrolled?.progress||0;
             const trackData = TRACKS.find(tr=>tr.id===c.trackId);
-            const coverSrc = courseCardCoverUrl(c);
-            const graphicCover = courseCoverIsGraphic(c);
+            const graphicCover = c.image && c.coverTitleInImage;
             return (
               <div
                 key={c.id}
@@ -132,8 +130,8 @@ export default function CoursesPage() {
                 }}
               >
                 <div style={{ position: "relative", height: 160, overflow: "hidden", flexShrink: 0 }}>
-                  {coverSrc
-                    ? <img src={coverSrc} alt={lang==="ar"?c.title:(c.title_en||c.title)} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  {c.image
+                    ? <img src={c.image} alt={lang==="ar"?c.title:(c.title_en||c.title)} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
                     : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${c.color||C.red}cc,#1a0f2e)`,position:"relative",overflow:"hidden"}}>
                         {/* decorative circles */}
                         <div style={{position:"absolute",top:-28,right:-28,width:110,height:110,borderRadius:"50%",background:"rgba(255,255,255,.07)"}}/>
