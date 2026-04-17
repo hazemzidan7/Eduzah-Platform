@@ -55,14 +55,6 @@
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
     </noscript>
 
-    <!-- ── Critical CSS (font-display: swap fallback) ─────────────────────── -->
-    <style>
-      /* Ensure no layout shift while Cairo loads — match metric-compatible fallback */
-      body { font-family: 'Cairo', 'Segoe UI', Arial, sans-serif; margin: 0; background: #1a0f24; color: #f8fafc; }
-      #root { min-height: 100vh; }
-      /* Prevent CLS from spinner on initial paint */
-      .app-shell { min-height: 100vh; }
-    </style>
   </head>
   <body data-theme="dark">
     <div id="root"></div>

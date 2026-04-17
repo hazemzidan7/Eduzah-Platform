@@ -22,6 +22,7 @@ import {
   patchAfterLesson,
   patchCourseComplete,
 } from "../utils/gamification";
+import { PHONE_PENDING_KEY } from "../utils/phoneE164";
 
 const AuthCtx = createContext(null);
 
@@ -62,6 +63,17 @@ export function AuthProvider({ children }) {
               updateDoc(doc(db, "users", firebaseUser.uid), persist).catch(() => {});
             }
           } else {
+            try {
+              if (
+                firebaseUser.phoneNumber
+                && typeof sessionStorage !== "undefined"
+                && sessionStorage.getItem(PHONE_PENDING_KEY) === "1"
+              ) {
+                setCU(null);
+                setLoading(false);
+                return;
+              }
+            } catch (_) { /* ignore */ }
             await signOut(auth);
             setCU(null);
           }
@@ -258,6 +270,83 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => signOut(auth).then(() => setCU(null));
+
+  /**
+   * After Firebase Phone Auth `confirm()`, create or load Firestore profile.
+   * For register flow, set sessionStorage PHONE_PENDING_KEY before sending SMS (see Auth.jsx).
+   */
+  const finalizePhoneSignIn = async (firebaseUser, { mode, name, phoneDisplay }) => {
+    const uid = firebaseUser.uid;
+    const phone = firebaseUser.phoneNumber || "";
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.status === "rejected") {
+        await signOut(auth);
+        try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+        return { ok: false, code: "REJECTED" };
+      }
+      const merged = {
+        ...data,
+        xp: data.xp ?? 0,
+        level: data.level ?? 1,
+        badges: Array.isArray(data.badges) ? data.badges : [],
+        userNotifications: Array.isArray(data.userNotifications) ? data.userNotifications : [],
+        courseActivity: data.courseActivity && typeof data.courseActivity === "object" ? data.courseActivity : {},
+      };
+      setCU({ id: uid, ...merged });
+      try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+      return { ok: true, role: data.role };
+    }
+    if (mode === "register" && name?.trim()) {
+      const enrolledCourses = [];
+      const welcomeMsg =
+        "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة والتقديم على الكورسات. | "
+        + "Your account is ready — explore the platform and apply for courses.";
+      const userNotifications = appendPlainNotification({ userNotifications: [] }, welcomeMsg);
+      const displayPhone = phoneDisplay || phone.replace(/^\+/, "") || "";
+      await setDoc(doc(db, "users", uid), {
+        name: name.trim(),
+        email: "",
+        phone: displayPhone,
+        role: "user",
+        status: "approved",
+        avatar: (name.trim()[0] || "?").toUpperCase(),
+        enrolledCourses,
+        enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
+        assignedCourses: [],
+        xp: 0,
+        level: 1,
+        badges: [],
+        userNotifications,
+        lastViewedCourseId: null,
+        lastViewedAt: null,
+        courseActivity: {},
+        createdAt: new Date().toISOString(),
+      });
+      try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+      await refreshUserProfileAfterPhone(uid);
+      return { ok: true };
+    }
+    await signOut(auth);
+    try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+    return { ok: false, code: "NO_PROFILE" };
+  };
+
+  async function refreshUserProfileAfterPhone(uid) {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return;
+    const data = snap.data();
+    setCU({
+      id: uid,
+      ...data,
+      xp: data.xp ?? 0,
+      level: data.level ?? 1,
+      badges: Array.isArray(data.badges) ? data.badges : [],
+      userNotifications: Array.isArray(data.userNotifications) ? data.userNotifications : [],
+      courseActivity: data.courseActivity && typeof data.courseActivity === "object" ? data.courseActivity : {},
+    });
+  }
 
   /** Re-load Firestore profile for the signed-in user (e.g. after notification writes). */
   const refreshUserProfile = async () => {
@@ -770,6 +859,7 @@ export function AuthProvider({ children }) {
       assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, updateProfile, adminUpdateUser,
       requestPasswordReset, startPasswordReset, confirmPasswordResetOtp, changePassword,
       createAdminAccount, createInstructorAccount,
+      finalizePhoneSignIn,
     }}>
       {children}
     </AuthCtx.Provider>

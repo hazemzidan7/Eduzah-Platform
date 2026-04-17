@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
-import { confirmPasswordReset } from "firebase/auth";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { confirmPasswordReset, signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { auth } from "../../firebase";
+import { toE164Phone, PHONE_PENDING_KEY } from "../../utils/phoneE164";
 import { C, gHero, font } from "../../theme";
 import { Btn } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
@@ -54,6 +55,193 @@ const validatePassword = (p) => {
   ];
   return rules;
 };
+
+/** Firebase Phone Auth (SMS). Enable Phone in Console → Authentication → Sign-in method. */
+function PhoneAuthBlock({ mode, lang, name = "", onSuccess }) {
+  const { finalizePhoneSignIn } = useAuth();
+  const ar = lang === "ar";
+  const [open, setOpen] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState("phone");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const confRef = useRef(null);
+  const verifierRef = useRef(null);
+  const capId = mode === "login" ? "recaptcha-phone-login" : "recaptcha-phone-register";
+
+  useEffect(() => () => {
+    try { verifierRef.current?.clear(); } catch (_) {}
+    verifierRef.current = null;
+  }, []);
+
+  const phoneErr = (e) => {
+    const c = String(e?.code || e?.message || "");
+    if (c.includes("invalid-phone-number")) return ar ? "رقم غير صالح. جرّب 01… أو +20…" : "Invalid number. Try 01… or +20…";
+    if (c.includes("too-many-requests")) return ar ? "محاولات كثيرة. حاول لاحقاً." : "Too many attempts. Try later.";
+    if (c.includes("invalid-verification-code")) return ar ? "الكود غير صحيح" : "Invalid code";
+    if (c.includes("session-expired")) return ar ? "انتهت الجلسة. اطلب كوداً جديداً." : "Session expired. Request a new code.";
+    return ar ? "تعذر إكمال التحقق بالهاتف" : "Could not complete phone verification";
+  };
+
+  const sendCode = async () => {
+    setErr("");
+    if (mode === "register" && !String(name).trim()) {
+      setErr(ar ? "اكتب الاسم في الحقل أعلاه أولاً." : "Enter your name in the field above first.");
+      return;
+    }
+    const e164 = toE164Phone(phone);
+    if (!e164) {
+      setErr(ar ? "أدخل رقماً صالحاً (مثال: 01012345678)" : "Enter a valid number (e.g. 01012345678)");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (mode === "register" && typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem(PHONE_PENDING_KEY, "1");
+      }
+      try { verifierRef.current?.clear(); } catch (_) {}
+      verifierRef.current = new RecaptchaVerifier(auth, capId, { size: "invisible" });
+      const cr = await signInWithPhoneNumber(auth, e164, verifierRef.current);
+      confRef.current = cr;
+      setStep("code");
+      setCode("");
+    } catch (e) {
+      try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+      setErr(phoneErr(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    setErr("");
+    const digits = code.replace(/\D/g, "");
+    if (digits.length < 6) {
+      setErr(ar ? "أدخل الكود المرسل في الرسالة" : "Enter the code from the SMS");
+      return;
+    }
+    if (!confRef.current) {
+      setErr(ar ? "اطلب كوداً جديداً" : "Request a new code first");
+      return;
+    }
+    setBusy(true);
+    try {
+      const cred = await confRef.current.confirm(digits);
+      const r = await finalizePhoneSignIn(cred.user, {
+        mode,
+        name: mode === "register" ? String(name).trim() : undefined,
+        phoneDisplay: phone.replace(/\s/g, ""),
+      });
+      if (!r.ok) {
+        if (r.code === "NO_PROFILE") {
+          setErr(ar
+            ? (mode === "login"
+              ? "لا يوجد حساب بهذا الرقم. أنشئ حساباً من صفحة التسجيل (التحقق بالهاتف)."
+              : "تعذر إنشاء الحساب. حاول مرة أخرى.")
+            : (mode === "login"
+              ? "No account for this number. Create one on the Register page (phone sign-up)."
+              : "Could not create account. Try again."));
+        } else if (r.code === "REJECTED") {
+          setErr(ar ? "تم رفض الحساب." : "Account rejected.");
+        } else {
+          setErr(ar ? "تعذر الإكمال" : "Could not complete");
+        }
+        return;
+      }
+      onSuccess?.(r);
+    } catch (e) {
+      try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+      setErr(phoneErr(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+      <button
+        type="button"
+        onClick={() => { setOpen((o) => !o); setErr(""); }}
+        style={{
+          background: "none",
+          border: "none",
+          color: C.orange,
+          cursor: "pointer",
+          fontSize: 12,
+          fontWeight: 700,
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        {open ? (ar ? "▼ إخفاء التحقق بالهاتف" : "▼ Hide phone sign-in") : (ar ? "الدخول برمز SMS على الهاتف" : "Or sign in with phone (SMS)")}
+      </button>
+      {open && (
+        <>
+          <div id={capId} style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true" />
+          <p style={{ fontSize: 11, color: C.muted, marginTop: 10, lineHeight: 1.65 }}>
+            {ar
+              ? "فعّل مزود «Phone» من لوحة Firebase: Authentication → Sign-in method. الإنتاج قد يحتاج خطة Blaze."
+              : "Enable the Phone provider: Firebase → Authentication → Sign-in method. Production SMS may require the Blaze plan."}
+          </p>
+          {step === "phone" && (
+            <>
+              <Field label={ar ? "رقم الهاتف" : "Phone number"}>
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={ar ? "01012345678" : "01012345678"}
+                  style={inputSx(false)}
+                  type="tel"
+                  disabled={busy}
+                  autoComplete="tel"
+                />
+              </Field>
+              {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 8 }}>{err}</div>}
+              <Btn
+                children={busy ? "…" : (ar ? "إرسال رمز SMS" : "Send SMS code")}
+                full
+                onClick={sendCode}
+                v="outline"
+                style={{ marginTop: 4 }}
+              />
+            </>
+          )}
+          {step === "code" && (
+            <>
+              <Field label={ar ? "رمز التحقق (SMS)" : "SMS verification code"}>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  inputMode="numeric"
+                  style={inputSx(false)}
+                  disabled={busy}
+                  placeholder="••••••"
+                  autoComplete="one-time-code"
+                />
+              </Field>
+              {err && <div role="alert" style={{ color: C.danger, fontSize: 12, marginBottom: 8 }}>{err}</div>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                <Btn
+                  children={ar ? "← رجوع" : "← Back"}
+                  v="outline"
+                  sm
+                  onClick={() => {
+                    setStep("phone");
+                    setErr("");
+                    try { sessionStorage.removeItem(PHONE_PENDING_KEY); } catch (_) {}
+                  }}
+                  disabled={busy}
+                />
+                <Btn children={busy ? "…" : (ar ? "تأكيد" : "Verify")} onClick={verifyCode} style={{ flex: 1, minWidth: 120 }} disabled={busy} />
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 const PassRules = ({ pass, lang }) => {
   if (!pass) return null;
@@ -200,6 +388,8 @@ export function LoginPage() {
         <Btn children={ar ? "تسجيل الدخول" : "Login"} full onClick={submit}
           style={{ padding: "12px", fontSize: 14, boxShadow: `0 8px 25px rgba(217,27,91,.4)` }} />
 
+        <PhoneAuthBlock mode="login" lang={lang} onSuccess={() => navigate("/dashboard")} />
+
         <div style={{ textAlign: "center", marginTop: 14, fontSize: 12, color: C.muted }}>
           {ar ? "مش عندك حساب؟" : "Don't have an account?"}{" "}
           <span style={{ color: C.orange, cursor: "pointer", fontWeight: 700 }} onClick={() => navigate("/register")}>
@@ -334,6 +524,13 @@ export function RegisterPage() {
 
         <Btn children={lang === "ar" ? "إنشاء الحساب" : "Create Account"} full onClick={submit}
           style={{ padding: "12px", fontSize: 14, boxShadow: `0 8px 25px rgba(217,27,91,.4)` }} />
+
+        <PhoneAuthBlock
+          mode="register"
+          lang={lang}
+          name={f.name}
+          onSuccess={() => navigate("/dashboard", { state: { accountCreated: true } })}
+        />
 
         <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: C.muted }}>
           {lang === "ar" ? "عندك حساب؟" : "Already have an account?"}{" "}
