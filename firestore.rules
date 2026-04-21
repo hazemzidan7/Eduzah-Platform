@@ -217,6 +217,7 @@ service cloud.firestore {
     match /accountingMarketing/{id}          { allow read, write: if isAdmin() || isAccountingSession(); }
     match /accountingInstructorPayments/{id} { allow read, write: if isAdmin() || isAccountingSession(); }
     match /accountingMentorPayments/{id}     { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingAdditions/{id}        { allow read, write: if isAdmin() || isAccountingSession(); }
 
     match /{document=**} { allow read, write: if false; }
   }

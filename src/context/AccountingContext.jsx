@@ -64,6 +64,7 @@ export function AccountingProvider({ children, usePlatformAuth = false }) {
   const [marketing, setMarketing] = useState([]);
   const [instructorPayments, setInstructorPayments] = useState([]);
   const [mentorPayments, setMentorPayments] = useState([]);
+  const [additions, setAdditions] = useState([]);
 
   // Restore session (standalone /accounting login only)
   useEffect(() => {
@@ -124,6 +125,7 @@ export function AccountingProvider({ children, usePlatformAuth = false }) {
       subCrud("accountingMarketing", setMarketing),
       subCrud("accountingInstructorPayments", setInstructorPayments),
       subCrud("accountingMentorPayments", setMentorPayments),
+      subCrud("accountingAdditions", setAdditions),
     ];
     return () => unsubs.forEach((u) => u());
   }, [accountingUser]);
@@ -228,6 +230,10 @@ export function AccountingProvider({ children, usePlatformAuth = false }) {
   const updateMentorPayment = useCallback((id, d) => crudUpdate("accountingMentorPayments", id, d), []);
   const deleteMentorPayment = useCallback((id) => crudDelete("accountingMentorPayments", id), []);
 
+  const addAddition = useCallback((d) => crudAdd("accountingAdditions", d), []);
+  const updateAddition = useCallback((id, d) => crudUpdate("accountingAdditions", id, d), []);
+  const deleteAddition = useCallback((id) => crudDelete("accountingAdditions", id), []);
+
   return (
     <AccountingContext.Provider
       value={{
@@ -245,6 +251,7 @@ export function AccountingProvider({ children, usePlatformAuth = false }) {
         marketing,
         instructorPayments,
         mentorPayments,
+        additions,
         addRound,
         updateRound,
         deleteRound,
@@ -266,6 +273,9 @@ export function AccountingProvider({ children, usePlatformAuth = false }) {
         addMentorPayment,
         updateMentorPayment,
         deleteMentorPayment,
+        addAddition,
+        updateAddition,
+        deleteAddition,
       }}
     >
       {children}

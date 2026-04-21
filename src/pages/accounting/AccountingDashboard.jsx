@@ -455,10 +455,11 @@ function usePlatformCoursesFinancials() {
   return state;
 }
 
-function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instructorPayments, mentorPayments }) {
+function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instructorPayments, mentorPayments, additions }) {
   const platformFin = usePlatformCoursesFinancials();
   const roundsRevenue = sum(rounds, "totalRevenue");
-  const totalRevenue = platformFin.totalRevenue + roundsRevenue;
+  const additionsRevenue = sum(additions, "amount");
+  const totalRevenue = platformFin.totalRevenue + roundsRevenue + additionsRevenue;
   const totalExpenses = sum(expenses, "amount");
   const totalSalaries = sum(salaries, "amount");
   const totalWithdrawals = sum(withdrawals, "amount");
@@ -493,6 +494,7 @@ function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instr
       ["البيان", "المبلغ (ج.م)"],
       ["إيرادات الكورسات (من الطلاب/الطلبات)", platformFin.totalRevenue],
       ["إيرادات الجولات المحفوظة", roundsRevenue],
+      ["إضافات على الإيراد (يدوي)", additionsRevenue],
       ["إجمالي الإيرادات", totalRevenue],
       ["إجمالي المصاريف التشغيلية", totalExpenses],
       ["إجمالي الرواتب", totalSalaries],
@@ -517,7 +519,7 @@ function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instr
           sub={
             platformFin.loading
               ? "جاري حساب إيراد الكورسات…"
-              : `كورسات: ${EGP(platformFin.totalRevenue)} (${platformFin.coursesWithStudents} كورس · ${platformFin.studentCount} طالب) · جولات محفوظة: ${EGP(roundsRevenue)} (${rounds.length})`
+              : `كورسات: ${EGP(platformFin.totalRevenue)} · جولات: ${EGP(roundsRevenue)} · إضافات: ${EGP(additionsRevenue)} (${additions.length})`
           }
         />
         <StatCard label="إجمالي المصروفات" value={EGP(totalOut)} color={C.danger} icon="📤" sub="كل الفئات" />
@@ -2192,9 +2194,177 @@ function MarketingTab({ marketing, rounds, addMarketing, updateMarketing, delete
   );
 }
 
+function blank_addition() {
+  return {
+    addedByName: "",
+    reason: "",
+    amount: "",
+    date: new Date().toISOString().slice(0, 10),
+    notes: "",
+  };
+}
+
+function AdditionsTab({ additions, addAddition, updateAddition, deleteAddition }) {
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState(blank_addition());
+  const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const { filtered, FilterUI } = useDateFilter(additions);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  function openAdd() {
+    setForm(blank_addition());
+    setModal("add");
+  }
+  function openEdit(r) {
+    setForm({ ...r });
+    setModal("edit");
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      const { id: rowId, ...formRest } = form;
+      const payload = {
+        ...formRest,
+        amount: Number(form.amount) || 0,
+        addedByName: String(form.addedByName || "").trim(),
+        reason: String(form.reason || "").trim(),
+        notes: String(form.notes || "").trim(),
+      };
+      if (modal === "add") await addAddition(payload);
+      else await updateAddition(rowId, payload);
+      setModal(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function del(id) {
+    // eslint-disable-next-line no-alert
+    if (!confirm("حذف هذه الإضافة من الإيرادات؟")) return;
+    await deleteAddition(id);
+  }
+
+  async function handleImportAdd(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const addedByName = str(pick(row, "اسم المضيف", "اسم المُضيف", "اسم_المضيف", "addedByName", "المضيف", "Name"));
+        const reason = str(pick(row, "سبب الإضافة", "سبب_الإضافة", "reason", "السبب"));
+        const amount = num(pick(row, "المبلغ", "amount", "Amount"));
+        if (!addedByName || !reason || amount <= 0) continue;
+        try {
+          await addAddition({
+            addedByName,
+            reason,
+            amount,
+            date: str(pick(row, "التاريخ", "date", "Date")) || todayDate(),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} إضافة.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} إضافة` : "لم يُعثر على صفوف (اسم المضيف + سبب الإضافة + مبلغ > 0 مطلوبة)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  function exportAdd() {
+    const ws = XLSX.utils.json_to_sheet(
+      filtered.map((a) => ({
+        "اسم المضيف": a.addedByName,
+        "سبب الإضافة": a.reason,
+        المبلغ: a.amount,
+        التاريخ: a.date,
+        ملاحظات: a.notes || "",
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الإضافات");
+    XLSX.writeFile(wb, "Eduzah_Additions.xlsx");
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>إضافات على الإيراد</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)", lineHeight: 1.5 }}>
+            مبالغ تُجمع مع إيراد الكورسات والجولات في «نظرة عامة». سجّل <strong>اسم من أضاف البند</strong> و<strong>سبب الإضافة</strong>.
+          </p>
+          <p style={{ margin: "6px 0 0", fontSize: 13, color: "rgba(255,255,255,.45)" }}>الإجمالي: {EGP(sum(filtered, "amount"))}</p>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportAdd} />
+          <Btn onClick={exportAdd} v="outline" sm>
+            تصدير Excel
+          </Btn>
+          <Btn onClick={openAdd}>+ إضافة</Btn>
+        </div>
+      </div>
+      <div style={{ marginBottom: 16 }}>{FilterUI}</div>
+      <div style={S.card}>
+        <Table
+          columns={[
+            { key: "date", label: "التاريخ", render: (r) => fmt(r.date) },
+            { key: "addedByName", label: "اسم المضيف" },
+            { key: "reason", label: "سبب الإضافة" },
+            { key: "amount", label: "المبلغ", render: (r) => EGP(r.amount) },
+            {
+              key: "notes",
+              label: "ملاحظات",
+              render: (r) => <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)" }}>{r.notes || "—"}</span>,
+            },
+          ]}
+          rows={filtered}
+          onEdit={openEdit}
+          onDelete={del}
+          emptyMsg="لا توجد إضافات مسجّلة"
+        />
+      </div>
+
+      {modal && (
+        <Modal title={modal === "add" ? "إضافة على الإيراد" : "تعديل إضافة"} onClose={() => setModal(null)}>
+          <Field label="اسم المضيف *">
+            <input value={form.addedByName} onChange={set("addedByName")} style={S.inp} placeholder="من سجّل أو أضاف هذا البند" />
+          </Field>
+          <Field label="سبب الإضافة *">
+            <input value={form.reason} onChange={set("reason")} style={S.inp} placeholder="مثال: تحصيل نقدي، تصحيح، إيراد خارجي…" />
+          </Field>
+          <Field label="المبلغ (ج.م) *">
+            <input type="number" min="0" step="0.01" value={form.amount} onChange={set("amount")} style={S.inp} placeholder="0" />
+          </Field>
+          <Field label="التاريخ">
+            <input type="date" value={form.date} onChange={set("date")} style={S.inp} />
+          </Field>
+          <Field label="ملاحظات (اختياري)">
+            <textarea value={form.notes} onChange={set("notes")} rows={2} style={{ ...S.inp, resize: "vertical" }} />
+          </Field>
+          <Btn onClick={save} disabled={busy || !form.addedByName?.trim() || !form.reason?.trim() || !form.amount}>
+            {busy ? "جاري الحفظ..." : "حفظ"}
+          </Btn>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 const TABS = [
   { key: "overview", label: "📊 نظرة عامة" },
   { key: "rounds", label: "🎯 الجولات" },
+  { key: "additions", label: "➕ الإضافات" },
   { key: "expenses", label: "🔧 المصاريف" },
   { key: "salaries", label: "👥 الرواتب" },
   { key: "instructors", label: "🎓 المدربون" },
@@ -2215,6 +2385,7 @@ export default function AccountingDashboard({ embedded = false }) {
     marketing,
     instructorPayments,
     mentorPayments,
+    additions,
     addRound,
     updateRound,
     deleteRound,
@@ -2236,6 +2407,9 @@ export default function AccountingDashboard({ embedded = false }) {
     addMentorPayment,
     updateMentorPayment,
     deleteMentorPayment,
+    addAddition,
+    updateAddition,
+    deleteAddition,
   } = useAccounting();
 
   const [tab, setTab] = useState("overview");
@@ -2293,8 +2467,9 @@ export default function AccountingDashboard({ embedded = false }) {
 
       <div style={S.wrap}>
         <div style={{ paddingTop: 28 }}>
-          {tab === "overview" && <OverviewTab rounds={rounds} expenses={expenses} salaries={salaries} withdrawals={withdrawals} marketing={marketing} instructorPayments={instructorPayments} mentorPayments={mentorPayments} />}
+          {tab === "overview" && <OverviewTab rounds={rounds} expenses={expenses} salaries={salaries} withdrawals={withdrawals} marketing={marketing} instructorPayments={instructorPayments} mentorPayments={mentorPayments} additions={additions} />}
           {tab === "rounds" && <RoundsTab rounds={rounds} addRound={addRound} updateRound={updateRound} deleteRound={deleteRound} />}
+          {tab === "additions" && <AdditionsTab additions={additions} addAddition={addAddition} updateAddition={updateAddition} deleteAddition={deleteAddition} />}
           {tab === "expenses" && <ExpensesTab expenses={expenses} rounds={rounds} addExpense={addExpense} updateExpense={updateExpense} deleteExpense={deleteExpense} />}
           {tab === "salaries" && <SalariesTab salaries={salaries} addSalary={addSalary} updateSalary={updateSalary} deleteSalary={deleteSalary} />}
           {tab === "instructors" && <InstructorPaymentsTab instructorPayments={instructorPayments} rounds={rounds} addInstructorPayment={addInstructorPayment} updateInstructorPayment={updateInstructorPayment} deleteInstructorPayment={deleteInstructorPayment} />}
