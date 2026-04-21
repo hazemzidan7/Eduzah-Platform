@@ -117,6 +117,21 @@ export async function fetchCourseStudents(course, allUsers = []) {
   return rows;
 }
 
+/** Same revenue rules as `CourseStudentsModal` stats (excludes rejected rows). */
+export function computeCourseStudentRevenue(studentRows) {
+  const rows = (studentRows || []).filter((r) => (r.status || "pending") !== "rejected");
+  const confirmedRows = rows.filter((r) => r.paymentConfirmed);
+  const pendingPayRows = rows.filter((r) => !r.paymentConfirmed && r.amount != null);
+  const confirmedRevenue = confirmedRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const pendingRevenue = pendingPayRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  return {
+    studentCount: rows.length,
+    confirmedRevenue,
+    pendingRevenue,
+    totalRevenue: confirmedRevenue + pendingRevenue,
+  };
+}
+
 // ─── Excel export ─────────────────────────────────────────────────────────────
 const PURPLE = "3D1F5C"; const LIGHT = "F5F0FA"; const WHITE = "FFFFFF";
 const BORDER_C = "C8B8E8";

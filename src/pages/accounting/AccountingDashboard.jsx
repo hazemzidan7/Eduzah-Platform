@@ -1,5 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useAccounting } from "../../context/AccountingContext";
+import { useData } from "../../context/DataContext";
+import { useAuth } from "../../context/AuthContext";
+import { fetchCourseStudents, computeCourseStudentRevenue } from "../../utils/exportExcel";
 import { C, font } from "../../theme";
 import * as XLSX from "xlsx";
 
@@ -294,7 +297,7 @@ function usePaged(items, size = 15) {
   return { slice, page, pages, setPage };
 }
 
-function Table({ columns, rows, onEdit, onDelete, emptyMsg = "لا توجد سجلات" }) {
+function Table({ columns, rows, onEdit, onDelete, emptyMsg = "لا توجد سجلات", expandedId, renderExpandedRow, extraActions }) {
   if (!rows.length)
     return (
       <div style={{ textAlign: "center", padding: "40px 20px", color: "rgba(255,255,255,.3)", fontSize: 14 }}>
@@ -316,28 +319,37 @@ function Table({ columns, rows, onEdit, onDelete, emptyMsg = "لا توجد سج
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr
-              key={row.id}
-              style={{ transition: "background .15s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,.03)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              {columns.map((c) => (
-                <td key={c.key} style={S.td}>
-                  {c.render ? c.render(row) : row[c.key] ?? "—"}
+            <Fragment key={row.id}>
+              <tr
+                style={{ transition: "background .15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,.03)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                {columns.map((c) => (
+                  <td key={c.key} style={S.td}>
+                    {c.render ? c.render(row) : row[c.key] ?? "—"}
+                  </td>
+                ))}
+                <td style={S.td}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {extraActions ? extraActions(row) : null}
+                    <Btn sm v="outline" onClick={() => onEdit(row)}>
+                      تعديل
+                    </Btn>
+                    <Btn sm v="danger" onClick={() => onDelete(row.id)}>
+                      حذف
+                    </Btn>
+                  </div>
                 </td>
-              ))}
-              <td style={S.td}>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <Btn sm v="outline" onClick={() => onEdit(row)}>
-                    تعديل
-                  </Btn>
-                  <Btn sm v="danger" onClick={() => onDelete(row.id)}>
-                    حذف
-                  </Btn>
-                </div>
-              </td>
-            </tr>
+              </tr>
+              {expandedId === row.id && renderExpandedRow && (
+                <tr style={{ background: "rgba(125,61,158,.08)" }}>
+                  <td colSpan={columns.length + 1} style={{ ...S.td, padding: 16, borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+                    {renderExpandedRow(row)}
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -459,30 +471,134 @@ function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instr
 }
 
 function blank_round() {
-  return { name: "", courseTitle: "", startDate: "", endDate: "", totalRevenue: "", instructorPercentage: "", mentorPercentage: "", notes: "" };
+  return {
+    name: "",
+    courseId: "",
+    courseTitle: "",
+    startDate: "",
+    endDate: "",
+    totalRevenue: "",
+    instructorPercentage: "",
+    mentorPercentage: "",
+    notes: "",
+  };
 }
 
 function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
+  const { courses } = useData();
+  const { users } = useAuth();
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(blank_round());
   const [busy, setBusy] = useState(false);
+  const [expandedRoundId, setExpandedRoundId] = useState(null);
+  const [roundStudents, setRoundStudents] = useState({}); // roundId -> { loading, err, rows, summary }
+  const [importingRevenue, setImportingRevenue] = useState(false);
+  const [syncingRoundId, setSyncingRoundId] = useState(null);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const courseSelectOptions = useMemo(
+    () => [{ value: "", label: "— بدون ربط بكورس المنصة —" }, ...courses.map((c) => ({ value: String(c.id), label: c.title }))],
+    [courses],
+  );
+
+  function resolveCourse(round) {
+    if (!round?.courseId) return null;
+    return courses.find((c) => String(c.id) === String(round.courseId)) || null;
+  }
+
+  async function loadStudentsForRound(round, { force = false } = {}) {
+    const course = resolveCourse(round);
+    if (!course) {
+      setRoundStudents((p) => ({ ...p, [round.id]: { loading: false, err: "لا يوجد كورس مطابق في المنصة", rows: [], summary: null } }));
+      return;
+    }
+    if (!force && roundStudents[round.id]?.rows?.length) return;
+    setRoundStudents((p) => ({ ...p, [round.id]: { ...(p[round.id] || {}), loading: true, err: null } }));
+    try {
+      const raw = await fetchCourseStudents(course, users || []);
+      const rows = raw.filter((r) => (r.status || "pending") !== "rejected");
+      const summary = computeCourseStudentRevenue(rows);
+      setRoundStudents((p) => ({ ...p, [round.id]: { loading: false, err: null, rows, summary } }));
+    } catch (e) {
+      console.error(e);
+      setRoundStudents((p) => ({
+        ...p,
+        [round.id]: { loading: false, err: e?.message || String(e), rows: [], summary: null },
+      }));
+    }
+  }
+
+  function toggleExpand(round) {
+    if (expandedRoundId === round.id) {
+      setExpandedRoundId(null);
+      return;
+    }
+    setExpandedRoundId(round.id);
+    if (round.courseId) loadStudentsForRound(round, { force: true });
+  }
+
+  async function importRevenueIntoForm() {
+    const cid = String(form.courseId || "").trim();
+    if (!cid) return;
+    const course = courses.find((c) => String(c.id) === cid);
+    if (!course) return;
+    setImportingRevenue(true);
+    try {
+      const raw = await fetchCourseStudents(course, users || []);
+      const rows = raw.filter((r) => (r.status || "pending") !== "rejected");
+      const { totalRevenue } = computeCourseStudentRevenue(rows);
+      setForm((f) => ({
+        ...f,
+        totalRevenue: String(totalRevenue),
+        courseTitle: f.courseTitle || course.title,
+      }));
+    } finally {
+      setImportingRevenue(false);
+    }
+  }
+
+  async function persistRevenueFromStudents(round) {
+    const course = resolveCourse(round);
+    if (!course) return;
+    setSyncingRoundId(round.id);
+    try {
+      const raw = await fetchCourseStudents(course, users || []);
+      const rows = raw.filter((r) => (r.status || "pending") !== "rejected");
+      const summary = computeCourseStudentRevenue(rows);
+      const roundRest = { ...round };
+      delete roundRest.id;
+      const payload = {
+        ...roundRest,
+        totalRevenue: summary.totalRevenue,
+        linkedStudentCount: summary.studentCount,
+        linkedConfirmedRevenue: summary.confirmedRevenue,
+        linkedPendingRevenue: summary.pendingRevenue,
+        linkedSyncedAt: new Date().toISOString(),
+      };
+      await updateRound(round.id, payload);
+      setRoundStudents((p) => ({ ...p, [round.id]: { loading: false, err: null, rows, summary } }));
+    } finally {
+      setSyncingRoundId(null);
+    }
+  }
+
   function openAdd() { setForm(blank_round()); setModal("add"); }
-  function openEdit(r) { setForm({ ...r }); setModal("edit"); }
+  function openEdit(r) { setForm({ ...blank_round(), ...r, courseId: r.courseId != null ? String(r.courseId) : "" }); setModal("edit"); }
 
   async function save() {
     setBusy(true);
     try {
+      const { id: formId, ...formRest } = form;
       const payload = {
-        ...form,
+        ...formRest,
+        courseId: String(form.courseId || "").trim() || null,
         totalRevenue: Number(form.totalRevenue) || 0,
         instructorPercentage: Number(form.instructorPercentage) || 0,
         mentorPercentage: Number(form.mentorPercentage) || 0,
       };
       if (modal === "add") await addRound(payload);
-      else await updateRound(form.id, payload);
+      else await updateRound(formId, payload);
       setModal(null);
     } finally {
       setBusy(false);
@@ -520,7 +636,9 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>الجولات والدورات</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي الإيرادات: {EGP(totalRev)}</p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>
+            إجمالي الإيرادات: {EGP(totalRev)} · اربط الجولة بكورس المنصة لعرض الطلاب ومزامنة الإيراد كما في قائمة الطلاب
+          </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={exportRounds} v="outline" sm>
@@ -534,7 +652,27 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
         <Table
           columns={[
             { key: "name", label: "اسم الجولة" },
-            { key: "courseTitle", label: "الكورس" },
+            {
+              key: "courseTitle",
+              label: "الكورس",
+              render: (r) => (
+                <div>
+                  <div>{r.courseTitle || "—"}</div>
+                  {r.courseId ? (
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)", marginTop: 2 }}>مرتبط بالمنصة</div>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              key: "students",
+              label: "طلاب",
+              render: (r) => {
+                const st = roundStudents[r.id]?.summary;
+                const n = st?.studentCount ?? r.linkedStudentCount;
+                return n != null ? <Badge color={C.purple}>{n}</Badge> : <span style={{ color: "rgba(255,255,255,.35)" }}>—</span>;
+              },
+            },
             { key: "startDate", label: "البدء", render: (r) => fmt(r.startDate) },
             { key: "endDate", label: "الانتهاء", render: (r) => fmt(r.endDate) },
             { key: "totalRevenue", label: "الإيراد", render: (r) => EGP(r.totalRevenue) },
@@ -545,6 +683,80 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
           onEdit={openEdit}
           onDelete={del}
           emptyMsg="لم تُضف أي جولات بعد"
+          extraActions={(row) => (
+            <Btn sm v={expandedRoundId === row.id ? "primary" : "ghost"} onClick={() => toggleExpand(row)}>
+              الطلاب
+            </Btn>
+          )}
+          expandedId={expandedRoundId}
+          renderExpandedRow={(row) => {
+            const pack = roundStudents[row.id];
+            if (!row.courseId) {
+              return (
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,.55)" }}>
+                  من «تعديل الجولة» اختر كورس المنصة لعرض الطلاب هنا ومزامنة الإيراد.
+                </div>
+              );
+            }
+            if (pack?.loading) {
+              return <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)" }}>جاري تحميل الطلاب…</div>;
+            }
+            if (pack?.err) {
+              return <div style={{ fontSize: 13, color: "#f87171" }}>{pack.err}</div>;
+            }
+            const sumy = pack?.summary;
+            return (
+              <div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 12 }}>
+                  {sumy && (
+                    <>
+                      <Badge color="#34d399">مؤكد: {EGP(sumy.confirmedRevenue)}</Badge>
+                      <Badge color="#fbbf24">متوقع: {EGP(sumy.pendingRevenue)}</Badge>
+                      <Badge color={C.red}>الإجمالي: {EGP(sumy.totalRevenue)}</Badge>
+                    </>
+                  )}
+                  <Btn
+                    sm
+                    v="purple"
+                    disabled={syncingRoundId === row.id}
+                    onClick={() => persistRevenueFromStudents(row)}
+                  >
+                    {syncingRoundId === row.id ? "جاري الحفظ…" : "حفظ الإيراد في الجولة"}
+                  </Btn>
+                  <Btn sm v="outline" onClick={() => loadStudentsForRound(row, { force: true })}>
+                    تحديث القائمة
+                  </Btn>
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "rgba(255,255,255,.05)" }}>
+                        <th style={S.th}>الطالب</th>
+                        <th style={S.th}>الهاتف</th>
+                        <th style={S.th}>الخطة</th>
+                        <th style={S.th}>المبلغ</th>
+                        <th style={S.th}>الدفع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(pack?.rows || []).map((s, i) => (
+                        <tr key={`${s.email}-${i}`}>
+                          <td style={S.td}>
+                            <div style={{ fontWeight: 700 }}>{s.name}</div>
+                            <div style={{ fontSize: 10, color: "rgba(255,255,255,.45)" }}>{s.email}</div>
+                          </td>
+                          <td style={S.td}>{s.phone || "—"}</td>
+                          <td style={S.td}>{s.payPlan}</td>
+                          <td style={S.td}>{s.amount != null ? EGP(s.amount) : "—"}</td>
+                          <td style={S.td}>{s.paymentConfirmed ? <Badge color="#34d399">مؤكد</Badge> : <Badge color={C.muted}>معلق</Badge>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          }}
         />
       </div>
 
@@ -553,8 +765,22 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
           <Field label="اسم الجولة *">
             <input value={form.name} onChange={set("name")} style={S.inp} placeholder="مثال: دورة Python الدفعة 3" />
           </Field>
-          <Field label="عنوان الكورس">
-            <input value={form.courseTitle} onChange={set("courseTitle")} style={S.inp} placeholder="اختياري" />
+          <Field label="ربط بكورس على المنصة (قائمة الطلاب)">
+            <Select
+              value={String(form.courseId || "")}
+              onChange={(v) => {
+                const c = courses.find((x) => String(x.id) === String(v));
+                setForm((f) => ({
+                  ...f,
+                  courseId: v,
+                  courseTitle: v && c ? c.title : f.courseTitle,
+                }));
+              }}
+              options={courseSelectOptions}
+            />
+          </Field>
+          <Field label="عنوان الكورس (يمكن تعديله يدويًا)">
+            <input value={form.courseTitle} onChange={set("courseTitle")} style={S.inp} placeholder="يُملأ تلقائيًا عند اختيار الكورس" />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Field label="تاريخ البدء">
@@ -567,6 +793,13 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
           <Field label="إجمالي الإيرادات (ج.م) *">
             <input type="number" min="0" value={form.totalRevenue} onChange={set("totalRevenue")} style={S.inp} placeholder="0" />
           </Field>
+          {form.courseId ? (
+            <div style={{ marginBottom: 14 }}>
+              <Btn sm v="outline" onClick={importRevenueIntoForm} disabled={importingRevenue}>
+                {importingRevenue ? "جاري الجلب…" : "استيراد الإيراد من طلاب الكورس (كقائمة الطلاب)"}
+              </Btn>
+            </div>
+          ) : null}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Field label="نسبة المدرب %">
               <input type="number" min="0" max="100" value={form.instructorPercentage} onChange={set("instructorPercentage")} style={S.inp} placeholder="0" />
