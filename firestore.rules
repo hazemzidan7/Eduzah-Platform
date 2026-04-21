@@ -183,30 +183,18 @@ service cloud.firestore {
 
     /* ── Accounting Module ──────────────────────────────────────────────────────
        Access model:
-       - accountingUserRequests: public can create a pending request; only admins can read/update.
-       - accountingUsers: only admins can create (after approval). No client updates/deletes.
-       - accountingSessionTokens: created by anonymous auth after successful login.
-       - All other accounting collections: only accessible with isAccountingSession().
+       - Financial collections: platform admins OR an active accountingSessionTokens session.
+       - accountingUserRequests / accountingUsers: legacy; admin-only (no public writes).
+       - accountingSessionTokens: created by anonymous auth for optional standalone /accounting flows.
        ──────────────────────────────────────────────────────────────────────── */
     match /accountingUserRequests/{id} {
-      allow create: if request.resource.data.keys().hasAll([
-          'fullName', 'username', 'passwordHash', 'note', 'status', 'createdAt'
-        ])
-        && request.resource.data.fullName is string
-        && request.resource.data.username is string
-        && request.resource.data.passwordHash is string
-        && request.resource.data.passwordHash.size() == 64
-        && request.resource.data.note is string
-        && request.resource.data.status == 'pending'
-        && request.resource.data.createdAt is string;
-
       allow read, update: if isAdmin();
-      allow delete: if false;
+      allow create, delete: if false;
     }
 
     match /accountingUsers/{id} {
       // Password is hashed (SHA-256) — never store plaintext.
-      allow read: if true;
+      allow read: if isAdmin() || isAccountingSession();
       allow create: if isAdmin()
         && request.resource.data.keys().hasAll(['username','passwordHash','name','createdAt'])
         && request.resource.data.passwordHash is string
@@ -222,13 +210,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    match /accountingRounds/{id}             { allow read, write: if isAccountingSession(); }
-    match /accountingExpenses/{id}           { allow read, write: if isAccountingSession(); }
-    match /accountingSalaries/{id}           { allow read, write: if isAccountingSession(); }
-    match /accountingWithdrawals/{id}        { allow read, write: if isAccountingSession(); }
-    match /accountingMarketing/{id}          { allow read, write: if isAccountingSession(); }
-    match /accountingInstructorPayments/{id} { allow read, write: if isAccountingSession(); }
-    match /accountingMentorPayments/{id}     { allow read, write: if isAccountingSession(); }
+    match /accountingRounds/{id}             { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingExpenses/{id}           { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingSalaries/{id}           { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingWithdrawals/{id}        { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingMarketing/{id}          { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingInstructorPayments/{id} { allow read, write: if isAdmin() || isAccountingSession(); }
+    match /accountingMentorPayments/{id}     { allow read, write: if isAdmin() || isAccountingSession(); }
 
     match /{document=**} { allow read, write: if false; }
   }

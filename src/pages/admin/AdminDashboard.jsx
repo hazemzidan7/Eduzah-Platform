@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { courseCategorySelectOptions, normalizeCourseCategory, courseCategoryLabel } from "../../constants/courseCategories";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, doc, updateDoc, addDoc, orderBy, query, where, limit, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, orderBy, query, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
@@ -12,6 +12,8 @@ import { useLang } from "../../context/LangContext";
 import { exportCourseStudents } from "../../utils/exportExcel";
 import CourseStudentsModal from "../../components/CourseStudentsModal";
 import { StatCard, BarChart, DonutChart } from "../../components/Charts";
+import { AccountingProvider } from "../../context/AccountingContext";
+import AccountingDashboard from "../accounting/AccountingDashboard";
 
 /* ─── small helpers ─── */
 function formatNewsDateAdmin(n, lang) {
@@ -37,17 +39,6 @@ const Row = ({ label, children }) => (
     <div style={{ display: "flex", gap: 6 }}>{children}</div>
   </div>
 );
-
-/* Must match `SALT` in `src/context/AccountingContext.jsx` */
-const ACCOUNTING_SALT = "eduzah_acc_2024_";
-async function hashAccountingPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(ACCOUNTING_SALT + String(password || ""));
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 export default function AdminDashboard() {
   const {
@@ -87,11 +78,6 @@ export default function AdminDashboard() {
   const [rejectModal,      setRejectModal]       = useState(null); // { id }
   const [rejectReason,     setRejectReason]      = useState("");
   const [enrollmentLoadError, setEnrollmentLoadError] = useState(null);
-  const [accountingRequests, setAccountingRequests] = useState([]);
-  const [accountingLoadError, setAccountingLoadError] = useState(null);
-  const [accFilter, setAccFilter] = useState("pending"); // pending | approved | rejected | all
-  const [accBoot, setAccBoot] = useState({ username: "", fullName: "", password: "" });
-
   const showT = useCallback((msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2800);
@@ -150,108 +136,6 @@ export default function AdminDashboard() {
     return () => unsub();
   }, [currentUser?.role, sortEnrollmentRows, loadEnrollmentRequests]);
 
-  const sortAccountingRows = useCallback((rows) => {
-    const rowTime = (row) => {
-      const c = row?.createdAt;
-      if (c == null) return 0;
-      const t = Date.parse(String(c));
-      return Number.isNaN(t) ? 0 : t;
-    };
-    return [...rows].sort((a, b) => rowTime(b) - rowTime(a));
-  }, []);
-
-  useEffect(() => {
-    if (currentUser?.role !== "admin") {
-      setAccountingRequests([]);
-      setAccountingLoadError(null);
-      return undefined;
-    }
-    const unsub = onSnapshot(
-      collection(db, "accountingUserRequests"),
-      (snap) => {
-        setAccountingLoadError(null);
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setAccountingRequests(sortAccountingRows(rows));
-      },
-      (err) => {
-        console.error(err);
-        setAccountingLoadError(err?.message || String(err));
-      },
-    );
-    return () => unsub();
-  }, [currentUser?.role, sortAccountingRows]);
-
-  const approveAccountingRequest = useCallback(async (req) => {
-    if (!req?.id) return;
-    const st = req.status ?? "pending";
-    if (st !== "pending") return;
-
-    const username = String(req.username || "").trim();
-    const name = String(req.fullName || "").trim() || username;
-    const passwordHash = String(req.passwordHash || "");
-    if (!username || passwordHash.length !== 64) {
-      showT(tx("بيانات الطلب غير مكتملة", "Request data is incomplete"), "error");
-      return;
-    }
-
-    const dupU = query(collection(db, "accountingUsers"), where("username", "==", username), limit(1));
-    const dupSnap = await getDocs(dupU);
-    if (!dupSnap.empty) {
-      showT(tx("اسم المستخدم موجود بالفعل في المحاسبة", "Username already exists in accounting"), "error");
-      return;
-    }
-
-    await addDoc(collection(db, "accountingUsers"), {
-      username,
-      name,
-      passwordHash,
-      createdAt: new Date().toISOString(),
-    });
-
-    await updateDoc(doc(db, "accountingUserRequests", req.id), {
-      status: "approved",
-      reviewedAt: new Date().toISOString(),
-      ...(currentUser?.id ? { reviewedBy: currentUser.id } : {}),
-    });
-
-    showT(tx("تمت الموافقة وتفعيل حساب المحاسبة", "Accounting access approved"));
-  }, [currentUser?.id, showT, tx]);
-
-  const rejectAccountingRequest = useCallback(async (req, reason = "") => {
-    if (!req?.id) return;
-    const st = req.status ?? "pending";
-    if (st !== "pending") return;
-    await updateDoc(doc(db, "accountingUserRequests", req.id), {
-      status: "rejected",
-      rejectReason: String(reason || "").trim(),
-      reviewedAt: new Date().toISOString(),
-      ...(currentUser?.id ? { reviewedBy: currentUser.id } : {}),
-    });
-    showT(tx("تم رفض طلب المحاسبة", "Accounting request rejected"), "error");
-  }, [currentUser?.id, showT, tx]);
-
-  const bootstrapFirstAccountingUser = useCallback(async () => {
-    const username = String(accBoot.username || "").trim();
-    const name = String(accBoot.fullName || "").trim() || username;
-    const password = String(accBoot.password || "");
-    if (!username) return showT(tx("أدخل اسم المستخدم", "Enter username"), "error");
-    if (password.length < 8) return showT(tx("كلمة المرور 8 أحرف على الأقل", "Password must be at least 8 characters"), "error");
-
-    const dupU = query(collection(db, "accountingUsers"), where("username", "==", username), limit(1));
-    const dupSnap = await getDocs(dupU);
-    if (!dupSnap.empty) return showT(tx("اسم المستخدم موجود بالفعل", "Username already exists"), "error");
-
-    const passwordHash = await hashAccountingPassword(password);
-    await addDoc(collection(db, "accountingUsers"), {
-      username,
-      name,
-      passwordHash,
-      createdAt: new Date().toISOString(),
-    });
-    setAccBoot({ username: "", fullName: "", password: "" });
-    showT(tx("تم إنشاء أول مستخدم محاسبة", "First accounting user created"));
-  }, [accBoot.fullName, accBoot.password, accBoot.username, showT, tx]);
-
   useEffect(() => {
     if (tab !== "leads") return;
     setLeadsLoading(true);
@@ -296,10 +180,6 @@ export default function AdminDashboard() {
 
   const pending      = users.filter(u => u.status === "pending");
   const pendingEnrollments = enrollmentRequests.filter((r) => (r.enrollmentStatus ?? "pending") === "pending");
-  const pendingAccountingRequests = useMemo(
-    () => accountingRequests.filter((r) => (r.status ?? "pending") === "pending"),
-    [accountingRequests],
-  );
   const adminsList   = users.filter(u => u.role === "admin");
   const instructors  = users.filter(u => u.role === "instructor");
   const studentsEnr  = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved" && (u.enrolledCourses || []).length > 0);
@@ -1727,114 +1607,13 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── Accounting access requests ── */}
+        {/* ── Accounting (admin session; no separate accounting login) ── */}
         {tab === "accounting" && (
-          <div>
-            <h2 style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>{tx("المحاسبة — طلبات الوصول", "Accounting — access requests")}</h2>
-            <p style={{ color: C.muted, fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
-              {tx(
-                "الموافقة هنا تنشئ مستخدم محاسبة فعلي في Firestore ويظهر له الدخول من /accounting. رفض الطلب لا ينشئ حسابًا.",
-                "Approving creates an accounting user in Firestore so they can sign in at /accounting. Rejecting does not create an account.",
-              )}
-            </p>
-
-            {accountingLoadError && (
-              <Card style={{ padding: 14, marginBottom: 12, border: `1px solid ${C.danger}` }}>
-                <div style={{ color: C.danger, fontSize: 12, fontWeight: 700 }}>{tx("تعذر تحميل طلبات المحاسبة", "Failed to load accounting requests")}</div>
-                <div style={{ color: C.muted, fontSize: 12, marginTop: 6 }}>{accountingLoadError}</div>
-              </Card>
-            )}
-
-            <Card style={{ padding: 16, marginBottom: 16 }}>
-              <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 8 }}>{tx("تفعيل أول مستخدم محاسبة", "Bootstrap first accounting user")}</div>
-              <div style={{ color: C.muted, fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
-                {tx(
-                  "قبل ما يقدر أي حد يطلب صلاحية من /accounting لازم يكون فيه على الأقل مستخدم محاسبة واحد. استخدم النموذج ده مرة واحدة (أو أنشئه من Firebase Console).",
-                  "Before anyone can request access from /accounting, at least one accounting user must exist. Use this once (or create via Firebase Console).",
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-                <Input label={tx("اسم المستخدم", "Username")} value={accBoot.username} onChange={(v) => setAccBoot((p) => ({ ...p, username: v }))} />
-                <Input label={tx("الاسم الظاهر", "Display name")} value={accBoot.fullName} onChange={(v) => setAccBoot((p) => ({ ...p, fullName: v }))} />
-                <Input label={tx("كلمة المرور", "Password")} type="password" value={accBoot.password} onChange={(v) => setAccBoot((p) => ({ ...p, password: v }))} />
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <Btn v="primary" children={tx("إنشاء المستخدم", "Create user")} onClick={async () => {
-                  try { await bootstrapFirstAccountingUser(); } catch (e) { console.error(e); showT(tx("فشل إنشاء المستخدم", "Create failed"), "error"); }
-                }} />
-              </div>
-            </Card>
-
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              {[
-                ["pending", tx("معلقة", "Pending") + ` (${pendingAccountingRequests.length})`],
-                ["approved", tx("مقبولة", "Approved")],
-                ["rejected", tx("مرفوضة", "Rejected")],
-                ["all", tx("الكل", "All")],
-              ].map(([v, l]) => (
-                <Btn key={v} sm v={accFilter === v ? "primary" : "outline"} onClick={() => setAccFilter(v)} children={l} />
-              ))}
+          <AccountingProvider usePlatformAuth>
+            <div style={{ margin: "-22px", borderRadius: 0, overflow: "hidden" }}>
+              <AccountingDashboard embedded />
             </div>
-
-            {(() => {
-              const filtered = accountingRequests.filter((r) => {
-                const st = r.status ?? "pending";
-                if (accFilter === "all") return true;
-                return st === accFilter;
-              });
-              if (filtered.length === 0) {
-                return <Card style={{ padding: 32, textAlign: "center" }}><div style={{ color: C.muted }}>{tx("لا توجد طلبات", "No requests")}</div></Card>;
-              }
-              return (
-                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                  {filtered.map((r) => {
-                    const st = r.status ?? "pending";
-                    return (
-                      <Card key={r.id} style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-                          <div style={{ flex: 1, minWidth: 220 }}>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                              <div style={{ fontWeight: 900, fontSize: 15 }}>{String(r.username || "")}</div>
-                              <Badge color={st === "approved" ? C.success : st === "rejected" ? C.danger : C.warning}>
-                                {st === "approved" ? tx("مقبول", "Approved") : st === "rejected" ? tx("مرفوض", "Rejected") : tx("معلّق", "Pending")}
-                              </Badge>
-                            </div>
-                            <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700 }}>{String(r.fullName || "")}</div>
-                            {r.note ? <div style={{ marginTop: 6, fontSize: 12, color: "#d1c4e9", background: "rgba(255,255,255,.05)", borderRadius: 8, padding: "8px 10px" }}>{String(r.note)}</div> : null}
-                            <div style={{ marginTop: 8, fontSize: 11, color: C.muted }}>
-                              {tx("تاريخ الطلب:", "Requested:")} {r.createdAt ? String(r.createdAt) : "—"}
-                            </div>
-                            {r.rejectReason ? <div style={{ marginTop: 8, fontSize: 12, color: C.danger }}>{String(r.rejectReason)}</div> : null}
-                          </div>
-                          {st === "pending" && (
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <Btn
-                                v="success"
-                                sm
-                                children={tx("قبول وتفعيل", "Approve & enable")}
-                                onClick={async () => {
-                                  try { await approveAccountingRequest(r); } catch (e) { console.error(e); showT(tx("فشلت الموافقة", "Approve failed"), "error"); }
-                                }}
-                              />
-                              <Btn
-                                v="danger"
-                                sm
-                                children={tx("رفض", "Reject")}
-                                onClick={async () => {
-                                  const reason = window.prompt(tx("سبب الرفض (اختياري)", "Rejection reason (optional)"), "") || "";
-                                  try { await rejectAccountingRequest(r, reason); } catch (e) { console.error(e); showT(tx("فشل الرفض", "Reject failed"), "error"); }
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
+          </AccountingProvider>
         )}
 
         {/* ── Service Leads ── */}

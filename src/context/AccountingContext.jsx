@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { signInAnonymously, signOut } from "firebase/auth";
 import { db, auth } from "../firebase";
+import { useAuth } from "./AuthContext";
 
 const AccountingContext = createContext(null);
 
@@ -50,7 +51,8 @@ async function crudDelete(colName, id) {
   return deleteDoc(doc(db, colName, id));
 }
 
-export function AccountingProvider({ children }) {
+export function AccountingProvider({ children, usePlatformAuth = false }) {
+  const { currentUser: platformUser } = useAuth();
   const [accountingUser, setAccountingUser] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [hasUsers, setHasUsers] = useState(null);
@@ -63,8 +65,12 @@ export function AccountingProvider({ children }) {
   const [instructorPayments, setInstructorPayments] = useState([]);
   const [mentorPayments, setMentorPayments] = useState([]);
 
-  // Restore session
+  // Restore session (standalone /accounting login only)
   useEffect(() => {
+    if (usePlatformAuth) {
+      setSessionLoading(false);
+      return;
+    }
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw) {
       try {
@@ -75,14 +81,37 @@ export function AccountingProvider({ children }) {
       }
     }
     setSessionLoading(false);
-  }, []);
+  }, [usePlatformAuth]);
 
-  // Check if any accounting users exist
+  // Admin dashboard: use normal Firebase auth (no separate accounting account)
   useEffect(() => {
+    if (!usePlatformAuth) return;
+    if (platformUser?.role === "admin") {
+      const name =
+        String(platformUser.displayName || "").trim()
+        || String(platformUser.name || "").trim()
+        || String(platformUser.email || "").trim()
+        || "Admin";
+      setAccountingUser({
+        userId: platformUser.id || "platform-admin",
+        username: "admin",
+        name,
+      });
+    } else {
+      setAccountingUser(null);
+    }
+  }, [usePlatformAuth, platformUser?.displayName, platformUser?.email, platformUser?.id, platformUser?.name, platformUser?.role]);
+
+  // Check if any accounting users exist (standalone portal bootstrap)
+  useEffect(() => {
+    if (usePlatformAuth) {
+      setHasUsers(true);
+      return;
+    }
     getDocs(collection(db, "accountingUsers"))
       .then((snap) => setHasUsers(snap.size > 0))
       .catch(() => setHasUsers(false));
-  }, []);
+  }, [usePlatformAuth]);
 
   // Subscribe to all data collections when logged in
   useEffect(() => {
@@ -118,13 +147,13 @@ export function AccountingProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (usePlatformAuth) return;
     localStorage.removeItem(SESSION_KEY);
     setAccountingUser(null);
-    // Sign out of Firebase anonymous session
     try {
       await signOut(auth);
     } catch (_) {}
-  }, []);
+  }, [usePlatformAuth]);
 
   const submitAccountingAccessRequest = useCallback(async ({ fullName, username, password, note }) => {
     const u = String(username || "").trim();
@@ -203,6 +232,7 @@ export function AccountingProvider({ children }) {
     <AccountingContext.Provider
       value={{
         accountingUser,
+        usePlatformAuth,
         sessionLoading,
         hasUsers,
         login,

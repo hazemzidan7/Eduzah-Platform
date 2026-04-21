@@ -1326,9 +1326,10 @@ const TABS = [
   { key: "marketing", label: "📣 التسويق" },
 ];
 
-export default function AccountingDashboard() {
+export default function AccountingDashboard({ embedded = false }) {
   const {
     accountingUser,
+    usePlatformAuth,
     logout,
     rounds,
     expenses,
@@ -1362,8 +1363,12 @@ export default function AccountingDashboard() {
 
   const [tab, setTab] = useState("overview");
 
+  const pageStyle = embedded
+    ? { ...S.page, minHeight: "auto", background: S.page.background }
+    : S.page;
+
   return (
-    <div style={S.page}>
+    <div style={pageStyle}>
       <div style={{ background: "rgba(26,10,46,.95)", borderBottom: "1px solid rgba(255,255,255,.1)", backdropFilter: "blur(16px)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1375,9 +1380,13 @@ export default function AccountingDashboard() {
               <div style={{ fontSize: 11, color: "rgba(255,255,255,.45)" }}>مرحبًا، {accountingUser?.name}</div>
             </div>
           </div>
-          <Btn sm v="outline" onClick={logout}>
-            تسجيل خروج
-          </Btn>
+          {!usePlatformAuth ? (
+            <Btn sm v="outline" onClick={logout}>
+              تسجيل خروج
+            </Btn>
+          ) : (
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,.45)", fontWeight: 600 }}>لوحة الإدارة</div>
+          )}
         </div>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 20px", overflowX: "auto", display: "flex", gap: 2 }}>
           {TABS.map((t) => (

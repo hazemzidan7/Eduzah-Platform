@@ -1,10 +1,8 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import GlobalSupportFab from "./components/GlobalSupportFab";
-import AccountingGate from "./pages/accounting/AccountingGate";
-
 // Lazy — reduces initial JS for faster LCP on first paint
 const Landing = lazy(() => import("./pages/public/Landing"));
 const NotFound = lazy(() => import("./pages/public/NotFound"));
@@ -63,20 +61,6 @@ function DashboardRouter() {
 }
 
 export default function App() {
-  const location = useLocation();
-  const isAccounting = location.pathname.startsWith("/accounting");
-
-  // Accounting module is fully isolated — no Navbar, no Fab, no main wrapper
-  if (isAccounting) {
-    return (
-      <Suspense fallback={<Loader />}>
-        <Routes>
-          <Route path="/accounting/*" element={<AccountingGate />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-
   return (
     <>
       <a
@@ -132,6 +116,7 @@ export default function App() {
           <Route path="/courses/:slug/register" element={<CourseRegister />} />
 
           {/* ── Protected ──────────────────────── */}
+          <Route path="/accounting/*" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard"  element={<DashboardRouter />} />
           <Route path="/my-courses" element={<RequireAuth><StudentDashboard /></RequireAuth>} />
           <Route path="/profile"    element={<RequireAuth><ProfilePage /></RequireAuth>} />
