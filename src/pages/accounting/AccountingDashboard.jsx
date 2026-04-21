@@ -382,8 +382,60 @@ function useDateFilter(items, dateKey = "date") {
   return { filtered, FilterUI };
 }
 
+/** Live revenue from all platform courses (same rules as admin course student list). */
+function usePlatformCoursesFinancials() {
+  const { courses } = useData();
+  const { users } = useAuth();
+  const [state, setState] = useState({
+    loading: true,
+    totalRevenue: 0,
+    studentCount: 0,
+    coursesWithStudents: 0,
+  });
+
+  useEffect(() => {
+    if (!courses?.length) {
+      setState({ loading: false, totalRevenue: 0, studentCount: 0, coursesWithStudents: 0 });
+      return undefined;
+    }
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true }));
+    Promise.all(
+      courses.map(async (course) => {
+        try {
+          const raw = await fetchCourseStudents(course, users || []);
+          const rows = raw.filter((r) => (r.status || "pending") !== "rejected");
+          return computeCourseStudentRevenue(rows);
+        } catch (e) {
+          console.error(e);
+          return null;
+        }
+      }),
+    ).then((summaries) => {
+      if (cancelled) return;
+      let totalRevenue = 0;
+      let studentCount = 0;
+      let coursesWithStudents = 0;
+      for (const s of summaries) {
+        if (!s) continue;
+        totalRevenue += s.totalRevenue;
+        studentCount += s.studentCount;
+        if (s.studentCount > 0) coursesWithStudents += 1;
+      }
+      setState({ loading: false, totalRevenue, studentCount, coursesWithStudents });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [courses, users]);
+
+  return state;
+}
+
 function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instructorPayments, mentorPayments }) {
-  const totalRevenue = sum(rounds, "totalRevenue");
+  const platformFin = usePlatformCoursesFinancials();
+  const roundsRevenue = sum(rounds, "totalRevenue");
+  const totalRevenue = platformFin.totalRevenue + roundsRevenue;
   const totalExpenses = sum(expenses, "amount");
   const totalSalaries = sum(salaries, "amount");
   const totalWithdrawals = sum(withdrawals, "amount");
@@ -416,6 +468,8 @@ function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instr
     const wb = XLSX.utils.book_new();
     const overviewData = [
       ["البيان", "المبلغ (ج.م)"],
+      ["إيرادات الكورسات (من الطلاب/الطلبات)", platformFin.totalRevenue],
+      ["إيرادات الجولات المحفوظة", roundsRevenue],
       ["إجمالي الإيرادات", totalRevenue],
       ["إجمالي المصاريف التشغيلية", totalExpenses],
       ["إجمالي الرواتب", totalSalaries],
@@ -432,7 +486,17 @@ function OverviewTab({ rounds, expenses, salaries, withdrawals, marketing, instr
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 16, marginBottom: 24 }}>
-        <StatCard label="إجمالي الإيرادات" value={EGP(totalRevenue)} color={C.success} icon="💰" sub={`${rounds.length} دورة/جولة`} />
+        <StatCard
+          label="إجمالي الإيرادات"
+          value={platformFin.loading ? "…" : EGP(totalRevenue)}
+          color={C.success}
+          icon="💰"
+          sub={
+            platformFin.loading
+              ? "جاري حساب إيراد الكورسات…"
+              : `كورسات: ${EGP(platformFin.totalRevenue)} (${platformFin.coursesWithStudents} كورس · ${platformFin.studentCount} طالب) · جولات محفوظة: ${EGP(roundsRevenue)} (${rounds.length})`
+          }
+        />
         <StatCard label="إجمالي المصروفات" value={EGP(totalOut)} color={C.danger} icon="📤" sub="كل الفئات" />
         <StatCard label="صافي الربح" value={EGP(netProfit)} color={netProfit >= 0 ? C.success : C.danger} icon={netProfit >= 0 ? "📈" : "📉"} />
         <StatCard label="رواتب الموظفين" value={EGP(totalSalaries)} color={C.orange} icon="👥" sub={`${salaries.length} سجل`} />
