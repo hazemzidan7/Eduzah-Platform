@@ -22,6 +22,12 @@ service cloud.firestore {
         && userDoc().role == 'instructor';
     }
 
+    function isAccountingSession() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/accountingSessionTokens/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accountingSessionTokens/$(request.auth.uid)).data.expiresAt > request.time;
+    }
+
     function userEnrolledCourseIds() {
       let path = /databases/$(database)/documents/users/$(request.auth.uid);
       return !exists(path) ? [] :
@@ -174,6 +180,37 @@ service cloud.firestore {
     match /passwordResetOtps/{docId} {
       allow read, write: if false;
     }
+
+    /* ── Accounting Module ──────────────────────────────────────────────────────
+       All accounting collections are locked down completely:
+       - accountingUsers: password hashes only (SHA-256), setup creates one user.
+       - accountingSessionTokens: created by anonymous auth after successful login.
+       - All other accounting collections: only accessible with isAccountingSession().
+       ──────────────────────────────────────────────────────────────────────── */
+    match /accountingUsers/{id} {
+      // Password is hashed (SHA-256) — never store plaintext.
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['username','passwordHash','name','createdAt'])
+        && request.resource.data.passwordHash is string
+        && request.resource.data.passwordHash.size() == 64;
+      allow update, delete: if false;
+    }
+
+    match /accountingSessionTokens/{uid} {
+      allow read:   if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['expiresAt'])
+        && request.resource.data.expiresAt is timestamp;
+      allow update, delete: if false;
+    }
+
+    match /accountingRounds/{id}             { allow read, write: if isAccountingSession(); }
+    match /accountingExpenses/{id}           { allow read, write: if isAccountingSession(); }
+    match /accountingSalaries/{id}           { allow read, write: if isAccountingSession(); }
+    match /accountingWithdrawals/{id}        { allow read, write: if isAccountingSession(); }
+    match /accountingMarketing/{id}          { allow read, write: if isAccountingSession(); }
+    match /accountingInstructorPayments/{id} { allow read, write: if isAccountingSession(); }
+    match /accountingMentorPayments/{id}     { allow read, write: if isAccountingSession(); }
 
     match /{document=**} { allow read, write: if false; }
   }
