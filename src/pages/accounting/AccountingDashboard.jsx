@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useAccounting } from "../../context/AccountingContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
@@ -494,6 +494,9 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
   const [roundStudents, setRoundStudents] = useState({}); // roundId -> { loading, err, rows, summary }
   const [importingRevenue, setImportingRevenue] = useState(false);
   const [syncingRoundId, setSyncingRoundId] = useState(null);
+  const [platformRows, setPlatformRows] = useState([]);
+  const [platformLoading, setPlatformLoading] = useState(false);
+  const [expandedPlatformCourseId, setExpandedPlatformCourseId] = useState(null);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -501,6 +504,78 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
     () => [{ value: "", label: "— بدون ربط بكورس المنصة —" }, ...courses.map((c) => ({ value: String(c.id), label: c.title }))],
     [courses],
   );
+
+  useEffect(() => {
+    if (!courses?.length) {
+      setPlatformRows([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setPlatformLoading(true);
+    Promise.all(
+      courses.map(async (course) => {
+        try {
+          const raw = await fetchCourseStudents(course, users || []);
+          const rows = raw.filter((r) => (r.status || "pending") !== "rejected");
+          return { course, rows, summary: computeCourseStudentRevenue(rows), err: null };
+        } catch (e) {
+          console.error(e);
+          return { course, rows: [], summary: null, err: e?.message || String(e) };
+        }
+      }),
+    ).then((results) => {
+      if (!cancelled) {
+        setPlatformRows(results);
+        setPlatformLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [courses, users]);
+
+  const platformTotals = useMemo(() => {
+    let students = 0;
+    let full = 0;
+    let inst = 0;
+    let confirmedRevenue = 0;
+    let pendingRevenue = 0;
+    for (const p of platformRows) {
+      if (p.err || !p.summary) continue;
+      students += p.summary.studentCount;
+      confirmedRevenue += p.summary.confirmedRevenue;
+      pendingRevenue += p.summary.pendingRevenue;
+      for (const r of p.rows || []) {
+        const plan = String(r.payPlan || "");
+        if (plan.includes("كامل")) full += 1;
+        if (plan.includes("قساط")) inst += 1;
+      }
+    }
+    return {
+      students,
+      full,
+      inst,
+      confirmedRevenue,
+      pendingRevenue,
+      totalRevenue: confirmedRevenue + pendingRevenue,
+    };
+  }, [platformRows]);
+
+  function togglePlatformExpand(courseId) {
+    setExpandedPlatformCourseId((cur) => (cur === courseId ? null : courseId));
+  }
+
+  function quickAddRoundFromCourse(course, summary) {
+    if (!summary) return;
+    setForm({
+      ...blank_round(),
+      name: course.title,
+      courseId: String(course.id),
+      courseTitle: course.title,
+      totalRevenue: String(summary.totalRevenue),
+    });
+    setModal("add");
+  }
 
   function resolveCourse(round) {
     if (!round?.courseId) return null;
@@ -637,7 +712,7 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>الجولات والدورات</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>
-            إجمالي الإيرادات: {EGP(totalRev)} · اربط الجولة بكورس المنصة لعرض الطلاب ومزامنة الإيراد كما في قائمة الطلاب
+            كل كورسات المنصة تظهر أدناه تلقائيًا بنفس بيانات قائمة الطلاب. الجولات اليدوية للتخطيط أو الدفعات الإضافية.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -646,6 +721,170 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
           </Btn>
           <Btn onClick={openAdd}>+ إضافة جولة</Btn>
         </div>
+      </div>
+
+      <div style={{ ...S.card, marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>كورسات المنصة (من الطلاب والطلبات)</h3>
+          {platformLoading && (
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,.45)" }}>جاري المزامنة…</span>
+          )}
+        </div>
+        {!platformLoading && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <StatCard label="إجمالي الطلاب" value={platformTotals.students} color="#a78bfa" icon="👥" />
+            <StatCard label="دفع كامل" value={platformTotals.full} color="#34d399" icon="✓" />
+            <StatCard label="أقساط" value={platformTotals.inst} color="#fbbf24" icon="📅" />
+            <StatCard label="إيرادات مؤكدة" value={EGP(platformTotals.confirmedRevenue)} color="#34d399" icon="💵" />
+            <StatCard label="إيرادات متوقعة" value={EGP(platformTotals.pendingRevenue)} color="#fbbf24" icon="⏳" />
+            <StatCard label="إجمالي كامل" value={EGP(platformTotals.totalRevenue)} color={C.red} icon="∑" />
+          </div>
+        )}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "rgba(255,255,255,.03)" }}>
+                <th style={S.th}>الكورس</th>
+                <th style={S.th}>طلاب</th>
+                <th style={S.th}>كامل</th>
+                <th style={S.th}>أقساط</th>
+                <th style={S.th}>مؤكد</th>
+                <th style={S.th}>متوقع</th>
+                <th style={S.th}>الإجمالي</th>
+                <th style={{ ...S.th, minWidth: 200 }}>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {platformLoading && (
+                <tr>
+                  <td colSpan={8} style={{ ...S.td, textAlign: "center", color: "rgba(255,255,255,.4)" }}>
+                    جاري تحميل الكورسات…
+                  </td>
+                </tr>
+              )}
+              {!platformLoading &&
+                platformRows.map((p) => (
+                  <Fragment key={String(p.course.id)}>
+                    <tr
+                      style={{ transition: "background .15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,.03)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <td style={S.td}>
+                        <div style={{ fontWeight: 700 }}>{p.course.title}</div>
+                        {p.err ? (
+                          <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{p.err}</div>
+                        ) : null}
+                      </td>
+                      <td style={S.td}>{p.summary ? p.summary.studentCount : "—"}</td>
+                      <td style={S.td}>
+                        {(p.rows || []).filter((r) => String(r.payPlan || "").includes("كامل")).length}
+                      </td>
+                      <td style={S.td}>
+                        {(p.rows || []).filter((r) => String(r.payPlan || "").includes("قساط")).length}
+                      </td>
+                      <td style={S.td}>{p.summary ? EGP(p.summary.confirmedRevenue) : "—"}</td>
+                      <td style={S.td}>{p.summary ? EGP(p.summary.pendingRevenue) : "—"}</td>
+                      <td style={S.td}>{p.summary ? EGP(p.summary.totalRevenue) : "—"}</td>
+                      <td style={S.td}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          <Btn
+                            sm
+                            v={expandedPlatformCourseId === p.course.id ? "primary" : "ghost"}
+                            onClick={() => togglePlatformExpand(p.course.id)}
+                          >
+                            الطلاب
+                          </Btn>
+                          <Btn
+                            sm
+                            v="outline"
+                            disabled={!p.summary}
+                            onClick={() => quickAddRoundFromCourse(p.course, p.summary)}
+                          >
+                            + جولة
+                          </Btn>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedPlatformCourseId === p.course.id && (
+                      <tr style={{ background: "rgba(125,61,158,.08)" }}>
+                        <td colSpan={8} style={{ ...S.td, padding: 16 }}>
+                          {p.err ? (
+                            <div style={{ color: "#f87171" }}>{p.err}</div>
+                          ) : (
+                            <div>
+                              {p.summary && (
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+                                  <Badge color="#34d399">مؤكد: {EGP(p.summary.confirmedRevenue)}</Badge>
+                                  <Badge color="#fbbf24">متوقع: {EGP(p.summary.pendingRevenue)}</Badge>
+                                  <Badge color={C.red}>الإجمالي: {EGP(p.summary.totalRevenue)}</Badge>
+                                </div>
+                              )}
+                              <div style={{ overflowX: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                  <thead>
+                                    <tr style={{ background: "rgba(255,255,255,.05)" }}>
+                                      <th style={S.th}>الطالب</th>
+                                      <th style={S.th}>الهاتف</th>
+                                      <th style={S.th}>الخطة</th>
+                                      <th style={S.th}>المبلغ</th>
+                                      <th style={S.th}>الدفع</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(p.rows || []).length === 0 ? (
+                                      <tr>
+                                        <td colSpan={5} style={{ ...S.td, color: "rgba(255,255,255,.4)" }}>
+                                          لا يوجد طلاب في هذا الكورس بعد
+                                        </td>
+                                      </tr>
+                                    ) : (
+                                      (p.rows || []).map((s, i) => (
+                                        <tr key={`${p.course.id}-${s.email}-${i}`}>
+                                          <td style={S.td}>
+                                            <div style={{ fontWeight: 700 }}>{s.name}</div>
+                                            <div style={{ fontSize: 10, color: "rgba(255,255,255,.45)" }}>{s.email}</div>
+                                          </td>
+                                          <td style={S.td}>{s.phone || "—"}</td>
+                                          <td style={S.td}>{s.payPlan}</td>
+                                          <td style={S.td}>{s.amount != null ? EGP(s.amount) : "—"}</td>
+                                          <td style={S.td}>
+                                            {s.paymentConfirmed ? (
+                                              <Badge color="#34d399">مؤكد</Badge>
+                                            ) : (
+                                              <Badge color={C.muted}>معلق</Badge>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,.85)" }}>جولات يدوية</h3>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: "rgba(255,255,255,.45)" }}>
+          إجمالي إيرادات الجولات المحفوظة: {EGP(totalRev)}
+        </p>
       </div>
 
       <div style={S.card}>
