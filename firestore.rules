@@ -182,15 +182,33 @@ service cloud.firestore {
     }
 
     /* ── Accounting Module ──────────────────────────────────────────────────────
-       All accounting collections are locked down completely:
-       - accountingUsers: password hashes only (SHA-256), setup creates one user.
+       Access model:
+       - accountingUserRequests: public can create a pending request; only admins can read/update.
+       - accountingUsers: only admins can create (after approval). No client updates/deletes.
        - accountingSessionTokens: created by anonymous auth after successful login.
        - All other accounting collections: only accessible with isAccountingSession().
        ──────────────────────────────────────────────────────────────────────── */
+    match /accountingUserRequests/{id} {
+      allow create: if request.resource.data.keys().hasAll([
+          'fullName', 'username', 'passwordHash', 'note', 'status', 'createdAt'
+        ])
+        && request.resource.data.fullName is string
+        && request.resource.data.username is string
+        && request.resource.data.passwordHash is string
+        && request.resource.data.passwordHash.size() == 64
+        && request.resource.data.note is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is string;
+
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
     match /accountingUsers/{id} {
       // Password is hashed (SHA-256) — never store plaintext.
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['username','passwordHash','name','createdAt'])
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll(['username','passwordHash','name','createdAt'])
         && request.resource.data.passwordHash is string
         && request.resource.data.passwordHash.size() == 64;
       allow update, delete: if false;

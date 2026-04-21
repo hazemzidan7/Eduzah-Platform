@@ -7,6 +7,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
+  limit,
   orderBy,
   onSnapshot,
   setDoc,
@@ -124,15 +126,36 @@ export function AccountingProvider({ children }) {
     } catch (_) {}
   }, []);
 
-  const createAccountingUser = useCallback(async (username, password, name) => {
+  const submitAccountingAccessRequest = useCallback(async ({ fullName, username, password, note }) => {
+    const u = String(username || "").trim();
+    if (!u) throw new Error("أدخل اسم المستخدم");
+    if (!password || password.length < 8) throw new Error("كلمة المرور 8 أحرف على الأقل");
+
     const hash = await hashPassword(password);
-    await addDoc(collection(db, "accountingUsers"), {
-      username: username.trim(),
+
+    // Prevent duplicate pending requests for same username
+    const dupQ = query(
+      collection(db, "accountingUserRequests"),
+      where("username", "==", u),
+      where("status", "==", "pending"),
+      limit(1),
+    );
+    const dup = await getDocs(dupQ);
+    if (!dup.empty) throw new Error("يوجد طلب قيد المراجعة لنفس اسم المستخدم");
+
+    // Prevent requesting if user already exists
+    const usersSnap = await getDocs(collection(db, "accountingUsers"));
+    const exists = usersSnap.docs.some((d) => (d.data().username || "").trim() === u);
+    if (exists) throw new Error("اسم المستخدم موجود بالفعل — يمكنك تسجيل الدخول");
+
+    await addDoc(collection(db, "accountingUserRequests"), {
+      fullName: String(fullName || "").trim(),
+      username: u,
       passwordHash: hash,
-      name: name.trim(),
+      note: String(note || "").trim(),
+      status: "pending",
       createdAt: nowIso(),
     });
-    setHasUsers(true);
   }, []);
 
   // ── Rounds ──────────────────────────────────────────────
@@ -184,7 +207,7 @@ export function AccountingProvider({ children }) {
         hasUsers,
         login,
         logout,
-        createAccountingUser,
+        submitAccountingAccessRequest,
         rounds,
         expenses,
         salaries,

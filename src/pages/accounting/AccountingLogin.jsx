@@ -36,28 +36,35 @@ function Field({ label, children }) {
 }
 
 export default function AccountingLogin() {
-  const { login, hasUsers, createAccountingUser } = useAccounting();
+  const { login, hasUsers, submitAccountingAccessRequest } = useAccounting();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [mode, setMode] = useState("login"); // login | request
+  const [requestSent, setRequestSent] = useState(false);
 
-  const isSetup = hasUsers === false;
+  // Once at least one approved accounting user exists in Firestore, allow requesting additional access.
+  const canRequest = hasUsers === true;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setErr("");
-    if (isSetup) {
+    if (mode === "request") {
       if (!name.trim()) return setErr("أدخل الاسم الكامل");
       if (password.length < 8) return setErr("كلمة المرور 8 أحرف على الأقل");
-      if (password !== confirm) return setErr("كلمتا المرور غير متطابقتين");
     }
     setBusy(true);
     try {
-      if (isSetup) await createAccountingUser(username, password, name);
+      if (mode === "request") {
+        await submitAccountingAccessRequest({ fullName: name, username, password, note });
+        setRequestSent(true);
+        setPassword("");
+        return;
+      }
       await login(username, password);
     } catch (ex) {
       setErr(ex.message);
@@ -135,10 +142,12 @@ export default function AccountingLogin() {
             💼
           </div>
           <h1 style={{ margin: 0, color: "#fff", fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>
-            {isSetup ? "إعداد النظام المالي" : "النظام المالي"}
+            {mode === "request" ? "طلب صلاحية المحاسبة" : "النظام المالي"}
           </h1>
           <p style={{ margin: "8px 0 0", color: "rgba(255,255,255,.5)", fontSize: 13 }}>
-            {isSetup ? "أنشئ حساب المدير المالي الأول" : "دخول مقيّد ومنفصل عن باقي النظام"}
+            {mode === "request"
+              ? "سيتم مراجعة طلبك من قبل إدارة المنصة قبل تفعيل الدخول"
+              : "دخول مقيّد ومنفصل عن باقي النظام"}
           </p>
         </div>
 
@@ -176,8 +185,83 @@ export default function AccountingLogin() {
           </div>
         )}
 
+        {hasUsers === false && (
+          <div
+            style={{
+              background: "rgba(59,130,246,.10)",
+              border: "1px solid rgba(59,130,246,.35)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              marginBottom: 20,
+              color: "#93c5fd",
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            ℹ️ لم يتم تفعيل أول حساب محاسبة بعد. الأدمن يقوم بإنشاء/تفعيل أول مستخدم من لوحة التحكم، وبعدها يمكن للموظفين تقديم طلب صلاحية من هنا.
+          </div>
+        )}
+
+        {requestSent && mode === "request" && (
+          <div
+            style={{
+              background: "rgba(34,197,94,.12)",
+              border: "1px solid rgba(34,197,94,.35)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              marginBottom: 20,
+              color: "#86efac",
+              fontSize: 13,
+            }}
+          >
+            ✅ تم إرسال الطلب. بعد موافقة الأدمن ستتمكن من تسجيل الدخول هنا بنفس اسم المستخدم وكلمة المرور.
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => { setMode("login"); setErr(""); setRequestSent(false); }}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: mode === "login" ? `1px solid ${C.red}` : "1px solid rgba(255,255,255,.14)",
+              background: mode === "login" ? "rgba(255,92,122,.12)" : "transparent",
+              color: "#fff",
+              cursor: "pointer",
+              fontFamily: font,
+              fontWeight: 700,
+              fontSize: 12,
+            }}
+          >
+            تسجيل دخول
+          </button>
+          <button
+            type="button"
+            disabled={!canRequest}
+            onClick={() => { if (!canRequest) return; setMode("request"); setErr(""); }}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: mode === "request" ? `1px solid ${C.red}` : "1px solid rgba(255,255,255,.14)",
+              background: mode === "request" ? "rgba(255,92,122,.12)" : "transparent",
+              color: "#fff",
+              cursor: !canRequest ? "not-allowed" : "pointer",
+              opacity: !canRequest ? 0.45 : 1,
+              fontFamily: font,
+              fontWeight: 700,
+              fontSize: 12,
+            }}
+            title={!canRequest ? "لا يمكن طلب صلاحية قبل تفعيل أول حساب محاسبة من الأدمن" : ""}
+          >
+            طلب صلاحية
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          {isSetup && (
+          {mode === "request" && (
             <Field label="الاسم الكامل">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد محمد" required style={inp} />
             </Field>
@@ -201,22 +285,14 @@ export default function AccountingLogin() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              autoComplete={isSetup ? "new-password" : "current-password"}
-              style={{ ...inp, marginBottom: isSetup ? 0 : 8 }}
+              autoComplete={mode === "request" ? "new-password" : "current-password"}
+              style={{ ...inp, marginBottom: mode === "request" ? 0 : 8 }}
             />
           </Field>
 
-          {isSetup && (
-            <Field label="تأكيد كلمة المرور">
-              <input
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="new-password"
-                style={inp}
-              />
+          {mode === "request" && (
+            <Field label="ملاحظة (اختياري)">
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="سبب الطلب / أي تفاصيل تساعد الإدارة" />
             </Field>
           )}
 
@@ -239,7 +315,7 @@ export default function AccountingLogin() {
               boxShadow: busy ? "none" : "0 4px 18px rgba(255,92,122,.35)",
             }}
           >
-            {busy ? "جاري التحقق..." : isSetup ? "إنشاء الحساب والدخول" : "دخول"}
+            {busy ? "جاري التحقق..." : mode === "request" ? "إرسال الطلب" : "دخول"}
           </button>
         </form>
 
