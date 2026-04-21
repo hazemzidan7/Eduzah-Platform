@@ -2254,10 +2254,12 @@ function AdditionsTab({ additions, addAddition, updateAddition, deleteAddition }
       const errors = [];
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const addedByName = str(pick(row, "اسم المضيف", "اسم المُضيف", "اسم_المضيف", "addedByName", "المضيف", "Name"));
-        const reason = str(pick(row, "سبب الإضافة", "سبب_الإضافة", "reason", "السبب"));
+        const addedByName = str(
+          pick(row, "اسم المضيف", "اسم المُضيف", "اسم_المضيف", "اسم الموظف", "اسم_الموظف", "addedByName", "employeeName", "المضيف", "الموظف", "Name", "Employee"),
+        );
+        const reason = str(pick(row, "سبب الإضافة", "سبب_الإضافة", "reason", "السبب", "Reason"));
         const amount = num(pick(row, "المبلغ", "amount", "Amount"));
-        if (!addedByName || !reason || amount <= 0) continue;
+        if (!addedByName || !reason || amount === 0) continue;
         try {
           await addAddition({
             addedByName,
@@ -2272,7 +2274,11 @@ function AdditionsTab({ additions, addAddition, updateAddition, deleteAddition }
         }
       }
       window.alert(
-        errors.length ? `تم استيراد ${ok} إضافة.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} إضافة` : "لم يُعثر على صفوف (اسم المضيف + سبب الإضافة + مبلغ > 0 مطلوبة)",
+        errors.length
+          ? `تم استيراد ${ok} إضافة.\n${errors.slice(0, 10).join("\n")}`
+          : ok
+            ? `تم استيراد ${ok} إضافة`
+            : "لم يُعثر على صفوف (تحقق: اسم المضيف أو اسم الموظف، سبب الإضافة أو السبب، ومبلغ غير صفر)",
       );
     } catch (e) {
       window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
