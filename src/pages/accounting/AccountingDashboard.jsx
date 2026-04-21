@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { useAccounting } from "../../context/AccountingContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { fetchCourseStudents, computeCourseStudentRevenue } from "../../utils/exportExcel";
+import { readFirstSheetRows, str, num, pick, parseBoolAr, matchRoundId, todayDate } from "../../utils/accountingExcelImport";
 import { C, font } from "../../theme";
 import * as XLSX from "xlsx";
 
@@ -179,6 +180,28 @@ function Select({ value, onChange, options }) {
         </option>
       ))}
     </select>
+  );
+}
+
+function ExcelImportButton({ label, onFile, disabled }) {
+  const ref = useRef(null);
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) onFile(f);
+        }}
+      />
+      <Btn sm v="outline" disabled={disabled} onClick={() => ref.current?.click()}>
+        {label}
+      </Btn>
+    </>
   );
 }
 
@@ -561,6 +584,7 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
   const [platformRows, setPlatformRows] = useState([]);
   const [platformLoading, setPlatformLoading] = useState(false);
   const [expandedPlatformCourseId, setExpandedPlatformCourseId] = useState(null);
+  const [importBusy, setImportBusy] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -750,11 +774,53 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
     await deleteRound(id);
   }
 
+  async function handleImportRounds(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const name = str(pick(row, "اسم الجولة", "name", "Round"));
+        if (!name) continue;
+        try {
+          await addRound({
+            name,
+            courseTitle: str(pick(row, "الكورس", "courseTitle", "Course")),
+            courseId: str(pick(row, "courseId", "معرف_الكورس")) || null,
+            startDate: str(pick(row, "تاريخ البدء", "startDate")),
+            endDate: str(pick(row, "تاريخ الانتهاء", "endDate")),
+            totalRevenue: num(pick(row, "الإيراد الكلي", "totalRevenue")),
+            instructorPercentage: num(pick(row, "نسبة المدرب %", "instructorPercentage")),
+            mentorPercentage: num(pick(row, "نسبة المرشد %", "mentorPercentage")),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length
+          ? `تم استيراد ${ok} جولة.\nتنبيهات/أخطاء:\n${errors.slice(0, 10).join("\n")}${errors.length > 10 ? "\n…" : ""}`
+          : ok
+            ? `تم استيراد ${ok} جولة`
+            : "لم يُعثر على صفوف صالحة (عمود «اسم الجولة» مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   function exportRounds() {
     const ws = XLSX.utils.json_to_sheet(
       rounds.map((r) => ({
         "اسم الجولة": r.name,
         الكورس: r.courseTitle || "",
+        courseId: r.courseId || "",
         "تاريخ البدء": r.startDate || "",
         "تاريخ الانتهاء": r.endDate || "",
         "الإيراد الكلي": r.totalRevenue || 0,
@@ -779,7 +845,8 @@ function RoundsTab({ rounds, addRound, updateRound, deleteRound }) {
             كل كورسات المنصة تظهر أدناه تلقائيًا بنفس بيانات قائمة الطلاب. الجولات اليدوية للتخطيط أو الدفعات الإضافية.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportRounds} />
           <Btn onClick={exportRounds} v="outline" sm>
             تصدير Excel
           </Btn>
@@ -1132,6 +1199,7 @@ function ExpensesTab({ expenses, rounds, addExpense, updateExpense, deleteExpens
   const [form, setForm] = useState(blank_expense());
   const [catFilter, setCatFilter] = useState("الكل");
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
   const { filtered, FilterUI } = useDateFilter(expenses);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -1164,6 +1232,47 @@ function ExpensesTab({ expenses, rounds, addExpense, updateExpense, deleteExpens
     await deleteExpense(id);
   }
 
+  async function handleImportExp(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const description = str(pick(row, "الوصف", "description", "Description"));
+        if (!description) continue;
+        let category = str(pick(row, "الفئة", "category", "Category"));
+        if (!EXPENSE_CATS.includes(category)) category = EXPENSE_CATS[0];
+        const roundId = matchRoundId(rounds, pick(row, "الجولة", "round", "roundName"));
+        try {
+          await addExpense({
+            category,
+            description,
+            amount: num(pick(row, "المبلغ", "amount", "Amount")),
+            date: str(pick(row, "التاريخ", "date", "Date")) || todayDate(),
+            roundId,
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length
+          ? `تم استيراد ${ok} مصروف.\n${errors.slice(0, 10).join("\n")}`
+          : ok
+            ? `تم استيراد ${ok} مصروف`
+            : "لم يُعثر على صفوف (عمود الوصف مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   function exportExp() {
     const ws = XLSX.utils.json_to_sheet(
       displayed.map((e) => ({
@@ -1171,6 +1280,7 @@ function ExpensesTab({ expenses, rounds, addExpense, updateExpense, deleteExpens
         الوصف: e.description,
         المبلغ: e.amount,
         التاريخ: e.date,
+        الجولة: rounds.find((r) => r.id === e.roundId)?.name || "",
         ملاحظات: e.notes || "",
       }))
     );
@@ -1189,7 +1299,8 @@ function ExpensesTab({ expenses, rounds, addExpense, updateExpense, deleteExpens
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>المصاريف التشغيلية</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>الإجمالي: {EGP(sum(displayed, "amount"))}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportExp} />
           <Btn onClick={exportExp} v="outline" sm>
             تصدير Excel
           </Btn>
@@ -1263,6 +1374,7 @@ function SalariesTab({ salaries, addSalary, updateSalary, deleteSalary }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(blank_salary());
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
   const { filtered, FilterUI } = useDateFilter(salaries);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -1285,6 +1397,40 @@ function SalariesTab({ salaries, addSalary, updateSalary, deleteSalary }) {
     // eslint-disable-next-line no-alert
     if (!confirm("حذف سجل الراتب؟")) return;
     await deleteSalary(id);
+  }
+
+  async function handleImportSal(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const employeeName = str(pick(row, "اسم الموظف", "employeeName", "Employee"));
+        if (!employeeName) continue;
+        try {
+          await addSalary({
+            employeeName,
+            role: str(pick(row, "المنصب", "role", "Role")),
+            amount: num(pick(row, "المبلغ", "amount", "Amount")),
+            month: str(pick(row, "الشهر", "month", "Month")),
+            date: str(pick(row, "التاريخ", "date", "Date")) || todayDate(),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} سجل.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} راتب` : "لم يُعثر على صفوف (اسم الموظف مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
   }
 
   function exportSal() {
@@ -1315,7 +1461,8 @@ function SalariesTab({ salaries, addSalary, updateSalary, deleteSalary }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>الرواتب</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي: {EGP(sum(filtered, "amount"))}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportSal} />
           <Btn onClick={exportSal} v="outline" sm>
             تصدير Excel
           </Btn>
@@ -1380,6 +1527,7 @@ function InstructorPaymentsTab({ instructorPayments, rounds, addInstructorPaymen
     notes: "",
   });
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
 
   const roundOptions = [{ value: "", label: "— اختر جولة —" }, ...rounds.map((r) => ({ value: r.id, label: r.name }))];
 
@@ -1428,15 +1576,52 @@ function InstructorPaymentsTab({ instructorPayments, rounds, addInstructorPaymen
     await updateInstructorPayment(row.id, { paid: !row.paid });
   }
 
+  async function handleImportIns(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const instructorName = str(pick(row, "المدرب", "instructorName", "Instructor"));
+        if (!instructorName) continue;
+        const roundId = matchRoundId(rounds, pick(row, "الجولة", "round", "roundName"));
+        try {
+          await addInstructorPayment({
+            instructorName,
+            roundId,
+            percentage: num(pick(row, "النسبة %", "percentage", "Percent")),
+            calculatedAmount: num(pick(row, "المبلغ المحسوب", "calculatedAmount", "amount")),
+            date: str(pick(row, "التاريخ", "date")) || todayDate(),
+            paid: parseBoolAr(pick(row, "مدفوع؟", "paid", "Paid")),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} سجل.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} مدفوعة مدرب` : "لم يُعثر على صفوف (اسم المدرب مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   function exportIns() {
     const ws = XLSX.utils.json_to_sheet(
       instructorPayments.map((p) => ({
         المدرب: p.instructorName,
-        الجولة: rounds.find((r) => r.id === p.roundId)?.name || p.roundId,
+        الجولة: rounds.find((r) => r.id === p.roundId)?.name || p.roundId || "",
         "النسبة %": p.percentage,
         "المبلغ المحسوب": p.calculatedAmount,
         التاريخ: p.date,
         "مدفوع؟": p.paid ? "نعم" : "لا",
+        ملاحظات: p.notes || "",
       }))
     );
     const wb = XLSX.utils.book_new();
@@ -1451,7 +1636,8 @@ function InstructorPaymentsTab({ instructorPayments, rounds, addInstructorPaymen
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>نسب المدربين</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي: {EGP(sum(instructorPayments, "calculatedAmount"))}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportIns} />
           <Btn onClick={exportIns} v="outline" sm>
             تصدير Excel
           </Btn>
@@ -1530,6 +1716,7 @@ function MentorPaymentsTab({ mentorPayments, rounds, addMentorPayment, updateMen
     notes: "",
   });
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
 
   const roundOptions = [{ value: "", label: "— اختر جولة —" }, ...rounds.map((r) => ({ value: r.id, label: r.name }))];
 
@@ -1577,6 +1764,59 @@ function MentorPaymentsTab({ mentorPayments, rounds, addMentorPayment, updateMen
     await updateMentorPayment(row.id, { paid: !row.paid });
   }
 
+  async function handleImportMent(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const mentorName = str(pick(row, "المرشد", "mentorName", "Mentor"));
+        if (!mentorName) continue;
+        const roundId = matchRoundId(rounds, pick(row, "الجولة", "round", "roundName"));
+        try {
+          await addMentorPayment({
+            mentorName,
+            roundId,
+            percentage: num(pick(row, "النسبة %", "percentage", "Percent")),
+            calculatedAmount: num(pick(row, "المبلغ المحسوب", "calculatedAmount", "amount", "المبلغ")),
+            date: str(pick(row, "التاريخ", "date")) || todayDate(),
+            paid: parseBoolAr(pick(row, "مدفوع؟", "paid", "Paid")),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} سجل.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} مدفوعة مرشد` : "لم يُعثر على صفوف (اسم المرشد مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  function exportMent() {
+    const ws = XLSX.utils.json_to_sheet(
+      mentorPayments.map((p) => ({
+        المرشد: p.mentorName,
+        الجولة: rounds.find((r) => r.id === p.roundId)?.name || p.roundId || "",
+        "النسبة %": p.percentage,
+        "المبلغ المحسوب": p.calculatedAmount,
+        التاريخ: p.date,
+        "مدفوع؟": p.paid ? "نعم" : "لا",
+        ملاحظات: p.notes || "",
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "مدفوعات المرشدين");
+    XLSX.writeFile(wb, "Eduzah_MentorPayments.xlsx");
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
@@ -1584,7 +1824,13 @@ function MentorPaymentsTab({ mentorPayments, rounds, addMentorPayment, updateMen
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>نسب المرشدين</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي: {EGP(sum(mentorPayments, "calculatedAmount"))}</p>
         </div>
-        <Btn onClick={openAdd}>+ إضافة</Btn>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportMent} />
+          <Btn onClick={exportMent} v="outline" sm>
+            تصدير Excel
+          </Btn>
+          <Btn onClick={openAdd}>+ إضافة</Btn>
+        </div>
       </div>
       <div style={S.card}>
         <Table
@@ -1654,6 +1900,7 @@ function WithdrawalsTab({ withdrawals, addWithdrawal, updateWithdrawal, deleteWi
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(blank_withdrawal());
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
   const { filtered, FilterUI } = useDateFilter(withdrawals);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -1678,6 +1925,54 @@ function WithdrawalsTab({ withdrawals, addWithdrawal, updateWithdrawal, deleteWi
     await deleteWithdrawal(id);
   }
 
+  async function handleImportWd(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const employeeName = str(pick(row, "اسم الموظف", "employeeName", "Employee", "الموظف"));
+        if (!employeeName) continue;
+        try {
+          await addWithdrawal({
+            employeeName,
+            amount: num(pick(row, "المبلغ", "amount", "Amount")),
+            date: str(pick(row, "التاريخ", "date", "Date")) || todayDate(),
+            reason: str(pick(row, "السبب", "reason", "Reason")),
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} سجل.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} سحب` : "لم يُعثر على صفوف (اسم الموظف مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  function exportWd() {
+    const ws = XLSX.utils.json_to_sheet(
+      filtered.map((w) => ({
+        "اسم الموظف": w.employeeName,
+        المبلغ: w.amount,
+        التاريخ: w.date,
+        السبب: w.reason || "",
+        ملاحظات: w.notes || "",
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "السحوبات");
+    XLSX.writeFile(wb, "Eduzah_Withdrawals.xlsx");
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
@@ -1685,7 +1980,13 @@ function WithdrawalsTab({ withdrawals, addWithdrawal, updateWithdrawal, deleteWi
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>سحوبات الموظفين</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي: {EGP(sum(filtered, "amount"))}</p>
         </div>
-        <Btn onClick={openAdd}>+ إضافة سحب</Btn>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportWd} />
+          <Btn onClick={exportWd} v="outline" sm>
+            تصدير Excel
+          </Btn>
+          <Btn onClick={openAdd}>+ إضافة سحب</Btn>
+        </div>
       </div>
       <div style={{ marginBottom: 16 }}>{FilterUI}</div>
       <div style={S.card}>
@@ -1737,6 +2038,7 @@ function MarketingTab({ marketing, rounds, addMarketing, updateMarketing, delete
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(blank_marketing());
   const [busy, setBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
   const { filtered, FilterUI } = useDateFilter(marketing);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -1761,6 +2063,43 @@ function MarketingTab({ marketing, rounds, addMarketing, updateMarketing, delete
     await deleteMarketing(id);
   }
 
+  async function handleImportMkt(file) {
+    setImportBusy(true);
+    try {
+      const rows = await readFirstSheetRows(file);
+      let ok = 0;
+      const errors = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const description = str(pick(row, "الوصف", "description", "Description"));
+        if (!description) continue;
+        let platform = str(pick(row, "المنصة", "platform", "Platform"));
+        if (!MARKETING_PLATFORMS.includes(platform)) platform = MARKETING_PLATFORMS[0];
+        const roundId = matchRoundId(rounds, pick(row, "الجولة", "round", "roundName"));
+        try {
+          await addMarketing({
+            platform,
+            description,
+            amount: num(pick(row, "المبلغ", "amount", "Amount")),
+            date: str(pick(row, "التاريخ", "date", "Date")) || todayDate(),
+            roundId,
+            notes: str(pick(row, "ملاحظات", "notes")),
+          });
+          ok += 1;
+        } catch (e) {
+          errors.push(`صف ${i + 2}: ${e?.message || e}`);
+        }
+      }
+      window.alert(
+        errors.length ? `تم استيراد ${ok} سجل.\n${errors.slice(0, 10).join("\n")}` : ok ? `تم استيراد ${ok} بند تسويق` : "لم يُعثر على صفوف (الوصف مطلوب)",
+      );
+    } catch (e) {
+      window.alert(`تعذر قراءة الملف: ${e?.message || e}`);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   function exportMkt() {
     const ws = XLSX.utils.json_to_sheet(
       filtered.map((m) => ({
@@ -1768,6 +2107,7 @@ function MarketingTab({ marketing, rounds, addMarketing, updateMarketing, delete
         الوصف: m.description,
         المبلغ: m.amount,
         التاريخ: m.date,
+        الجولة: rounds.find((r) => r.id === m.roundId)?.name || "",
         ملاحظات: m.notes || "",
       }))
     );
@@ -1791,7 +2131,8 @@ function MarketingTab({ marketing, rounds, addMarketing, updateMarketing, delete
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>مصاريف التسويق</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(255,255,255,.5)" }}>إجمالي: {EGP(sum(filtered, "amount"))}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <ExcelImportButton label={importBusy ? "جاري الاستيراد…" : "استيراد Excel"} disabled={importBusy} onFile={handleImportMkt} />
           <Btn onClick={exportMkt} v="outline" sm>
             تصدير Excel
           </Btn>
