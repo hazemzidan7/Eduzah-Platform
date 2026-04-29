@@ -45,12 +45,15 @@ export default function Navbar() {
   const role = currentUser?.role;
   const avBg = role === "admin" ? gOr : role === "instructor" ? gPur : gRed;
 
+  // "sep" entries render a visual divider between link groups
   const publicLinks = [
     ["/",            lang==="ar" ? "الرئيسية"       : "Home"],
     ["/courses",     lang==="ar" ? "الكورسات"       : "Courses"],
+    ["sep"],
     ["/corporate",   lang==="ar" ? "تدريب الشركات"  : "Corporate"],
     ["/hiring",      lang==="ar" ? "التوظيف"        : "Hiring"],
     ["/services",    lang==="ar" ? "الخدمات"        : "Services"],
+    ["sep"],
     ["/team",        lang==="ar" ? "فريقنا"         : "Our Team"],
     ["/consultation",lang==="ar" ? "استشارة مجانية" : "Free Consult"],
     ["/news",        lang==="ar" ? "الأخبار"        : "News"],
@@ -124,23 +127,29 @@ export default function Navbar() {
 
           {/* ── Desktop links ── */}
           {!mobile && (
-            <div style={{ display: "flex", gap: 2, flex: 1, justifyContent: "center", padding: "0 8px 0 12px", overflow: "hidden", minWidth: 0 }}>
-              {links.map(([path, label]) => (
-                <Link key={path} to={path} style={linkSx(path)}
-                  onMouseEnter={e => {
-                    if (!isActive(path)) {
-                      e.currentTarget.style.color = C.red;
-                      e.currentTarget.style.background = "rgba(217,27,91,.06)";
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive(path)) {
-                      e.currentTarget.style.color = linkIdle;
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >{label}</Link>
-              ))}
+            <div style={{ display: "flex", gap: 4, flex: 1, justifyContent: "center", padding: "0 8px 0 12px", overflow: "hidden", minWidth: 0, alignItems: "center" }}>
+              {links.map((item, idx) => {
+                if (item[0] === "sep") {
+                  return <span key={`sep-${idx}`} style={{ width: 1, height: 16, background: "#e5e7eb", flexShrink: 0, marginInline: 4 }} aria-hidden="true" />;
+                }
+                const [path, label] = item;
+                return (
+                  <Link key={path} to={path} style={linkSx(path)}
+                    onMouseEnter={e => {
+                      if (!isActive(path)) {
+                        e.currentTarget.style.color = C.red;
+                        e.currentTarget.style.background = "rgba(217,27,91,.06)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive(path)) {
+                        e.currentTarget.style.color = linkIdle;
+                        e.currentTarget.style.background = "transparent";
+                      }
+                    }}
+                  >{label}</Link>
+                );
+              })}
             </div>
           )}
 
@@ -234,7 +243,7 @@ export default function Navbar() {
           }}>
             {/* Nav links */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
-              {links.map(([path, label]) => (
+              {links.filter(item => item[0] !== "sep").map(([path, label]) => (
                 <Link key={path} to={path} style={linkSx(path, true)}>{label}</Link>
               ))}
             </div>

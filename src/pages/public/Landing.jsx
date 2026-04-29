@@ -112,18 +112,22 @@ export default function Landing() {
     { target: 48,   suffix: "/5", label: lang==="ar"?"تقييم":"Rating", display:"4.8" },
     { target: 3,    suffix: "+", label: lang==="ar"?"سنوات":"Years" },
   ];
-  const [counts, setCounts] = useState(STATS.map(() => 0));
+  // Start at target so numbers are never misleadingly 0 before animation
+  const [counts, setCounts] = useState(STATS.map(s => s.display ?? s.target));
+  const [animated, setAnimated] = useState(false);
   useEffect(() => {
-    if (!statsInView) return;
+    if (!statsInView || animated) return;
+    setAnimated(true);
     const duration = 1800;
     const steps = 60;
     const interval = duration / steps;
     let step = 0;
+    setCounts(STATS.map(() => 0));
     const timer = setInterval(() => {
       step++;
       const progress = step / steps;
       const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-      setCounts(STATS.map((s, i) => s.display ? s.display : Math.round(s.target * ease)));
+      setCounts(STATS.map(s => s.display ? s.display : Math.round(s.target * ease)));
       if (step >= steps) clearInterval(timer);
     }, interval);
     return () => clearInterval(timer);

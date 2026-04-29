@@ -1,6 +1,14 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+}
 import Navbar from "./components/Navbar";
 import GlobalSupportFab from "./components/GlobalSupportFab";
 // Lazy — reduces initial JS for faster LCP on first paint
@@ -88,6 +96,7 @@ export default function App() {
         <Navbar />
       </header>
       <main id="main-content" tabIndex={-1} style={{ paddingTop: 64, minHeight: "calc(100vh - 64px)", background: "var(--page-bg)", color: "var(--page-text)" }}>
+      <ScrollToTop />
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* ── Public ─────────────────────────── */}

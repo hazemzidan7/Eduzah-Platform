@@ -51,16 +51,27 @@ export default function CoursesPage() {
         <h1 style={{fontSize:"clamp(1.5rem,3vw,2.4rem)",fontWeight:900,marginBottom:10,color:"var(--page-text)"}}>
           {lang==="ar" ? "كورسات التدريب المتخصصة" : "Specialized Training Courses"}
         </h1>
-        <p style={{color:"var(--page-muted)",fontSize:14}}>{courses.length} {lang==="ar" ? "برنامج متخصص" : "specialized programs"}</p>
+        <p style={{color:"var(--page-muted)",fontSize:14}}>
+          {filtered.length}
+          {filtered.length !== courses.length && (
+            <span style={{color:"var(--page-muted)",fontWeight:400}}> / {courses.length}</span>
+          )}
+          {" "}{lang==="ar" ? "برنامج متخصص" : "specialized programs"}
+        </p>
       </div>
 
       {/* Search */}
       <div style={{maxWidth:480,margin:"0 auto 28px"}}>
         <input
+          id="course-search"
           value={search}
           onChange={e=>setSearch(e.target.value)}
           placeholder={lang==="ar" ? "ابحث عن كورس..." : "Search courses..."}
-          style={{width:"100%",boxSizing:"border-box",background:"var(--input-bg)",border:"1.5px solid var(--input-border)",borderRadius:12,padding:"11px 16px",color:"var(--page-text)",fontFamily:"'Cairo',sans-serif",fontSize:13,outline:"none"}}
+          dir={dir}
+          autoComplete="off"
+          style={{width:"100%",boxSizing:"border-box",background:"var(--input-bg)",border:"1.5px solid var(--input-border)",borderRadius:12,padding:"11px 16px",color:"var(--page-text)",fontFamily:"'Cairo',sans-serif",fontSize:13,outline:"none",transition:"border-color .2s"}}
+          onFocus={e=>e.target.style.borderColor="#d91b5b"}
+          onBlur={e=>e.target.style.borderColor="var(--input-border)"}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { C } from "../../theme";
@@ -65,6 +65,7 @@ export default function CourseLanding() {
   const [openCurr, setOpenCurr] = useState(0);
   const [openFaq,  setOpenFaq]  = useState(null);
   const [enrollmentReqStatus, setEnrollmentReqStatus] = useState(null);
+  const [videoError, setVideoError] = useState(false);
   const prevReqStatus = useRef(null);
 
   const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
@@ -152,9 +153,14 @@ export default function CourseLanding() {
     document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Reset video error state when navigating between courses
+  useEffect(() => { setVideoError(false); }, [slug]);
+
   const introEmbed = course.introVideoUrl ? toEmbedIntro(course.introVideoUrl) : null;
   const freePreviewEmbed = !enrolled && course.previewVideoUrl ? toEmbedIntro(course.previewVideoUrl) : null;
-  const priceCardVideoEmbed = course.priceCardVideoUrl?.trim() ? toEmbedIntro(course.priceCardVideoUrl.trim()) : null;
+  const priceCardVideoEmbed = (!videoError && course.priceCardVideoUrl?.trim())
+    ? toEmbedIntro(course.priceCardVideoUrl.trim())
+    : null;
   const freeNote = !enrolled && course.freeLessonNote?.trim();
 
   return (
@@ -236,11 +242,13 @@ export default function CourseLanding() {
               {priceCardVideoEmbed ? (
                 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, background: "#0a0612" }}>
                   <iframe
+                    key={priceCardVideoEmbed}
                     title={lang === "ar" ? "فيديو كارت التسجيل" : "Enrollment card video"}
                     src={priceCardVideoEmbed}
                     style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    onError={() => setVideoError(true)}
                   />
                 </div>
               ) : (
