@@ -16,6 +16,32 @@ import { AccountingProvider } from "../../context/AccountingContext";
 import AccountingDashboard from "../accounting/AccountingDashboard";
 
 /* ─── small helpers ─── */
+function extractYouTubeId(url) {
+  if (!url) return null;
+  const m = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]{11})/);
+  return m ? m[1] : null;
+}
+
+function VideoPreview({ url }) {
+  const ytId = extractYouTubeId(url);
+  if (!ytId) return null;
+  return (
+    <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,.12)", position: "relative", maxWidth: 320 }}>
+      <img
+        src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+        alt="video preview"
+        style={{ width: "100%", display: "block" }}
+      />
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.35)" }}>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 6, left: 8, fontSize: 10, color: "#fff", background: "rgba(0,0,0,.6)", borderRadius: 4, padding: "2px 6px" }}>YouTube ✓</div>
+    </div>
+  );
+}
+
 function formatNewsDateAdmin(n, lang) {
   if (n.dateIso) {
     const d = new Date(`${n.dateIso}T12:00:00`);
@@ -80,7 +106,7 @@ export default function AdminDashboard() {
   const [enrollmentLoadError, setEnrollmentLoadError] = useState(null);
   const showT = useCallback((msg, type = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 2800);
+    setTimeout(() => setToast(null), type === "error" ? 5000 : 2800);
   }, []);
 
   const sortEnrollmentRows = useCallback((rows) => {
@@ -309,46 +335,6 @@ export default function AdminDashboard() {
       setModal(null);
     };
 
-    const fillFrontendDiplomaFromPdf = () => {
-      const techStackText =
-        [
-          "Front-End Fundamentals: HTML, HTML5, CSS, CSS3, CSS FLEX, CSS GRID, JavaScript, ES NEXT, Asynchronous Programming, JavaScript Modules, DOM & BOM, TypeScript, Regular Expressions, Functional Programming, AJAX, JSON, Bootstrap 5, JQuery, JQuery Plugins, NPM, SASS, SEO Optimization, Performance Optimization, Hosting and Domains, Figma",
-          "React Path: What is React & SPA, JSX & Virtual DOM, Components & Props, State & Lifecycle, Event Handling, Lists & Conditional Rendering, Forms Handling, HTTP Requests (Axios/Fetch), Routing (React Router), Styling in React (CSS Modules, Inline Styles), Project: Mini App (To-do / Blog), Project: Final E-Commerce Website",
-          "Angular Path + TypeScript: Angular Overview, Angular CLI Setup, Architecture & Modules, Components & Data Binding, Directives & Pipes, TypeScript Syntax & Types, TypeScript OOP Basics, Forms (Template-Driven & Reactive), HTTP Client for RESTful API, Component Lifecycle, Routing & SPA, Styling Angular Apps",
-          "Redux | ai: What is Redux & Why, Store / Actions / Reducers, Redux with React, Redux Thunk & Async Actions, Redux Toolkit Basics, Project: Portfolio or Blog, Project: Semi Project, Project: Final E-Commerce (Products, cart, filters, API, routing)",
-        ].join("\n");
-
-      const curriculumText =
-        [
-          "Front-End Fundamentals (01): HTML, CSS, JavaScript, TypeScript, Bootstrap, JQuery, NPM, SASS, SEO, Performance, Hosting, Figma",
-          "React Path (02): React & SPA, JSX & Virtual DOM, Components & Props, State & Lifecycle, Forms, HTTP Requests, Routing, Styling, Projects",
-          "Angular + TypeScript (03): Angular CLI, Modules, Data Binding, Directives, Pipes, Forms, HTTP Client, Routing, Styling",
-          "Redux + Projects (04-05): Redux concepts, Redux Toolkit, Thunks, Portfolio/Blog, Semi Project, Final E-Commerce",
-        ].join("\n");
-
-      setF((p) => ({
-        ...p,
-        title: "دبلومة Front-End Web Development",
-        title_en: "Front-End Web Development Diploma",
-        cat: "tech",
-        price: "4000",
-        duration: "20 أسبوع",
-        hours: "150",
-        projects: "3",
-        tagline: "دبلومة Front-End كاملة من الأساسيات حتى المشاريع",
-        tagline_en: "Full Front-End diploma from fundamentals to projects",
-        desc: "دبلومة Front-End شاملة تبدأ من HTML/CSS/JS ثم React وAngular وRedux مع مشاريع تطبيقية وتجهيز لسوق العمل.",
-        desc_en: "A complete Front-End diploma covering HTML/CSS/JS, then React, Angular, and Redux with hands-on projects and job-market preparation.",
-        bullets: "منهج شامل ومكثف\nمشاريع تطبيقية حقيقية\nتأهيل لسوق العمل\nتعلم مرن Online/Offline",
-        bullets_en: "Comprehensive curriculum\nReal hands-on projects\nJob market preparation\nFlexible learning (online/offline)",
-        outcomes: "إتقان HTML/CSS وبناء صفحات Responsive\nإتقان JavaScript وTypeScript\nبناء تطبيقات React\nبناء تطبيقات Angular\nإدارة الحالة باستخدام Redux\nتنفيذ مشروع E-Commerce نهائي",
-        outcomes_en: "Master HTML/CSS and responsive layouts\nMaster JavaScript & TypeScript\nBuild React apps\nBuild Angular apps\nState management with Redux\nDeliver a final E-Commerce project",
-        techStackText,
-        curriculumText,
-      }));
-      showT("تم ملء بيانات الدبلومة من الـ PDF (راجعها وعدّل قبل الإضافة).");
-    };
-
     return (
       <Modal title="إضافة كورس جديد" onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -452,16 +438,16 @@ export default function AdminDashboard() {
               </div>
             </div>
             <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <VideoPreview url={f.priceCardVideoUrl} />
             <Input label={tx("فيديو تعريفي (رابط)", "Intro video URL")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <VideoPreview url={f.introVideoUrl} />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} placeholder="https://..." />
+            <VideoPreview url={f.previewVideoUrl} />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
             <Input label={tx("جلسة قادمة (للطالب)", "Upcoming session note")} value={f.upcomingSessionNote} onChange={v => set("upcomingSessionNote", v)} rows={2} />
             <Input label={tx("تبويب Google Sheet", "Google Sheet tab name")} value={f.sheetsTabName} onChange={v => set("sheetsTabName", v)} placeholder="course-tab" />
             <Input label={tx("إيميلات إشعار التسجيل (فاصلة)", "Notification emails (comma-separated)")} value={f.notifyEmailsStr} onChange={v => set("notifyEmailsStr", v)} placeholder="a@x.com, b@x.com" rows={2} />
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-          <Btn children={tx("تعبئة Front-End Diploma (PDF)", "Fill Front-End Diploma (PDF)")} v="outline" onClick={fillFrontendDiplomaFromPdf} />
         </div>
         <Btn children={tx("إضافة الكورس", "Add Course")} full onClick={submit} style={{ marginTop: 8 }} />
       </Modal>
@@ -751,8 +737,11 @@ export default function AdminDashboard() {
               </div>
             </div>
             <Input label={tx("فيديو أعلى كارت السعر (YouTube/Vimeo)", "Price card video (YouTube/Vimeo)")} value={f.priceCardVideoUrl} onChange={v => set("priceCardVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <VideoPreview url={f.priceCardVideoUrl} />
             <Input label={tx("رابط فيديو تعريفي (YouTube/Vimeo)", "Intro video URL (YouTube/Vimeo)")} value={f.introVideoUrl} onChange={v => set("introVideoUrl", v)} placeholder="https://youtube.com/..." />
+            <VideoPreview url={f.introVideoUrl} />
             <Input label={tx("فيديو معاينة مجانية", "Free preview video URL")} value={f.previewVideoUrl} onChange={v => set("previewVideoUrl", v)} />
+            <VideoPreview url={f.previewVideoUrl} />
             <Input label={tx("ملاحظة درس مجاني", "Free lesson note")} value={f.freeLessonNote} onChange={v => set("freeLessonNote", v)} rows={2} />
             <Input label={tx("جلسة قادمة (للطالب)", "Upcoming session note")} value={f.upcomingSessionNote} onChange={v => set("upcomingSessionNote", v)} rows={2} />
             <Input label={tx("تبويب Google Sheet", "Google Sheet tab name")} value={f.sheetsTabName} onChange={v => set("sheetsTabName", v)} />
@@ -1311,7 +1300,7 @@ export default function AdminDashboard() {
             <h2 style={{ fontWeight: 900, fontSize: 20, marginBottom: 20 }}>{tx("نظرة عامة", "Dashboard overview")}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 24 }}>
               {[
-                { l: tx("الطلاب", "Students"),     v: studentsEnr.length, c: C.red },
+                { l: tx("طلاب بكورسات", "Students w/ courses"), v: studentsEnr.length, c: C.red },
                 { l: tx("المدربين", "Instructors"), v: instructors.length, c: C.purple },
                 { l: tx("الكورسات", "Courses"),     v: courses.length,     c: C.orange },
                 { l: tx("طلبات كورسات", "Course requests"), v: pendingEnrollments.length, c: C.warning },
@@ -1530,15 +1519,30 @@ export default function AdminDashboard() {
             <p style={{ color: C.muted, fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
               {tx("الموافقة هنا تمنح الطالب صلاحية الكورس على المنصة فقط — لا تتحكم في إنشاء الحسابات.", "Approving here grants course access on the platform only — not account creation.")}
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              {[
-                ["pending", tx("معلقة", "Pending")],
-                ["approved", tx("مقبولة", "Approved")],
-                ["rejected", tx("مرفوضة", "Rejected")],
-                ["all", tx("الكل", "All")],
-              ].map(([v, l]) => (
-                <Btn key={v} sm v={enrollFilter === v ? "primary" : "outline"} onClick={() => setEnrollFilter(v)} children={l} />
-              ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  ["pending", tx("معلقة", "Pending")],
+                  ["approved", tx("مقبولة", "Approved")],
+                  ["rejected", tx("مرفوضة", "Rejected")],
+                  ["all", tx("الكل", "All")],
+                ].map(([v, l]) => (
+                  <Btn key={v} sm v={enrollFilter === v ? "primary" : "outline"} onClick={() => setEnrollFilter(v)} children={l} />
+                ))}
+              </div>
+              {enrollFilter === "pending" && pendingEnrollments.length > 1 && (
+                <Btn
+                  sm
+                  v="success"
+                  children={ar ? `قبول الكل (${pendingEnrollments.length})` : `Approve all (${pendingEnrollments.length})`}
+                  onClick={async () => {
+                    if (!window.confirm(ar ? `هل تريد قبول جميع الطلبات المعلقة (${pendingEnrollments.length})؟` : `Approve all ${pendingEnrollments.length} pending requests?`)) return;
+                    await Promise.all(pendingEnrollments.map(r => approveEnrollmentRequest(r.id)));
+                    await loadEnrollmentRequests();
+                    showT(ar ? `تم قبول ${pendingEnrollments.length} طلبات` : `Approved ${pendingEnrollments.length} requests`);
+                  }}
+                />
+              )}
             </div>
             {(() => {
               const filtered = enrollmentRequests.filter((r) => {
@@ -1739,6 +1743,9 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <a href={`/courses/${c.slug || c.id}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+                          <Btn children={ar ? "معاينة" : "Preview"} sm v="outline" />
+                        </a>
                         <Btn children={tx("فيديو", "Video")} sm v="outline" onClick={() => setModal({ type: "add-session", course: c })} />
                         <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={() => setModal({ type: "edit-course", course: c })} />
                         <Btn children={tx("تسجيل", "Enroll")}              sm v="purple"  onClick={() => setModal({ type: "enroll-course", course: c })} />
@@ -1758,7 +1765,7 @@ export default function AdminDashboard() {
                             </>
                           }
                         />
-                        <Btn children="🗑"                     sm v="danger"  onClick={() => { deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
+                        <Btn children="🗑" sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${c.title}" نهائياً؟` : `Permanently delete "${c.title_en || c.title}"?`)) return; deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
                   </Card>
@@ -1789,7 +1796,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteNews(n.id); showT(tx("تم حذف الخبر", "Article deleted"), "error"); }} />
+                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${n.title}"؟` : `Delete "${n.title}"?`)) return; deleteNews(n.id); showT(tx("تم حذف الخبر", "Article deleted"), "error"); }} />
                   </div>
                 </Card>
               ))}
@@ -1824,6 +1831,7 @@ export default function AdminDashboard() {
                         sm
                         v="danger"
                         onClick={async () => {
+                          if (!window.confirm(ar ? `هل تريد حذف المدرب "${tr.name}"؟` : `Delete trainer "${tr.name}"?`)) return;
                           try {
                             await deleteTrainer(tr.id);
                             showT(tx("تم حذف المدرب", "Trainer deleted"));
@@ -1863,7 +1871,7 @@ export default function AdminDashboard() {
                     {pr.desc_ar  && <div style={{ color:C.muted, fontSize:11, lineHeight:1.6, marginBottom:10 }}>{pr.desc_ar.slice(0,80)}{pr.desc_ar.length>80?"…":""}</div>}
                     <div style={{ display:"flex", gap:8 }}>
                       <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-program", program:pr })} />
-                      <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ deleteProgram(pr.id); showT(tx("تم حذف البرنامج","Program deleted"),"error"); }} />
+                      <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ if (!window.confirm(ar ? `هل تريد حذف "${pr.title_ar}"؟` : `Delete "${pr.title_en || pr.title_ar}"?`)) return; deleteProgram(pr.id); showT(tx("تم حذف البرنامج","Program deleted"),"error"); }} />
                     </div>
                   </div>
                 </Card>
@@ -1900,7 +1908,7 @@ export default function AdminDashboard() {
                         <div style={{ color:C.muted, fontSize:12, lineHeight:1.65 }}>{t.comment_ar}</div>
                       </div>
                     </div>
-                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={()=>{ deleteTestimonial(t.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
+                    <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={()=>{ if (!window.confirm(ar ? `هل تريد حذف رأي "${t.name}"؟` : `Delete testimonial by "${t.name}"?`)) return; deleteTestimonial(t.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
                   </div>
                 </Card>
               ))}
@@ -1937,7 +1945,7 @@ export default function AdminDashboard() {
                   {m.bio_ar && <div style={{ color:C.muted, fontSize:12, lineHeight:1.6, marginBottom:10 }}>{m.bio_ar.slice(0,100)}{m.bio_ar.length>100?"…":""}</div>}
                   <div style={{ display:"flex", gap:7 }}>
                     <Btn children={tx("تعديل", "Edit")} sm v="outline" onClick={()=>setModal({ type:"edit-team", member:m })} />
-                    <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ deleteTeamMember(m.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
+                    <Btn children={tx("حذف", "Delete")}   sm v="danger"  onClick={()=>{ if (!window.confirm(ar ? `هل تريد حذف "${m.name}" من فريق العمل؟` : `Remove "${m.name}" from the team?`)) return; deleteTeamMember(m.id); showT(tx("تم الحذف","Deleted"),"error"); }} />
                   </div>
                 </Card>
               ))}
@@ -2077,7 +2085,7 @@ export default function AdminDashboard() {
                           {e.type === "mcq" && <span style={{ color: C.muted, fontSize: 10 }}>{e.duration} {tx("دقيقة", "min")}</span>}
                         </div>
                       </div>
-                      <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
+                      <Btn children={tx("حذف", "Delete")} sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف الامتحان "${e.title}"؟` : `Delete exam "${e.title}"?`)) return; deleteExam(e.id); showT(tx("تم حذف الامتحان", "Exam deleted"), "error"); }} />
                     </div>
                   </Card>
                 );
