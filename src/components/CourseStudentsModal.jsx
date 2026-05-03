@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { C, font } from "../theme";
-import { fetchCourseStudents, fmtDate, exportCourseStudents } from "../utils/exportExcel";
+import { fetchCourseStudents, fmtDate, exportCourseStudents, ledgerAmountForStats } from "../utils/exportExcel";
 
 // ─── Mini UI helpers ──────────────────────────────────────────────────────────
 const CONTACT_CFG = {
@@ -40,80 +40,6 @@ function Stat({ label, value, sub, color="#fff", accent=false }) {
       <div style={{ fontSize:20, fontWeight:900, color, fontFamily:font }}>{value}</div>
       <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{label}</div>
       {sub && <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", marginTop:1 }}>{sub}</div>}
-    </div>
-  );
-}
-
-// ─── Editable amount cell ─────────────────────────────────────────────────────
-function AmountCell({ row, onSave, saving }) {
-  const [editing, setEditing] = useState(false);
-  const [val,     setVal]     = useState(row.amount != null ? String(row.amount) : "");
-
-  const commit = () => {
-    const num = val.trim() === "" ? null : Number(val);
-    if (isNaN(num) && val.trim() !== "") { setEditing(false); return; } // invalid
-    setEditing(false);
-    if (num !== row.amount) onSave(row, num);
-  };
-
-  if (editing) {
-    return (
-      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-        <input
-          autoFocus
-          type="number"
-          value={val}
-          onChange={e => setVal(e.target.value)}
-          onBlur={commit}
-          onKeyDown={e => { if (e.key==="Enter") commit(); if (e.key==="Escape") setEditing(false); }}
-          style={{
-            width:90, padding:"4px 8px", borderRadius:7,
-            background:"rgba(255,255,255,.1)", border:`1.5px solid ${C.purple}`,
-            color:"#fff", fontFamily:font, fontSize:13, fontWeight:700,
-            outline:"none", textAlign:"right",
-          }}
-        />
-        <span style={{ fontSize:10, color:C.muted }}>EGP</span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={() => { if (!saving) setEditing(true); }}
-      title="اضغط لتعديل المبلغ المؤكد"
-      style={{
-        display:"flex", alignItems:"center", justifyContent:"space-between", gap:8,
-        cursor: saving ? "wait" : "pointer",
-        padding:"6px 10px", borderRadius:8,
-        border:"1px solid rgba(255,255,255,.12)",
-        background:"rgba(255,255,255,.04)",
-        transition:"border-color .15s, background .15s", width:"100%", boxSizing:"border-box",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
-        e.currentTarget.style.background = "rgba(125,61,158,.08)";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
-        e.currentTarget.style.background = "rgba(255,255,255,.04)";
-      }}>
-      {saving
-        ? <span style={{ width:12, height:12, border:"2px solid rgba(255,255,255,.35)", borderTopColor:"transparent",
-            borderRadius:"50%", animation:"spin .6s linear infinite", display:"inline-block" }}/>
-        : row.amount != null
-          ? <span style={{ fontWeight:800, fontSize:13, color:"rgba(255,255,255,.95)" }}>
-              {Number(row.amount).toLocaleString()}
-              <small style={{ fontSize:10, color:"rgba(255,255,255,.45)", fontWeight:500, marginRight:4 }}>EGP</small>
-            </span>
-          : <span style={{ fontSize:11, color:"rgba(255,255,255,.38)" }}>أضف مبلغًا…</span>
-      }
-      {!saving && (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-      )}
     </div>
   );
 }
@@ -279,7 +205,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [sortCol,    setSortCol]    = useState("sheetDate");
   const [sortDir,    setSortDir]    = useState("desc");
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
-  const [savingAmount, setSavingAmount] = useState(null); // docId being saved
   const [savingTotalPaid, setSavingTotalPaid] = useState(null); // docId or userId
   const [savingContact, setSavingContact] = useState(null); // userId being updated
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
@@ -322,22 +247,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       console.error("Payment confirm error:", err);
     } finally {
       setConfirming(null);
-    }
-  };
-
-  // ── Save manual amount ────────────────────────────────────────────────────
-  const handleSaveAmount = async (row, newAmount) => {
-    if (!row.docId || savingAmount) return;
-    setSavingAmount(row.docId);
-    try {
-      await updateDoc(doc(db, "enrollmentRequests", row.docId), {
-        amountQuoted: newAmount,
-      });
-      loadRows({ silent: true });
-    } catch (err) {
-      console.error("Amount save error:", err);
-    } finally {
-      setSavingAmount(null);
     }
   };
 
@@ -412,9 +321,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const confirmedRows    = rows.filter(r => r.paymentConfirmed);
-  const pendingPayRows   = rows.filter(r => !r.paymentConfirmed && r.amount != null);
-  const confirmedRevenue = confirmedRows.reduce((s,r) => s + (Number(r.amount)||0), 0);
-  const pendingRevenue   = pendingPayRows.reduce((s,r) => s + (Number(r.amount)||0), 0);
+  const pendingPayRows   = rows.filter(r => !r.paymentConfirmed && ledgerAmountForStats(r) > 0);
+  const confirmedRevenue = confirmedRows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
+  const pendingRevenue   = pendingPayRows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
   const fullCount        = rows.filter((r) => (r.payPlan || "").includes("كامل")).length;
   const instCount        = rows.filter((r) => (r.payPlan || "").includes("قساط")).length;
 
@@ -704,11 +613,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                   {pp}
                 </span>
               </div>
-            </div>
-
-            <div style={miniBase}>
-              <div style={lbl}>المبلغ المؤكد</div>
-              <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
             </div>
 
             <div style={{ ...miniBase, maxWidth: 240 }}>

@@ -208,13 +208,25 @@ export async function fetchCourseStudents(course, allUsers = []) {
   return rows;
 }
 
+/** مبلغ للإحصائيات: المدفوع اليدوي (`totalPaid`) أولًا، ثم `amount` القديم للتوافق. */
+export function ledgerAmountForStats(r) {
+  if (!r) return 0;
+  const tp = r.totalPaid;
+  if (tp !== "" && tp != null) {
+    const n = Number(tp);
+    if (Number.isFinite(n)) return n;
+  }
+  const a = Number(r.amount);
+  return Number.isFinite(a) ? a : 0;
+}
+
 /** Same revenue rules as `CourseStudentsModal` stats (excludes rejected rows). */
 export function computeCourseStudentRevenue(studentRows) {
   const rows = (studentRows || []).filter((r) => (r.status || "pending") !== "rejected");
   const confirmedRows = rows.filter((r) => r.paymentConfirmed);
-  const pendingPayRows = rows.filter((r) => !r.paymentConfirmed && r.amount != null);
-  const confirmedRevenue = confirmedRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  const pendingRevenue = pendingPayRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const pendingPayRows = rows.filter((r) => !r.paymentConfirmed && ledgerAmountForStats(r) > 0);
+  const confirmedRevenue = confirmedRows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
+  const pendingRevenue = pendingPayRows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
   return {
     studentCount: rows.length,
     confirmedRevenue,
@@ -316,7 +328,7 @@ export async function exportCourseStudents(course, allUsers = []) {
   XLSX.utils.book_append_sheet(wb,"Students",ws);
 
   // Summary sheet
-  const totalRevenue = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const totalRevenue = rows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
   const sumAoa=[
     [`Eduzah — ${course.title_en||course.title} | Summary`],[],
     ["الكورس / Course", course.title],
