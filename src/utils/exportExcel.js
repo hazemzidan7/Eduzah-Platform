@@ -470,7 +470,7 @@ export async function exportCourseStudents(course, allUsers = []) {
   });
 
   ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: DATA_START + rows.length - 1, c: EXPORT_COLS.length - 1 } });
-  XLSX.utils.book_append_sheet(wb,"Students",ws);
+  XLSX.utils.book_append_sheet(wb, ws, "Students");
 
   // Summary sheet
   const totalRevenue = rows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
@@ -505,7 +505,7 @@ export async function exportCourseStudents(course, allUsers = []) {
   ];
   const ws2=XLSX.utils.aoa_to_sheet(sumAoa);
   ws2["!cols"]=[{wch:32},{wch:36}];
-  XLSX.utils.book_append_sheet(wb,"Summary",ws2);
+  XLSX.utils.book_append_sheet(wb, ws2, "Summary");
 
   const safeName=(course.title_en||course.title||"course").replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,"_").replace(/_+/g,"_").slice(0,40);
   const fileName=`Eduzah_${safeName}_Students.xlsx`;
