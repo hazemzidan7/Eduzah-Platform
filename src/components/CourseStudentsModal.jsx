@@ -732,11 +732,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                 </div>
               ) : null}
             </div>
-
-            <div style={{ ...miniBase, padding: "8px 11px", justifyContent: "center" }}>
-              <div style={lbl}>تقدّم المنصّة</div>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,.72)", fontWeight: 700 }}>{r.progress || "—"}</span>
-            </div>
           </div>
         );
       },
