@@ -818,6 +818,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     ? <span style={{fontSize:10,color:C.orange}}>{sortDir==="asc"?"↑":"↓"}</span>
     : <span style={{opacity:.25,fontSize:10}}>↕</span>;
 
+  const tablePixelWidth = COLS.reduce((acc, c) => acc + c.w, 0);
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
@@ -939,17 +941,41 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
             <div style={{ overflow: "visible", borderRadius: 12, border: `1px solid ${C.border}` }}>
               {/* Keep horizontal scroll without clipping dropdown menus */}
               <div style={{ overflowX: "auto", overflowY: "visible", maxHeight: "min(70vh, 720px)" }}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:12}}>
+                <table
+                  style={{
+                    tableLayout: "fixed",
+                    width: tablePixelWidth,
+                    borderCollapse: "collapse",
+                    fontFamily: font,
+                    fontSize: 12,
+                  }}
+                >
+                <colgroup>
+                  {COLS.map((col) => (
+                    <col key={col.key} style={{ width: col.w }} />
+                  ))}
+                </colgroup>
                 <thead>
                   <tr style={{background:"linear-gradient(135deg,#2a1540,#3d1f5c)"}}>
                     {COLS.map(col => (
                       <th key={col.key}
                         onClick={col.sortable ? ()=>toggleSort(col.key) : undefined}
-                        style={{ padding:"11px 12px", textAlign:"right", color:"#fff",
-                          fontWeight:700, fontSize:11, whiteSpace:"nowrap",
-                          borderBottom:`1px solid ${C.border}`,
-                          cursor:col.sortable?"pointer":"default",
-                          userSelect:"none", minWidth:col.w }}>
+                        style={{
+                          padding: "11px 10px",
+                          textAlign: "right",
+                          color: "#fff",
+                          fontWeight: 700,
+                          fontSize: 11,
+                          whiteSpace: "normal",
+                          lineHeight: 1.35,
+                          wordBreak: "break-word",
+                          borderBottom: `1px solid ${C.border}`,
+                          cursor: col.sortable ? "pointer" : "default",
+                          userSelect: "none",
+                          boxSizing: "border-box",
+                          verticalAlign: "middle",
+                        }}
+                      >
                         <span style={{display:"flex",alignItems:"center",gap:5,justifyContent:"flex-end"}}>
                           {col.label}
                           {col.sortable && <SortIcon col={col.key}/>}
@@ -990,10 +1016,16 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                           confirmed ? "rgba(52,211,153,.04)" : idx%2===0?"rgba(255,255,255,.02)":"transparent"}>
                         {COLS.map(col => (
                           <td key={col.key}
-                            style={{ padding:"10px 12px",
-                              borderBottom:`1px solid rgba(255,255,255,.04)`,
-                              verticalAlign: col.key === "_admin" ? "top" : "middle",
-                              textAlign:"right" }}>
+                            style={{
+                              padding: "10px 10px",
+                              borderBottom: `1px solid rgba(255,255,255,.04)`,
+                              verticalAlign: "top",
+                              textAlign: "right",
+                              boxSizing: "border-box",
+                              wordBreak: "break-word",
+                              overflowWrap: "break-word",
+                            }}
+                          >
                             {col.render ? col.render(row,idx) : (row[col.key]||"—")}
                           </td>
                         ))}
