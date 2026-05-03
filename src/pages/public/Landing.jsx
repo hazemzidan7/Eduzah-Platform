@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Btn, Card, Stars } from "../../components/UI";
 import { SITE, TRACKS } from "../../data";
@@ -597,7 +597,13 @@ export default function Landing() {
       <footer style={{background:"#1a0f24",padding:"36px 5% 18px",borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:24,marginBottom:20}}>
           <div>
-            <div style={{fontWeight:900,fontSize:22,marginBottom:10}}><span style={{color:C.red}}>Edu</span><span style={{color:C.orange}}>zah</span></div>
+            <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 10 }}>
+              <img
+                src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
+                alt="Eduzah"
+                style={{ height: 38, width: "auto", maxWidth: 220, objectFit: "contain", display: "block" }}
+              />
+            </Link>
             <p style={{color:C.muted,fontSize:12,lineHeight:1.9}}>{lang==="ar"?SITE.tagline:SITE.tagline_en}</p>
           </div>
           <div>
