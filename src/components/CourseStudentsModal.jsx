@@ -54,6 +54,18 @@ function ContactPill({ value }) {
   return <Pill color={cfg.color}>{cfg.label}</Pill>;
 }
 
+function MoneyCell({ v }) {
+  if (v === "" || v == null) return <span style={{ color: "rgba(255,255,255,.28)" }}>—</span>;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return <span style={{ color: C.muted }}>—</span>;
+  return (
+    <span style={{ fontWeight: 800, fontSize: 12, whiteSpace: "nowrap" }}>
+      {n.toLocaleString()}
+      <span style={{ fontSize: 9, color: C.muted, fontWeight: 500, marginRight: 3 }}>ج</span>
+    </span>
+  );
+}
+
 function Stat({ label, value, sub, color="#fff", accent=false }) {
   return (
     <div style={{ background: accent ? "rgba(52,211,153,.08)" : "rgba(255,255,255,.04)",
@@ -172,7 +184,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [filterPlan, setFilterPlan] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterPay,  setFilterPay]  = useState("all"); // all | confirmed | pending
-  const [sortCol,    setSortCol]    = useState("requestedAt");
+  const [sortCol,    setSortCol]    = useState("sheetDate");
   const [sortDir,    setSortDir]    = useState("desc");
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
   const [savingAmount, setSavingAmount] = useState(null); // docId being saved
@@ -180,15 +192,16 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
 
-  const loadRows = useCallback(() => {
-    setLoading(true);
+  const loadRows = useCallback((opts = {}) => {
+    const silent = opts.silent === true;
+    if (!silent) setLoading(true);
     fetchCourseStudents(course, allUsers)
       // Show in 2 places:
       // - Requests tab: all enrollmentRequests
       // - Students tab (this modal): pending + approved (exclude rejected)
       .then((list) => setRows((list || []).filter((r) => (r.status || "pending") !== "rejected")))
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   }, [course, allUsers]);
 
   useEffect(() => { loadRows(); }, [loadRows]);
@@ -211,11 +224,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         paymentConfirmed: newVal,
         confirmedAt:      newVal ? new Date().toISOString() : null,
       });
-      setRows(prev => prev.map(r =>
-        r.docId === row.docId
-          ? { ...r, paymentConfirmed: newVal, confirmedAt: newVal ? fmtDate(new Date().toISOString()) : null }
-          : r
-      ));
+      loadRows({ silent: true });
     } catch (err) {
       console.error("Payment confirm error:", err);
     } finally {
@@ -231,9 +240,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       await updateDoc(doc(db, "enrollmentRequests", row.docId), {
         amountQuoted: newAmount,
       });
-      setRows(prev => prev.map(r =>
-        r.docId === row.docId ? { ...r, amount: newAmount } : r
-      ));
+      loadRows({ silent: true });
     } catch (err) {
       console.error("Amount save error:", err);
     } finally {
@@ -289,28 +296,38 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const pendingPayRows   = rows.filter(r => !r.paymentConfirmed && r.amount != null);
   const confirmedRevenue = confirmedRows.reduce((s,r) => s + (Number(r.amount)||0), 0);
   const pendingRevenue   = pendingPayRows.reduce((s,r) => s + (Number(r.amount)||0), 0);
-  const fullCount        = rows.filter(r => r.payPlan.includes("كامل")).length;
-  const instCount        = rows.filter(r => r.payPlan.includes("قساط")).length;
+  const fullCount        = rows.filter((r) => (r.payPlan || "").includes("كامل")).length;
+  const instCount        = rows.filter((r) => (r.payPlan || "").includes("قساط")).length;
 
   // ── Filter + Sort ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let out = [...rows];
     if (search.trim()) {
       const q = search.toLowerCase();
-      out = out.filter(r =>
-        r.name.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        (r.phone||"").includes(q)
+      out = out.filter((r) => {
+        const name = `${r.fullName || r.name || ""} ${r.name || ""}`.toLowerCase();
+        return (
+          name.includes(q) ||
+          (r.email || "").toLowerCase().includes(q) ||
+          (r.phone || "").includes(q) ||
+          (r.notes || "").toLowerCase().includes(q) ||
+          (r.bookingChannel || "").toLowerCase().includes(q)
+        );
+      });
+    }
+    if (filterPlan !== "all") {
+      out = out.filter((r) =>
+        filterPlan === "full" ? (r.payPlan || "").includes("كامل") : (r.payPlan || "").includes("قساط"),
       );
     }
-    if (filterPlan !== "all") out = out.filter(r =>
-      filterPlan === "full" ? r.payPlan.includes("كامل") : r.payPlan.includes("قساط")
-    );
-    if (filterType !== "all") out = out.filter(r =>
-      filterType === "online"
-        ? r.training.includes("Online")
-        : r.training.includes("Offline") || r.training.includes("Branch")
-    );
+    if (filterType !== "all") {
+      out = out.filter((r) => {
+        const tr = r.training || "";
+        return filterType === "online"
+          ? tr.includes("Online")
+          : tr.includes("Offline") || tr.includes("Branch");
+      });
+    }
     if (filterPay !== "all") out = out.filter(r =>
       filterPay === "confirmed" ? r.paymentConfirmed : !r.paymentConfirmed
     );
@@ -333,124 +350,167 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     finally { setExporting(false); }
   };
 
-  // ── Column definitions ────────────────────────────────────────────────────
+  const renderContactColumn = (r) => {
+    const approved = (r.status || "pending") === "approved";
+    const disabled = !r.docId && !r.userId;
+    const loadingSel = savingContact === (r.userId || r.docId);
+    const st = r.contactStatus || "no_response";
+    const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
+    const rowKey = r.userId || r.docId || null;
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+        <ContactPill value={st} />
+        <button
+          type="button"
+          onClick={() => {
+            if (disabled || loadingSel || !rowKey) return;
+            setContactPopup({ rowKey, row: r });
+          }}
+          disabled={disabled || loadingSel || !rowKey}
+          title={
+            disabled
+              ? "لا يوجد طلب أو حساب مرتبط بهذا الصف"
+              : (!approved ? "حالة متابعة للطلب (Pending)" : "حالة متابعة للطالب (Approved)")
+          }
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "7px 10px",
+            borderRadius: 10,
+            background: disabled ? "rgba(255,255,255,.04)" : `${cfg.color}14`,
+            color: disabled ? "rgba(255,255,255,.35)" : "#fff",
+            border: `1.5px solid ${disabled ? C.border : `${cfg.color}55`}`,
+            outline: "none",
+            fontFamily: font,
+            fontWeight: 900,
+            fontSize: 11,
+            cursor: (disabled || loadingSel) ? "not-allowed" : "pointer",
+            minWidth: 160,
+            justifyContent: "space-between",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: cfg.color, boxShadow: `0 0 0 3px ${cfg.color}22` }} />
+            <span>{cfg.label}</span>
+          </span>
+          <span style={{ color: disabled ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.7)", fontSize: 12 }}>▾</span>
+        </button>
+      </div>
+    );
+  };
+
+  // ── أعمدة الجدول (نمط spreadsheet) + عمود إدارة ───────────────────────
   const COLS = [
-    { key:"#", label:"#", w:40,
-      render:(_,i) => <span style={{color:C.muted,fontSize:11}}>{i+1}</span> },
-    { key:"name", label:"الطالب", w:180, sortable:true,
-      render:(r) => (
+    { key: "#", label: "#", w: 34, render: (_, i) => <span style={{ color: C.muted, fontSize: 11 }}>{i + 1}</span> },
+    {
+      key: "sheetDate",
+      label: "التاريخ",
+      w: 96,
+      sortable: true,
+      render: (r) => <span style={{ whiteSpace: "nowrap", fontSize: 11, color: C.muted }}>{r.sheetDate || "—"}</span>,
+    },
+    {
+      key: "fullName",
+      label: "اسم الطالب رباعي",
+      w: 200,
+      sortable: true,
+      render: (r) => (
         <div>
-          <div style={{fontWeight:700,fontSize:13,marginBottom:1}}>{r.name}</div>
-          <div style={{color:C.muted,fontSize:11}}>{r.email}</div>
+          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 2 }}>{r.fullName || r.name || "—"}</div>
+          <div style={{ color: C.muted, fontSize: 10 }}>{r.email || ""}</div>
         </div>
-      )},
-    { key:"phone", label:"الهاتف", w:130,
-      render:(r) => <span style={{fontFamily:"monospace",fontSize:12}}>{r.phone||"—"}</span> },
-    { key:"contactStatus", label:"حالة التواصل", w:260,
-      render:(r) => {
-        const approved = (r.status || "pending") === "approved";
-        const disabled = !r.docId && !r.userId;
-        const loadingSel = savingContact === (r.userId || r.docId);
-        const st = r.contactStatus || "no_response";
-        const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
-        const rowKey = r.userId || r.docId || null;
+      ),
+    },
+    {
+      key: "phone",
+      label: "رقم التليفون",
+      w: 118,
+      render: (r) => <span style={{ fontFamily: "monospace", fontSize: 12 }}>{r.phone || "—"}</span>,
+    },
+    {
+      key: "age",
+      label: "العمر",
+      w: 52,
+      render: (r) => <span style={{ fontSize: 12 }}>{r.age !== "" && r.age != null ? r.age : "—"}</span>,
+    },
+    {
+      key: "attendanceAr",
+      label: "حضور الكورس",
+      w: 110,
+      render: (r) => <span style={{ fontSize: 11 }}>{r.attendanceAr || "—"}</span>,
+    },
+    {
+      key: "diplomaTitle",
+      label: "اسم الدبلومة",
+      w: 160,
+      render: (r) => (
+        <span style={{ fontSize: 11, lineHeight: 1.45, color: "rgba(255,255,255,.9)" }}>{r.diplomaTitle || "—"}</span>
+      ),
+    },
+    {
+      key: "bookingChannel",
+      label: "حجز عن طريق",
+      w: 120,
+      render: (r) => <span style={{ fontSize: 11 }}>{r.bookingChannel || "—"}</span>,
+    },
+    {
+      key: "notes",
+      label: "ملاحظات",
+      w: 140,
+      render: (r) => {
+        const t = r.notes || "";
+        if (!t) return <span style={{ color: "rgba(255,255,255,.25)" }}>—</span>;
+        const short = t.length > 48 ? `${t.slice(0, 48)}…` : t;
         return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-            <ContactPill value={st} />
-
-            <button
-              type="button"
-              onClick={(e) => {
-                if (disabled || loadingSel || !rowKey) return;
-                setContactPopup({ rowKey, row: r });
-              }}
-              disabled={disabled || loadingSel || !rowKey}
-              title={
-                disabled
-                  ? "لا يوجد طلب أو حساب مرتبط بهذا الصف"
-                  : (!approved ? "حالة متابعة للطلب (Pending)" : "حالة متابعة للطالب (Approved)")
-              }
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 10px",
-                borderRadius: 10,
-                background: disabled ? "rgba(255,255,255,.04)" : `${cfg.color}14`,
-                color: disabled ? "rgba(255,255,255,.35)" : "#fff",
-                border: `1.5px solid ${disabled ? C.border : `${cfg.color}55`}`,
-                outline: "none",
-                fontFamily: font,
-                fontWeight: 900,
-                fontSize: 11,
-                cursor: (disabled || loadingSel) ? "not-allowed" : "pointer",
-                minWidth: 190,
-                justifyContent: "space-between",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 99, background: cfg.color, boxShadow: `0 0 0 3px ${cfg.color}22` }} />
-                <span>{cfg.label}</span>
-              </span>
-              <span style={{ color: disabled ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.7)", fontSize: 12 }}>
-                ▾
-              </span>
-            </button>
+          <span title={t} style={{ fontSize: 11, lineHeight: 1.5, color: "rgba(255,255,255,.88)" }}>
+            {short}
+          </span>
+        );
+      },
+    },
+    { key: "courseCost", label: "تكلفة الكورس", w: 100, render: (r) => <MoneyCell v={r.courseCost} /> },
+    { key: "deposit", label: "ديبوزت الحجز", w: 96, render: (r) => <MoneyCell v={r.deposit} /> },
+    { key: "installment1", label: "القسط ١", w: 88, render: (r) => <MoneyCell v={r.installment1} /> },
+    { key: "installment2", label: "القسط ٢", w: 88, render: (r) => <MoneyCell v={r.installment2} /> },
+    { key: "installment3", label: "القسط ٣", w: 88, render: (r) => <MoneyCell v={r.installment3} /> },
+    { key: "installment4", label: "القسط ٤", w: 88, render: (r) => <MoneyCell v={r.installment4} /> },
+    { key: "totalPaid", label: "المدفوع", w: 92, render: (r) => <MoneyCell v={r.totalPaid} /> },
+    {
+      key: "remaining",
+      label: "المتبقي",
+      w: 92,
+      render: (r) => <MoneyCell v={r.remaining} />,
+    },
+    {
+      key: "_admin",
+      label: "متابعة · دفع",
+      w: 260,
+      render: (r) => {
+        const pp = r.payPlan || "—";
+        const full = pp.includes("كامل");
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            {renderContactColumn(r)}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+              <Pill color={full ? "#34d399" : C.orange}>{pp}</Pill>
+              <StatusBadge status={r.status} />
+            </div>
+            <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+              <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
+              {r.paymentConfirmed && r.confirmedAt && (
+                <span style={{ fontSize: 10, color: "rgba(52,211,153,.6)", marginTop: 1 }}>
+                  {typeof r.confirmedAt === "string" && r.confirmedAt.includes("T") ? fmtDate(r.confirmedAt) : r.confirmedAt}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: 10, color: C.muted }}>تقدّم المنصّة: {r.progress || "—"}</span>
           </div>
         );
-      }},
-    { key:"payPlan", label:"خطة الدفع", w:130,
-      render:(r) => {
-        const color = r.payPlan.includes("كامل") ? "#34d399" : C.orange;
-        return <Pill color={color}>{r.payPlan}</Pill>;
-      }},
-    { key:"amount", label:"المبلغ ✎", w:140,
-      render:(r) => (
-        <AmountCell
-          row={r}
-          onSave={handleSaveAmount}
-          saving={savingAmount === r.docId}
-        />
-      )},
-
-    // ── Payment Confirmation column ───────────────────────────────────────
-    { key:"paymentConfirmed", label:"تأكيد الدفع", w:140,
-      render:(r) => (
-        <div style={{display:"flex",flexDirection:"column",gap:3}}>
-          <PayConfirmBtn
-            row={r}
-            onToggle={handleTogglePay}
-            loading={confirming === r.docId}
-          />
-          {r.paymentConfirmed && r.confirmedAt && (
-            <span style={{fontSize:10,color:"rgba(52,211,153,.6)",marginTop:1}}>
-              {r.confirmedAt}
-            </span>
-          )}
-        </div>
-      )},
-
-    { key:"training", label:"التدريب", w:120,
-      render:(r) => <Pill color={r.training.includes("Online")?C.purple:C.orange}>{r.training}</Pill> },
-    { key:"status", label:"الحساب", w:130,
-      render:(r) => <StatusBadge status={r.status}/> },
-    { key:"progress", label:"التقدم", w:90,
-      render:(r) => {
-        const num = parseInt(r.progress)||0;
-        return (
-          <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"flex-end"}}>
-            <span style={{fontSize:12,fontWeight:700,color:num>=100?"#34d399":num>0?C.orange:C.muted}}>{r.progress}</span>
-            {num > 0 && (
-              <div style={{width:60,height:4,background:"rgba(255,255,255,.1)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{width:`${Math.min(num,100)}%`,height:"100%",background:num>=100?"#34d399":C.orange,borderRadius:99}}/>
-              </div>
-            )}
-          </div>
-        );
-      }},
-    { key:"requestedAt", label:"تاريخ الطلب", w:150, sortable:true,
-      render:(r) => <span style={{fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>{r.requestedAt||r.enrollDate||"—"}</span> },
+      },
+    },
   ];
 
   const SortIcon = ({ col }) => sortCol===col
@@ -468,7 +528,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
 
         <div style={{ background:"#1a0a2e", border:`1px solid ${C.border}`, borderRadius:20,
-          width:"100%", maxWidth:1150, boxShadow:"0 30px 80px rgba(0,0,0,.65)",
+          width:"100%", maxWidth:"min(1680px, 98vw)", boxShadow:"0 30px 80px rgba(0,0,0,.65)",
           display:"flex", flexDirection:"column" }}
           onClick={e=>e.stopPropagation()}>
 
@@ -568,10 +628,16 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               )}
             </div>
 
+            <p style={{ margin: 0, fontSize: 10, color: "rgba(255,255,255,.4)", lineHeight: 1.6 }}>
+              الأعمدة المالية (ديبوزت / أقساط / عمر / اسم رباعي / ملاحظات) تُقرأ من حقول اختيارية على طلب التسجيل في Firestore:
+              <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · studentAge · adminNotes · depositAmount · installment1…4 · coursePriceOverride </code>
+              — يمكن تعبئتها يدويًا أو لاحقًا من نموذج إداري.
+            </p>
+
             {/* ── Table ── */}
             <div style={{ overflow: "visible", borderRadius: 12, border: `1px solid ${C.border}` }}>
               {/* Keep horizontal scroll without clipping dropdown menus */}
-              <div style={{ overflowX: "auto", overflowY: "visible" }}>
+              <div style={{ overflowX: "auto", overflowY: "visible", maxHeight: "min(70vh, 720px)" }}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontFamily:font,fontSize:12}}>
                 <thead>
                   <tr style={{background:"linear-gradient(135deg,#2a1540,#3d1f5c)"}}>

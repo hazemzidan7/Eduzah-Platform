@@ -16,6 +16,58 @@ export const fmtDate = (iso) => {
   } catch { return iso; }
 };
 
+/** تاريخ فقط YYYY-MM-DD (لجدول الطلاب / Excel) */
+export const fmtDateShort = (iso) => {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  } catch {
+    return String(iso).slice(0, 10);
+  }
+};
+
+export const attendanceLabelAr = (trainingType) => {
+  if (trainingType === "offline") return "حضوري";
+  if (trainingType === "online") return "أونلاين مباشر";
+  return trainingType ? String(trainingType) : "—";
+};
+
+/** حقول مالية اختيارية على enrollmentRequests: depositAmount, installment1..4, coursePriceOverride, studentFullName, studentAge, adminNotes */
+export function computeStudentFinance(r, course) {
+  const courseCost = Number(r.coursePriceOverride ?? course?.price ?? 0) || 0;
+  const dep = r.depositAmount;
+  const i1 = r.installment1;
+  const i2 = r.installment2;
+  const i3 = r.installment3;
+  const i4 = r.installment4;
+  const sumParts =
+    (Number(dep) || 0) +
+    (Number(i1) || 0) +
+    (Number(i2) || 0) +
+    (Number(i3) || 0) +
+    (Number(i4) || 0);
+  const amountQuoted = r.amountQuoted != null ? Number(r.amountQuoted) : null;
+  const confirmed = r.paymentConfirmed === true;
+  let totalPaid = null;
+  if (sumParts > 0) totalPaid = sumParts;
+  else if (confirmed && amountQuoted != null && !Number.isNaN(amountQuoted)) totalPaid = amountQuoted;
+  let remaining = null;
+  if (courseCost > 0 && totalPaid != null && !Number.isNaN(totalPaid)) remaining = Math.max(0, courseCost - totalPaid);
+  return {
+    courseCost: courseCost || "",
+    deposit: dep ?? "",
+    installment1: i1 ?? "",
+    installment2: i2 ?? "",
+    installment3: i3 ?? "",
+    installment4: i4 ?? "",
+    totalPaid: totalPaid ?? "",
+    remaining: remaining ?? "",
+  };
+}
+
 export const fmtTraining = (v) => ({ online:"Live Online", offline:"Offline (Branch)" }[v] || v || "—");
 export const fmtPlan     = (v) => ({ full:"دفع كامل (−5%)", installments:"أقساط (3×)" }[v] || v || "—");
 export const fmtLevel    = (v) => ({ beginner:"مبتدئ", basic:"أساسيات", intermediate:"متوسط", advanced:"متقدم" }[v] || v || "—");
@@ -59,26 +111,42 @@ export async function fetchCourseStudents(course, allUsers = []) {
       if (v === "contacted") return "confirmed_will_pay";
       return v;
     })();
+    const fin = computeStudentFinance(r, course);
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       userId:           profile?.id || null,    // platform uid (if exists)
       name:             r.studentName || profile?.name || "",
+      fullName:         r.studentFullName || r.studentName || profile?.name || "",
       email:            r.studentEmail || "",
       phone:            r.studentPhone || profile?.phone || "",
       training:         fmtTraining(r.trainingType),
+      attendanceAr:     attendanceLabelAr(r.trainingType),
       payMethod:        (r.paymentMethod || "InstaPay").toUpperCase(),
       payPlan:          fmtPlan(r.paymentPlan),
       amount:           r.amountQuoted ?? null,
       level:            fmtLevel(r.level),
       source:           r.source || "—",
+      bookingChannel:   r.source || "—",
       status,
       progress:         enrollment ? `${enrollment.progress || 0}%` : "—",
       enrollDate:       enrollment?.enrollDate || fmtDate(r.createdAt),
       requestedAt:      fmtDate(r.createdAt),
+      sheetDate:        fmtDateShort(r.createdAt),
+      diplomaTitle:     course?.title || r.courseTitle || "—",
+      age:              r.studentAge ?? "",
+      notes:            r.adminNotes || "",
+      courseCost:       fin.courseCost,
+      deposit:          fin.deposit,
+      installment1:     fin.installment1,
+      installment2:     fin.installment2,
+      installment3:     fin.installment3,
+      installment4:     fin.installment4,
+      totalPaid:        fin.totalPaid,
+      remaining:        fin.remaining,
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
       contactStatus,
-      contactUpdatedAt: enrollment?.contactUpdatedAt || null,
+      contactUpdatedAt: enrollment?.contactUpdatedAt || r.contactUpdatedAt || null,
     });
   }
 
@@ -89,18 +157,54 @@ export async function fetchCourseStudents(course, allUsers = []) {
     const key = (u.email || "").toLowerCase().trim();
     if (seen.has(key)) continue;
     seen.add(key);
+    const guestR = {
+      depositAmount: enrollment?.depositAmount,
+      installment1: enrollment?.installment1,
+      installment2: enrollment?.installment2,
+      installment3: enrollment?.installment3,
+      installment4: enrollment?.installment4,
+      coursePriceOverride: enrollment?.coursePriceOverride,
+      amountQuoted: null,
+      paymentConfirmed: false,
+      confirmedAt: null,
+    };
+    const finG = computeStudentFinance(guestR, course);
+    const enrollDateRaw = enrollment?.enrollDate;
+    const sheetDateGuest =
+      typeof enrollDateRaw === "string" && /^\d{4}-\d{2}-\d{2}/.test(enrollDateRaw)
+        ? fmtDateShort(enrollDateRaw)
+        : enrollDateRaw || fmtDateShort(u.createdAt) || "";
     rows.push({
       docId:            null,
       userId:           u.id || null,
       name:             u.name || "",
+      fullName:         u.studentFullName || u.name || "",
       email:            u.email || "",
       phone:            u.phone || "",
-      training:         "—", payMethod: "—", payPlan: "—",
-      amount:           null, level: "—", source: "—",
+      training:         "—",
+      attendanceAr:     "—",
+      payMethod:        "—",
+      payPlan:          "—",
+      amount:           null,
+      level:            "—",
+      source:           "—",
+      bookingChannel:   "—",
       status:           "approved",
       progress:         `${enrollment.progress || 0}%`,
       enrollDate:       enrollment.enrollDate || "",
       requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
+      sheetDate:        sheetDateGuest,
+      diplomaTitle:     course?.title || "—",
+      age:              u.studentAge ?? "",
+      notes:            enrollment?.adminNotes || "",
+      courseCost:       finG.courseCost,
+      deposit:          finG.deposit,
+      installment1:     finG.installment1,
+      installment2:     finG.installment2,
+      installment3:     finG.installment3,
+      installment4:     finG.installment4,
+      totalPaid:        finG.totalPaid,
+      remaining:        finG.remaining,
       paymentConfirmed: false,
       confirmedAt:      null,
       contactStatus:    (() => {
@@ -141,20 +245,26 @@ const dStyle = (ri) => ({ font:{sz:10}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}
 const aStyle = (ri) => ({ font:{sz:10,bold:true,color:{rgb:"1D6F42"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
 const sStyle = (v,ri) => ({ font:{sz:10,bold:true,color:{rgb:v==="approved"?"1D6F42":v==="pending"?"9B5D00":"C00000"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
 
-const COLS = [
-  { key:"name",        label:"الاسم الكامل\nFull Name",      w:26 },
-  { key:"email",       label:"البريد الإلكتروني\nEmail",     w:30 },
-  { key:"phone",       label:"الهاتف\nPhone",                w:18 },
-  { key:"training",    label:"نوع التدريب\nTraining",        w:22 },
-  { key:"payMethod",   label:"طريقة الدفع\nPayment",         w:16 },
-  { key:"payPlan",     label:"خطة الدفع\nPlan",              w:22 },
-  { key:"amount",      label:"المبلغ\nAmount (EGP)",         w:16 },
-  { key:"level",       label:"المستوى\nLevel",               w:16 },
-  { key:"source",      label:"المصدر\nSource",               w:20 },
-  { key:"status",      label:"الحالة\nStatus",               w:18 },
-  { key:"progress",    label:"التقدم\nProgress",             w:12 },
-  { key:"enrollDate",  label:"تاريخ التسجيل\nEnroll Date",  w:20 },
-  { key:"requestedAt", label:"تاريخ الطلب\nRequest Date",   w:20 },
+const EXPORT_COLS = [
+  { key: "sheetDate", label: "التاريخ\nDate", w: 14 },
+  { key: "fullName", label: "اسم الطالب رباعي\nFull name", w: 28 },
+  { key: "phone", label: "رقم التليفون\nPhone", w: 16 },
+  { key: "age", label: "العمر\nAge", w: 8 },
+  { key: "attendanceAr", label: "حضور الكورس\nAttendance", w: 16 },
+  { key: "diplomaTitle", label: "اسم الدبلومة\nDiploma", w: 26 },
+  { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 20 },
+  { key: "notes", label: "ملاحظات\nNotes", w: 32 },
+  { key: "courseCost", label: "تكلفة الكورس\nCourse cost", w: 14 },
+  { key: "deposit", label: "ديبوزت الحجز\nDeposit", w: 12 },
+  { key: "installment1", label: "القسط الأول\nInst. 1", w: 12 },
+  { key: "installment2", label: "القسط الثاني\nInst. 2", w: 12 },
+  { key: "installment3", label: "القسط الثالث\nInst. 3", w: 12 },
+  { key: "installment4", label: "القسط الرابع\nInst. 4", w: 12 },
+  { key: "totalPaid", label: "المدفوع\nPaid", w: 12 },
+  { key: "remaining", label: "المتبقي\nBalance", w: 12 },
+  { key: "email", label: "البريد\nEmail", w: 30 },
+  { key: "payPlan", label: "خطة الدفع\nPlan", w: 18 },
+  { key: "paymentConfirmed", label: "دفع مؤكد\nPay OK", w: 10 },
 ];
 
 export async function exportCourseStudents(course, allUsers = []) {
@@ -167,43 +277,57 @@ export async function exportCourseStudents(course, allUsers = []) {
   const aoa = [
     [`Eduzah — ${course.title_en||course.title} | Student Export`],
     [],
-    COLS.map(c=>c.label),
-    ...rows.map(r => COLS.map(col => {
-      if (col.key==="amount") return r.amount??""
-      if (col.key==="status") return r.status==="approved"?"Approved":r.status==="pending"?"Pending":r.status==="rejected"?"Rejected":"—"
-      return r[col.key]??""
-    })),
+    EXPORT_COLS.map((c) => c.label),
+    ...rows.map((r) =>
+      EXPORT_COLS.map((col) => {
+        const v = r[col.key];
+        if (col.key === "paymentConfirmed") return v ? "نعم" : "لا";
+        if (["courseCost", "deposit", "installment1", "installment2", "installment3", "installment4", "totalPaid", "remaining"].includes(col.key)) {
+          if (v === "" || v == null) return "";
+          const n = Number(v);
+          return Number.isFinite(n) ? n : "";
+        }
+        return v ?? "";
+      }),
+    ),
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"]   = COLS.map(c=>({wch:c.w}));
-  ws["!rows"]   = [{hpx:36},{hpx:6},{hpx:44},...rows.map(()=>({hpx:24}))];
-  ws["!merges"] = [{s:{r:TITLE_ROW,c:0},e:{r:TITLE_ROW,c:COLS.length-1}}];
+  ws["!cols"]   = EXPORT_COLS.map((c) => ({ wch: c.w }));
+  ws["!rows"]   = [{ hpx: 36 }, { hpx: 6 }, { hpx: 44 }, ...rows.map(() => ({ hpx: 24 }))];
+  ws["!merges"] = [{ s: { r: TITLE_ROW, c: 0 }, e: { r: TITLE_ROW, c: EXPORT_COLS.length - 1 } }];
 
   // Title
   const ta = XLSX.utils.encode_cell({r:TITLE_ROW,c:0});
   ws[ta] = { v:aoa[0][0], t:"s", s:{font:{bold:true,sz:14,color:{rgb:WHITE}},fill:{fgColor:{rgb:"1a0a2e"}},alignment:{horizontal:"center",vertical:"center"}} };
 
   // Headers
-  COLS.forEach((col,c) => { const a=XLSX.utils.encode_cell({r:HEADER_ROW,c}); ws[a]={v:col.label,t:"s",s:hStyle()}; });
+  EXPORT_COLS.forEach((col, c) => {
+    const a = XLSX.utils.encode_cell({ r: HEADER_ROW, c });
+    ws[a] = { v: col.label, t: "s", s: hStyle() };
+  });
 
   // Data
-  rows.forEach((row,ri) => {
-    const r=DATA_START+ri;
-    COLS.forEach((col,c) => {
-      const addr=XLSX.utils.encode_cell({r,c});
-      if (!ws[addr]) ws[addr]={v:"",t:"s"};
-      if (col.key==="amount") {
-        ws[addr]={ v:row.amount!=null?Number(row.amount):"", t:row.amount!=null?"n":"s", s:aStyle(ri) };
-      } else if (col.key==="status") {
-        ws[addr].s=sStyle(row.status,ri);
+  rows.forEach((row, ri) => {
+    const r = DATA_START + ri;
+    EXPORT_COLS.forEach((col, c) => {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      if (!ws[addr]) ws[addr] = { v: "", t: "s" };
+      if (["courseCost", "deposit", "installment1", "installment2", "installment3", "installment4", "totalPaid", "remaining"].includes(col.key)) {
+        const v = row[col.key];
+        const n = v === "" || v == null ? "" : Number(v);
+        ws[addr] = {
+          v: n === "" ? "" : n,
+          t: n === "" ? "s" : "n",
+          s: aStyle(ri),
+        };
       } else {
-        ws[addr].s=dStyle(ri);
+        ws[addr].s = dStyle(ri);
       }
     });
   });
 
-  ws["!ref"]=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:DATA_START+rows.length-1,c:COLS.length-1}});
+  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: DATA_START + rows.length - 1, c: EXPORT_COLS.length - 1 } });
   XLSX.utils.book_append_sheet(wb,"Students",ws);
 
   // Summary sheet
