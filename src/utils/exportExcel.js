@@ -355,13 +355,41 @@ export function computeCourseStudentRevenue(studentRows) {
 }
 
 // ─── Excel export ─────────────────────────────────────────────────────────────
-const PURPLE = "3D1F5C"; const LIGHT = "F5F0FA"; const WHITE = "FFFFFF";
-const BORDER_C = "C8B8E8";
-const border = () => ({ top:{style:"thin",color:{rgb:BORDER_C}}, bottom:{style:"thin",color:{rgb:BORDER_C}}, left:{style:"thin",color:{rgb:BORDER_C}}, right:{style:"thin",color:{rgb:BORDER_C}} });
-const hStyle = () => ({ font:{bold:true,sz:11,color:{rgb:WHITE}}, fill:{fgColor:{rgb:PURPLE}}, alignment:{horizontal:"center",vertical:"center",wrapText:true}, border:border() });
-const dStyle = (ri) => ({ font:{sz:10}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"right",vertical:"center"}, border:border() });
-const aStyle = (ri) => ({ font:{sz:10,bold:true,color:{rgb:"1D6F42"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
-const sStyle = (v,ri) => ({ font:{sz:10,bold:true,color:{rgb:v==="approved"?"1D6F42":v==="pending"?"9B5D00":"C00000"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
+const PURPLE = "3D1F5C";
+const STRIPE_A = "FFFFFF";
+const STRIPE_B = "EDE8F5";
+const WHITE = "FFFFFF";
+const BORDER_C = "B8A9D9";
+const border = () => ({
+  top: { style: "thin", color: { rgb: BORDER_C } },
+  bottom: { style: "thin", color: { rgb: BORDER_C } },
+  left: { style: "thin", color: { rgb: BORDER_C } },
+  right: { style: "thin", color: { rgb: BORDER_C } },
+});
+const titleBarStyle = () => ({
+  font: { bold: true, sz: 15, color: { rgb: WHITE } },
+  fill: { fgColor: { rgb: "2B1446" } },
+  alignment: { horizontal: "center", vertical: "center", wrapText: true },
+  border: border(),
+});
+const hStyle = () => ({
+  font: { bold: true, sz: 11, color: { rgb: WHITE } },
+  fill: { fgColor: { rgb: PURPLE } },
+  alignment: { horizontal: "center", vertical: "center", wrapText: true },
+  border: border(),
+});
+const dStyle = (ri) => ({
+  font: { sz: 10 },
+  fill: { fgColor: { rgb: ri % 2 === 0 ? STRIPE_A : STRIPE_B } },
+  alignment: { horizontal: "right", vertical: "center", wrapText: true },
+  border: border(),
+});
+const aStyle = (ri) => ({
+  font: { sz: 10, bold: true, color: { rgb: "1D6F42" } },
+  fill: { fgColor: { rgb: ri % 2 === 0 ? STRIPE_A : STRIPE_B } },
+  alignment: { horizontal: "center", vertical: "center" },
+  border: border(),
+});
 
 /** Strip per-cell `s` styles before XLSX.write — avoids corrupt / blank files with community `xlsx`. */
 function stripWorkbookCellStyles(wb) {
@@ -378,24 +406,24 @@ function stripWorkbookCellStyles(wb) {
 }
 
 const EXPORT_COLS = [
-  { key: "sheetDate", label: "التاريخ\nDate", w: 14 },
-  { key: "fullName", label: "اسم الطالب رباعي\nFull name", w: 28 },
-  { key: "phone", label: "رقم التليفون\nPhone", w: 16 },
-  { key: "attendanceAr", label: "حضور الكورس\nAttendance", w: 16 },
-  { key: "diplomaTitle", label: "اسم الدبلومة\nDiploma", w: 26 },
-  { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 20 },
-  { key: "contactStatusLabel", label: "حالة المتابعة\nFollow-up", w: 22 },
-  { key: "notes", label: "ملاحظات\nNotes", w: 32 },
-  { key: "payPlan", label: "خطة الدفع\nPlan", w: 18 },
-  { key: "courseCost", label: "تكلفة الكورس\nCourse cost", w: 14 },
-  { key: "deposit", label: "ديبوزت الحجز\nDeposit", w: 12 },
-  { key: "installment1", label: "القسط الأول\nInst. 1", w: 12 },
-  { key: "installment2", label: "القسط الثاني\nInst. 2", w: 12 },
-  { key: "installment3", label: "القسط الثالث\nInst. 3", w: 12 },
-  { key: "totalPaid", label: "المدفوع (مجموع ديبوزت + أقساط)\nPaid (sum)", w: 14 },
-  { key: "remaining", label: "المتبقي\nBalance", w: 12 },
-  { key: "email", label: "البريد\nEmail", w: 30 },
-  { key: "paymentConfirmed", label: "دفع مؤكد\nPay OK", w: 10 },
+  { key: "sheetDate", label: "التاريخ\nDate", w: 15 },
+  { key: "fullName", label: "اسم الطالب رباعي\nFull name", w: 34 },
+  { key: "phone", label: "رقم التليفون\nPhone", w: 18 },
+  { key: "attendanceAr", label: "حضور الكورس\nAttendance", w: 18 },
+  { key: "diplomaTitle", label: "اسم الدبلومة\nDiploma", w: 36 },
+  { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 30 },
+  { key: "contactStatusLabel", label: "حالة المتابعة\nFollow-up", w: 28 },
+  { key: "notes", label: "ملاحظات\nNotes", w: 42 },
+  { key: "payPlan", label: "خطة الدفع\nPlan", w: 22 },
+  { key: "courseCost", label: "تكلفة الكورس\nCourse cost", w: 16 },
+  { key: "deposit", label: "ديبوزت الحجز\nDeposit", w: 14 },
+  { key: "installment1", label: "القسط الأول\nInst. 1", w: 14 },
+  { key: "installment2", label: "القسط الثاني\nInst. 2", w: 14 },
+  { key: "installment3", label: "القسط الثالث\nInst. 3", w: 14 },
+  { key: "totalPaid", label: "المدفوع (مجموع ديبوزت + أقساط)\nPaid (sum)", w: 18 },
+  { key: "remaining", label: "المتبقي\nBalance", w: 14 },
+  { key: "email", label: "البريد\nEmail", w: 36 },
+  { key: "paymentConfirmed", label: "دفع مؤكد\nPay OK", w: 12 },
 ];
 
 export async function exportCourseStudents(course, allUsers = []) {
@@ -436,12 +464,12 @@ export async function exportCourseStudents(course, allUsers = []) {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"]   = EXPORT_COLS.map((c) => ({ wch: c.w }));
-  ws["!rows"]   = [{ hpx: 36 }, { hpx: 6 }, { hpx: 44 }, ...rows.map(() => ({ hpx: 24 }))];
+  ws["!rows"]   = [{ hpx: 40 }, { hpx: 8 }, { hpx: 48 }, ...rows.map(() => ({ hpx: 26 }))];
   ws["!merges"] = [{ s: { r: TITLE_ROW, c: 0 }, e: { r: TITLE_ROW, c: EXPORT_COLS.length - 1 } }];
 
   // Title
   const ta = XLSX.utils.encode_cell({r:TITLE_ROW,c:0});
-  ws[ta] = { v:aoa[0][0], t:"s", s:{font:{bold:true,sz:14,color:{rgb:WHITE}},fill:{fgColor:{rgb:"1a0a2e"}},alignment:{horizontal:"center",vertical:"center"}} };
+  ws[ta] = { v:aoa[0][0], t:"s", s:titleBarStyle() };
 
   // Headers
   EXPORT_COLS.forEach((col, c) => {
@@ -503,20 +531,52 @@ export async function exportCourseStudents(course, allUsers = []) {
     ],[],
     ["إجمالي الإيرادات / Total Revenue", `${totalRevenue.toLocaleString()} EGP`],
   ];
-  const ws2=XLSX.utils.aoa_to_sheet(sumAoa);
-  ws2["!cols"]=[{wch:32},{wch:36}];
+  const ws2 = XLSX.utils.aoa_to_sheet(sumAoa);
+  ws2["!cols"] = [{ wch: 44 }, { wch: 52 }];
+  ws2["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+  const sumTitle = XLSX.utils.encode_cell({ r: 0, c: 0 });
+  ws2[sumTitle] = { v: sumAoa[0][0], t: "s", s: titleBarStyle() };
+  for (let r = 2; r < sumAoa.length; r++) {
+    const row = sumAoa[r];
+    if (!Array.isArray(row) || row.length === 0) continue;
+    if (row.length >= 2) {
+      const k = XLSX.utils.encode_cell({ r, c: 0 });
+      const val = XLSX.utils.encode_cell({ r, c: 1 });
+      if (ws2[k]?.v != null && String(ws2[k].v).length > 0) {
+        ws2[k].s = {
+          font: { bold: true, sz: 10, color: { rgb: PURPLE } },
+          alignment: { horizontal: "right", vertical: "center", wrapText: true },
+          border: border(),
+        };
+      }
+      if (ws2[val]) {
+        ws2[val].s = {
+          font: { sz: 10 },
+          alignment: { horizontal: "right", vertical: "center", wrapText: true },
+          border: border(),
+        };
+      }
+    }
+  }
+
   XLSX.utils.book_append_sheet(wb, ws2, "Summary");
 
   const safeName=(course.title_en||course.title||"course").replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,"_").replace(/_+/g,"_").slice(0,40);
   const fileName=`Eduzah_${safeName}_Students.xlsx`;
 
-  stripWorkbookCellStyles(wb);
+  /** Prefer styled output; SheetJS CE may omit some styles — retry plain if write throws. */
   let wbout;
   try {
-    wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  } catch (e) {
-    console.error("XLSX.write failed:", e);
-    return { ok: false, msg: `فشل إنشاء ملف Excel: ${e?.message || e}` };
+    wbout = XLSX.write(wb, { bookType: "xlsx", type: "array", cellStyles: true });
+  } catch (e1) {
+    console.warn("XLSX.write(cellStyles:true) failed, retrying plain:", e1?.message || e1);
+    try {
+      stripWorkbookCellStyles(wb);
+      wbout = XLSX.write(wb, { bookType: "xlsx", type: "array", cellStyles: false });
+    } catch (e2) {
+      console.error("XLSX.write failed:", e2);
+      return { ok: false, msg: `فشل إنشاء ملف Excel: ${e2?.message || e2}` };
+    }
   }
   const blob = new Blob([wbout], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
