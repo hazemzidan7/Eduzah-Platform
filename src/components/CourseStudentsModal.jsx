@@ -614,6 +614,29 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     );
   };
 
+  /** شرح مختصر لكل عمود (يظهر عند الإيقاف على عنوان العمود) */
+  const COLUMN_HINTS = {
+    "#": "ترتيب الصف في القائمة",
+    sheetDate: "تاريخ تسجيل الطلب أو بداية الاشتراك",
+    fullName: "الاسم الرباعي والبريد الإلكتروني",
+    phone: "رقم التليفون كما أدخله الطالب",
+    attendanceAr: "نوع الحضور: أونلاين مباشر أو حضوري",
+    diplomaTitle: "اسم الدبلومة/الكورس على المنصّة",
+    bookingChannel: "مصدر الحجز (سوشيال، موقع، إحالة، …)",
+    notes: "ملاحظات إدارية على الطلب (من Firestore)",
+    courseCost: "تكلفة الكورس لهذا الطالب — اضغط على الخلية للتعديل",
+    deposit: "ديبوزت الحجز إن وُجد في البيانات",
+    installment1: "مبلغ القسط الأول إن وُجد",
+    installment2: "مبلغ القسط الثاني إن وُجد",
+    installment3: "مبلغ القسط الثالث إن وُجد",
+    totalPaid: "إجمالي المدفوع — يُسجَّل يدويًا من المسؤول",
+    remaining: "المتبقي = تكلفة الكورس − المدفوع (حسب الأرقام المعروضة)",
+    _admin: "متابعة التواصل، خطة الدفع، وتأكيد استلام الدفع",
+  };
+
+  const TABLE_COL_DIVIDER = "1px solid rgba(255,255,255,.12)";
+  const TABLE_COL_HEAD_BG = (i) => (i % 2 === 0 ? "rgba(0,0,0,.14)" : "rgba(0,0,0,.07)");
+
   // ── أعمدة الجدول (نمط spreadsheet) + عمود إدارة ───────────────────────
   const COLS = [
     { key: "#", label: "#", w: 34, render: (_, i) => <span style={{ color: C.muted, fontSize: 11 }}>{i + 1}</span> },
@@ -956,10 +979,12 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                   ))}
                 </colgroup>
                 <thead>
-                  <tr style={{background:"linear-gradient(135deg,#2a1540,#3d1f5c)"}}>
-                    {COLS.map(col => (
-                      <th key={col.key}
-                        onClick={col.sortable ? ()=>toggleSort(col.key) : undefined}
+                  <tr style={{ background: "transparent" }}>
+                    {COLS.map((col, ci) => (
+                      <th
+                        key={col.key}
+                        title={COLUMN_HINTS[col.key] || col.label}
+                        onClick={col.sortable ? () => toggleSort(col.key) : undefined}
                         style={{
                           padding: "11px 10px",
                           textAlign: "right",
@@ -969,16 +994,18 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                           whiteSpace: "normal",
                           lineHeight: 1.35,
                           wordBreak: "break-word",
-                          borderBottom: `1px solid ${C.border}`,
+                          borderBottom: `2px solid rgba(255,255,255,.16)`,
+                          borderInlineEnd: ci < COLS.length - 1 ? TABLE_COL_DIVIDER : "none",
+                          background: `linear-gradient(180deg, ${TABLE_COL_HEAD_BG(ci)} 0%, rgba(45,21,70,.95) 100%)`,
                           cursor: col.sortable ? "pointer" : "default",
                           userSelect: "none",
                           boxSizing: "border-box",
                           verticalAlign: "middle",
                         }}
                       >
-                        <span style={{display:"flex",alignItems:"center",gap:5,justifyContent:"flex-end"}}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
                           {col.label}
-                          {col.sortable && <SortIcon col={col.key}/>}
+                          {col.sortable && <SortIcon col={col.key} />}
                         </span>
                       </th>
                     ))}
@@ -1014,11 +1041,14 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                         onMouseEnter={e=>e.currentTarget.style.background="rgba(125,61,158,.12)"}
                         onMouseLeave={e=>e.currentTarget.style.background=
                           confirmed ? "rgba(52,211,153,.04)" : idx%2===0?"rgba(255,255,255,.02)":"transparent"}>
-                        {COLS.map(col => (
-                          <td key={col.key}
+                        {COLS.map((col, ci) => (
+                          <td
+                            key={col.key}
+                            title={COLUMN_HINTS[col.key] || col.label}
                             style={{
                               padding: "10px 10px",
-                              borderBottom: `1px solid rgba(255,255,255,.04)`,
+                              borderBottom: `1px solid rgba(255,255,255,.07)`,
+                              borderInlineEnd: ci < COLS.length - 1 ? TABLE_COL_DIVIDER : "none",
                               verticalAlign: "top",
                               textAlign: "right",
                               boxSizing: "border-box",
@@ -1026,7 +1056,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                               overflowWrap: "break-word",
                             }}
                           >
-                            {col.render ? col.render(row,idx) : (row[col.key]||"—")}
+                            {col.render ? col.render(row, idx) : row[col.key] || "—"}
                           </td>
                         ))}
                       </tr>
