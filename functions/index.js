@@ -282,6 +282,7 @@ exports.onEnrollmentRequestCreated = functions.firestore
       ``,
       `الكورس: ${d.courseTitle}`,
       `الاسم: ${d.studentName}`,
+      d.studentFullName ? `الاسم الرباعي: ${d.studentFullName}` : null,
       `البريد: ${d.studentEmail}`,
       `الهاتف: ${d.studentPhone || "—"}`,
       `حالة الطلب: ${d.enrollmentStatus || "pending"}`,
@@ -289,7 +290,8 @@ exports.onEnrollmentRequestCreated = functions.firestore
       `نوع التدريب: ${d.trainingType || "—"}`,
       `الدفع: ${d.paymentPlan || "—"} / ${d.paymentMethod || "—"}`,
       `المبلغ: ${d.amountQuoted != null ? d.amountQuoted : "—"}`,
-    ].join("\n");
+      d.adminNotes ? `ملاحظات: ${d.adminNotes}` : null,
+    ].filter(Boolean).join("\n");
 
     const key = process.env.RESEND_API_KEY || (functions.config().resend && functions.config().resend.key);
     if (!key) {

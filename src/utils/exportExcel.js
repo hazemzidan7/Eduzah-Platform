@@ -143,7 +143,12 @@ export async function fetchCourseStudents(course, allUsers = []) {
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       userId:           profile?.id || null,    // platform uid (if exists)
       name:             r.studentName || profile?.name || "",
-      fullName:         r.studentFullName || r.studentName || profile?.name || "",
+      fullName:
+        r.studentFullName
+        || r.studentName
+        || profile?.studentFullName
+        || profile?.name
+        || "",
       email:            r.studentEmail || "",
       phone:            r.studentPhone || profile?.phone || "",
       training:         fmtTraining(r.trainingType),

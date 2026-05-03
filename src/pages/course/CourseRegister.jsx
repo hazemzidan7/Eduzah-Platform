@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { addDoc, collection, getDocs, query, where, doc, updateDoc, getDoc } from "firebase/firestore";
-import { C } from "../../theme";
+import { C, font } from "../../theme";
 import { Btn, Input, Select } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
@@ -53,8 +53,12 @@ export default function CourseRegister() {
     lname: currentUser?.name?.split(" ").slice(1).join(" ") || "",
     email: currentUser?.email  || "",
     phone: currentUser?.phone  || "",
+    /** الاسم الرباعي كما في الهوية — يُحفظ في `studentFullName` لقائمة الطلاب والتصدير */
+    studentFullName: currentUser?.studentFullName || "",
     level: "", source: "Facebook / Instagram",
     trainingType: (course?.trainingTypes || ["online"])[0],
+    /** ملاحظة للإدارة — تُحفظ في `adminNotes` على طلب التسجيل */
+    adminNotes: "",
     createAccount: false, pass: "",
   });
   const [err, setErr] = useState("");
@@ -153,8 +157,14 @@ export default function CourseRegister() {
       // Firestore rule: signed-in ⇒ userId must equal auth.uid; guest ⇒ userId must be null.
       const uidForDoc = auth.currentUser?.uid ?? null;
 
+      const combinedName = `${form.fname} ${form.lname}`.trim();
+      const legalFull = (form.studentFullName || "").trim();
+      const regNotes = (form.adminNotes || "").trim();
+
       await submitToSheet("enrollment", {
-        name: `${form.fname} ${form.lname}`.trim(),
+        name: combinedName,
+        studentFullName: legalFull || undefined,
+        adminNotes: regNotes || undefined,
         phone: form.phone,
         email: form.email,
         course: course?.title || "",
@@ -171,7 +181,9 @@ export default function CourseRegister() {
       await addDoc(collection(db, "enrollmentRequests"), {
         courseId: courseIdStr,
         courseTitle: courseTitleStr,
-        studentName: `${form.fname} ${form.lname}`.trim(),
+        studentName: combinedName,
+        ...(legalFull ? { studentFullName: legalFull } : {}),
+        ...(regNotes ? { adminNotes: regNotes } : {}),
         studentEmail: em,
         studentPhone: form.phone,
         userId: uidForDoc,
@@ -292,6 +304,12 @@ export default function CourseRegister() {
             </div>
             <Input label={ar ? "البريد الإلكتروني *" : "Email *"} value={form.email} onChange={v => set("email", v)} type="email" placeholder="email@example.com" />
             <Input label={ar ? "رقم الهاتف *" : "Phone *"} value={form.phone} onChange={v => set("phone", v)} placeholder="+201xxxxxxxxx" />
+            <Input
+              label={ar ? "الاسم الرباعي (كما في الهوية — اختياري)" : "Full legal name (optional)"}
+              value={form.studentFullName}
+              onChange={(v) => set("studentFullName", v)}
+              placeholder={ar ? "يظهر في قائمة الطلاب وتصدير Excel" : "Shown in student list & Excel export"}
+            />
 
             {/* Training Type */}
             {(course.trainingTypes||[]).length > 1 && (
@@ -325,6 +343,33 @@ export default function CourseRegister() {
                 { v: "YouTube",              l: "YouTube" },
                 { v: "TikTok",               l: "TikTok" },
               ]} />
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 6 }}>
+                {ar ? "ملاحظة للإدارة (اختياري)" : "Note for the team (optional)"}
+              </div>
+              <textarea
+                value={form.adminNotes}
+                onChange={(e) => set("adminNotes", e.target.value)}
+                rows={3}
+                dir="auto"
+                placeholder={ar ? "أي تفاصيل تريد إبلاغ الفريق بها مع الطلب…" : "Anything the team should know with this request…"}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${C.border}`,
+                  background: "rgba(255,255,255,.06)",
+                  color: "rgba(255,255,255,.92)",
+                  fontFamily: font,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  resize: "vertical",
+                  outline: "none",
+                }}
+              />
+            </div>
 
             {!currentUser && (
               <div style={{ marginBottom: 14 }}>
