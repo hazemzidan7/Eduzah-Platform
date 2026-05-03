@@ -9,35 +9,6 @@ import { C, font } from "../theme";
 import { fetchCourseStudents, fmtDate, exportCourseStudents } from "../utils/exportExcel";
 
 // ─── Mini UI helpers ──────────────────────────────────────────────────────────
-const STATUS_CFG = {
-  approved:    { label:"مقبول",        bg:"rgba(52,211,153,.15)",  color:"#34d399", dot:"#34d399"  },
-  pending:     { label:"قيد المراجعة", bg:"rgba(251,191,36,.15)",  color:"#fbbf24", dot:"#fbbf24"  },
-  rejected:    { label:"مرفوض",        bg:"rgba(248,113,113,.15)", color:"#f87171", dot:"#f87171"  },
-  "no-account":{ label:"بدون حساب",   bg:"rgba(255,255,255,.07)", color:C.muted,   dot:"rgba(255,255,255,.3)" },
-};
-
-function StatusBadge({ status }) {
-  const cfg = STATUS_CFG[status] || STATUS_CFG["no-account"];
-  return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:5,
-      background:cfg.bg, color:cfg.color, borderRadius:50,
-      padding:"3px 10px", fontSize:11, fontWeight:700, whiteSpace:"nowrap" }}>
-      <span style={{ width:6, height:6, borderRadius:"50%", background:cfg.dot, flexShrink:0 }}/>
-      {cfg.label}
-    </span>
-  );
-}
-
-function Pill({ children, color }) {
-  return (
-    <span style={{ display:"inline-block", background:`${color}20`, color,
-      border:`1px solid ${color}44`, borderRadius:6,
-      padding:"2px 9px", fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>
-      {children}
-    </span>
-  );
-}
-
 const CONTACT_CFG = {
   no_response:         { label: "مردش",                   color: "#94a3b8" },
   wont_book:          { label: "مش هيحجز",               color: "#f87171" },
@@ -48,11 +19,6 @@ const CONTACT_CFG = {
   booked_previous:    { label: "حاجز في راوند سابقة",     color: "#fb7185" },
   attending_current:  { label: "بيحضر في الراوند الحالية", color: "#22c55e" },
 };
-
-function ContactPill({ value }) {
-  const cfg = CONTACT_CFG[value] || CONTACT_CFG.no_response;
-  return <Pill color={cfg.color}>{cfg.label}</Pill>;
-}
 
 function MoneyCell({ v }) {
   if (v === "" || v == null) return <span style={{ color: "rgba(255,255,255,.28)" }}>—</span>;
@@ -115,34 +81,159 @@ function AmountCell({ row, onSave, saving }) {
   return (
     <div
       onClick={() => { if (!saving) setEditing(true); }}
-      title="اضغط لتعديل المبلغ"
+      title="اضغط لتعديل المبلغ المؤكد"
       style={{
-        display:"inline-flex", alignItems:"center", gap:6,
+        display:"flex", alignItems:"center", justifyContent:"space-between", gap:8,
         cursor: saving ? "wait" : "pointer",
-        padding:"4px 8px", borderRadius:7,
-        border:`1.5px dashed ${row.amount != null ? "rgba(52,211,153,.3)" : "rgba(255,255,255,.18)"}`,
-        background: row.amount != null ? "rgba(52,211,153,.06)" : "rgba(255,255,255,.04)",
-        transition:"all .15s", minWidth:70,
+        padding:"6px 10px", borderRadius:8,
+        border:"1px solid rgba(255,255,255,.12)",
+        background:"rgba(255,255,255,.04)",
+        transition:"border-color .15s, background .15s", width:"100%", boxSizing:"border-box",
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.purple; e.currentTarget.style.background = "rgba(125,61,158,.12)"; }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
+        e.currentTarget.style.background = "rgba(125,61,158,.08)";
+      }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = row.amount != null ? "rgba(52,211,153,.3)" : "rgba(255,255,255,.18)";
-        e.currentTarget.style.background  = row.amount != null ? "rgba(52,211,153,.06)" : "rgba(255,255,255,.04)";
+        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
+        e.currentTarget.style.background = "rgba(255,255,255,.04)";
       }}>
       {saving
-        ? <span style={{ width:12, height:12, border:"2px solid #34d399", borderTopColor:"transparent",
+        ? <span style={{ width:12, height:12, border:"2px solid rgba(255,255,255,.35)", borderTopColor:"transparent",
             borderRadius:"50%", animation:"spin .6s linear infinite", display:"inline-block" }}/>
         : row.amount != null
-          ? <span style={{ fontWeight:800, fontSize:13, color:"#34d399" }}>
+          ? <span style={{ fontWeight:800, fontSize:13, color:"rgba(255,255,255,.95)" }}>
               {Number(row.amount).toLocaleString()}
-              <small style={{ fontSize:10, color:C.muted, fontWeight:400, marginRight:3 }}>EGP</small>
+              <small style={{ fontSize:10, color:"rgba(255,255,255,.45)", fontWeight:500, marginRight:4 }}>EGP</small>
             </span>
-          : <span style={{ fontSize:11, color:"rgba(255,255,255,.35)" }}>+ أضف مبلغ</span>
+          : <span style={{ fontSize:11, color:"rgba(255,255,255,.38)" }}>أضف مبلغًا…</span>
       }
-      {!saving && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>}
+      {!saving && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+
+/** المدفوع الإجمالي — يُسجَّل يدويًا من المسؤول (`totalPaidManual` في Firestore) */
+function TotalPaidCell({ row, onSave, saving }) {
+  const canEdit = !!(row.docId || row.userId);
+  const [editing, setEditing] = useState(false);
+  const displayVal = row.totalPaid != null && row.totalPaid !== "" ? String(row.totalPaid) : "";
+  const [val, setVal] = useState(displayVal);
+
+  const commit = () => {
+    setEditing(false);
+    const t = val.trim();
+    const num = t === "" ? null : Number(t);
+    if (t !== "" && Number.isNaN(num)) return;
+    const prevRaw = row.totalPaid;
+    const prev =
+      prevRaw === "" || prevRaw == null ? null : Number(prevRaw);
+    if (num === prev || (Number.isNaN(prev) && num == null)) return;
+    onSave(row, num);
+  };
+
+  if (!canEdit) {
+    return <MoneyCell v={row.totalPaid} />;
+  }
+
+  if (editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <input
+          autoFocus
+          type="number"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") {
+              setEditing(false);
+              setVal(displayVal);
+            }
+          }}
+          style={{
+            width: 90,
+            padding: "4px 8px",
+            borderRadius: 7,
+            background: "rgba(255,255,255,.1)",
+            border: `1.5px solid ${C.purple}`,
+            color: "#fff",
+            fontFamily: font,
+            fontSize: 13,
+            fontWeight: 700,
+            outline: "none",
+            textAlign: "right",
+          }}
+        />
+        <span style={{ fontSize: 10, color: C.muted }}>EGP</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => {
+        if (!saving) {
+          setVal(displayVal);
+          setEditing(true);
+        }
+      }}
+      title="اضغط لتسجيل إجمالي المدفوع (من المسؤول)"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        cursor: saving ? "wait" : "pointer",
+        padding: "6px 10px",
+        borderRadius: 8,
+        border: "1px solid rgba(255,255,255,.12)",
+        background: "rgba(255,255,255,.04)",
+        transition: "border-color .15s, background .15s",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
+        e.currentTarget.style.background = "rgba(125,61,158,.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
+        e.currentTarget.style.background = "rgba(255,255,255,.04)";
+      }}
+    >
+      {saving ? (
+        <span
+          style={{
+            width: 12,
+            height: 12,
+            border: "2px solid rgba(255,255,255,.35)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin .6s linear infinite",
+            display: "inline-block",
+          }}
+        />
+      ) : displayVal ? (
+        <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
+          {Number(row.totalPaid).toLocaleString()}
+          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>EGP</small>
+        </span>
+      ) : (
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>سجّل المدفوع…</span>
+      )}
+      {!saving && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      )}
     </div>
   );
 }
@@ -156,14 +247,15 @@ function PayConfirmBtn({ row, onToggle, loading }) {
       disabled={loading || !row.docId}
       title={row.docId ? (confirmed ? "إلغاء التأكيد" : "تأكيد استلام الدفع") : "لا يوجد معرف طلب"}
       style={{
-        display:"inline-flex", alignItems:"center", gap:5,
-        padding:"5px 11px", borderRadius:8, cursor: (loading || !row.docId) ? "not-allowed" : "pointer",
+        display:"inline-flex", alignItems:"center", gap:6,
+        padding:"6px 12px", borderRadius:8, cursor: (loading || !row.docId) ? "not-allowed" : "pointer",
         fontFamily:font, fontWeight:700, fontSize:11,
-        transition:"all .2s", border:"none",
-        background: confirmed ? "rgba(52,211,153,.18)" : "rgba(255,255,255,.07)",
-        color: confirmed ? "#34d399" : C.muted,
-        outline: `1.5px solid ${confirmed ? "rgba(52,211,153,.45)" : C.border}`,
-        opacity: (loading || !row.docId) ? 0.5 : 1,
+        transition:"background .15s, color .15s", border:"none",
+        background: confirmed ? "rgba(52,211,153,.22)" : "rgba(255,255,255,.06)",
+        color: confirmed ? "#6ee7b7" : "rgba(255,255,255,.55)",
+        boxShadow: confirmed ? "inset 0 0 0 1px rgba(52,211,153,.35)" : "inset 0 0 0 1px rgba(255,255,255,.1)",
+        opacity: (loading || !row.docId) ? 0.45 : 1,
+        flexShrink: 0,
       }}>
       {loading
         ? <span style={{ width:12, height:12, border:"2px solid currentColor",
@@ -171,7 +263,7 @@ function PayConfirmBtn({ row, onToggle, loading }) {
             animation:"spin .6s linear infinite", display:"inline-block" }}/>
         : confirmed ? "✓" : "○"
       }
-      {confirmed ? "مؤكد" : "تأكيد"}
+      {confirmed ? "مؤكد الدفع" : "تأكيد الدفع"}
     </button>
   );
 }
@@ -188,6 +280,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [sortDir,    setSortDir]    = useState("desc");
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
   const [savingAmount, setSavingAmount] = useState(null); // docId being saved
+  const [savingTotalPaid, setSavingTotalPaid] = useState(null); // docId or userId
   const [savingContact, setSavingContact] = useState(null); // userId being updated
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
@@ -245,6 +338,32 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       console.error("Amount save error:", err);
     } finally {
       setSavingAmount(null);
+    }
+  };
+
+  const handleSaveTotalPaid = async (row, newAmount) => {
+    const lock = row.docId || row.userId;
+    if (!lock || savingTotalPaid) return;
+    setSavingTotalPaid(lock);
+    try {
+      if (row.docId) {
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), {
+          totalPaidManual: newAmount,
+        });
+      } else if (row.userId) {
+        const u = allUsers.find((x) => x.id === row.userId);
+        const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
+        const updatedEnrollments = enrolled.map((e) => {
+          if (String(e.courseId) !== String(course.id)) return e;
+          return { ...e, totalPaidManual: newAmount };
+        });
+        await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      }
+      loadRows({ silent: true });
+    } catch (err) {
+      console.error("Total paid save error:", err);
+    } finally {
+      setSavingTotalPaid(null);
     }
   };
 
@@ -350,7 +469,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     finally { setExporting(false); }
   };
 
-  const renderContactColumn = (r) => {
+  const renderContactSelector = (r) => {
     const approved = (r.status || "pending") === "approved";
     const disabled = !r.docId && !r.userId;
     const loadingSel = savingContact === (r.userId || r.docId);
@@ -358,46 +477,71 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     const cfg = CONTACT_CFG[st] || CONTACT_CFG.no_response;
     const rowKey = r.userId || r.docId || null;
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-        <ContactPill value={st} />
-        <button
-          type="button"
-          onClick={() => {
-            if (disabled || loadingSel || !rowKey) return;
-            setContactPopup({ rowKey, row: r });
-          }}
-          disabled={disabled || loadingSel || !rowKey}
-          title={
-            disabled
-              ? "لا يوجد طلب أو حساب مرتبط بهذا الصف"
-              : (!approved ? "حالة متابعة للطلب (Pending)" : "حالة متابعة للطالب (Approved)")
-          }
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "7px 10px",
-            borderRadius: 10,
-            background: disabled ? "rgba(255,255,255,.04)" : `${cfg.color}14`,
-            color: disabled ? "rgba(255,255,255,.35)" : "#fff",
-            border: `1.5px solid ${disabled ? C.border : `${cfg.color}55`}`,
-            outline: "none",
-            fontFamily: font,
-            fontWeight: 900,
-            fontSize: 11,
-            cursor: (disabled || loadingSel) ? "not-allowed" : "pointer",
-            minWidth: 160,
-            justifyContent: "space-between",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, background: cfg.color, boxShadow: `0 0 0 3px ${cfg.color}22` }} />
-            <span>{cfg.label}</span>
-          </span>
-          <span style={{ color: disabled ? "rgba(255,255,255,.25)" : "rgba(255,255,255,.7)", fontSize: 12 }}>▾</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (disabled || loadingSel || !rowKey) return;
+          setContactPopup({ rowKey, row: r });
+        }}
+        disabled={disabled || loadingSel || !rowKey}
+        title={
+          disabled
+            ? "لا يوجد طلب أو حساب مرتبط بهذا الصف"
+            : (!approved ? "تغيير حالة متابعة الطلب" : "تغيير حالة متابعة الطالب")
+        }
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 12px",
+          borderRadius: 10,
+          width: "100%",
+          boxSizing: "border-box",
+          direction: "rtl",
+          background: disabled ? "rgba(255,255,255,.03)" : "rgba(255,255,255,.06)",
+          color: disabled ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.92)",
+          border: `1px solid ${disabled ? C.border : `${cfg.color}40`}`,
+          outline: "none",
+          fontFamily: font,
+          fontWeight: 600,
+          fontSize: 11,
+          lineHeight: 1.35,
+          cursor: (disabled || loadingSel) ? "not-allowed" : "pointer",
+          justifyContent: "space-between",
+          textAlign: "right",
+          transition: "border-color .15s, background .15s",
+        }}
+      >
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+          {loadingSel ? (
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                border: "2px solid rgba(255,255,255,.35)",
+                borderTopColor: "transparent",
+                borderRadius: "50%",
+                animation: "spin .6s linear infinite",
+                display: "inline-block",
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 99,
+                background: cfg.color,
+                flexShrink: 0,
+                boxShadow: `0 0 0 2px ${cfg.color}28`,
+              }}
+            />
+          )}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cfg.label}</span>
+        </span>
+        <span style={{ color: disabled ? "rgba(255,255,255,.28)" : "rgba(255,255,255,.5)", fontSize: 11, flexShrink: 0 }}>▾</span>
+      </button>
     );
   };
 
@@ -428,12 +572,6 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       label: "رقم التليفون",
       w: 118,
       render: (r) => <span style={{ fontFamily: "monospace", fontSize: 12 }}>{r.phone || "—"}</span>,
-    },
-    {
-      key: "age",
-      label: "العمر",
-      w: 52,
-      render: (r) => <span style={{ fontSize: 12 }}>{r.age !== "" && r.age != null ? r.age : "—"}</span>,
     },
     {
       key: "attendanceAr",
@@ -475,8 +613,18 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     { key: "installment1", label: "القسط ١", w: 88, render: (r) => <MoneyCell v={r.installment1} /> },
     { key: "installment2", label: "القسط ٢", w: 88, render: (r) => <MoneyCell v={r.installment2} /> },
     { key: "installment3", label: "القسط ٣", w: 88, render: (r) => <MoneyCell v={r.installment3} /> },
-    { key: "installment4", label: "القسط ٤", w: 88, render: (r) => <MoneyCell v={r.installment4} /> },
-    { key: "totalPaid", label: "المدفوع", w: 92, render: (r) => <MoneyCell v={r.totalPaid} /> },
+    {
+      key: "totalPaid",
+      label: "المدفوع",
+      w: 100,
+      render: (r) => (
+        <TotalPaidCell
+          row={r}
+          onSave={handleSaveTotalPaid}
+          saving={savingTotalPaid === (r.docId || r.userId)}
+        />
+      ),
+    },
     {
       key: "remaining",
       label: "المتبقي",
@@ -490,23 +638,91 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       render: (r) => {
         const pp = r.payPlan || "—";
         const full = pp.includes("كامل");
+        const payPlanColor = full ? "#5eead4" : C.orange;
+        const confirmedLine =
+          r.paymentConfirmed && r.confirmedAt
+            ? typeof r.confirmedAt === "string" && r.confirmedAt.includes("T")
+              ? fmtDate(r.confirmedAt)
+              : r.confirmedAt
+            : null;
         return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            {renderContactColumn(r)}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
-              <Pill color={full ? "#34d399" : C.orange}>{pp}</Pill>
-              <StatusBadge status={r.status} />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              alignItems: "stretch",
+              background: "rgba(0,0,0,.18)",
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: "10px 11px",
+              minWidth: 232,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.38)", marginBottom: 5, letterSpacing: 0.2 }}>
+                حالة المتابعة
+              </div>
+              {renderContactSelector(r)}
             </div>
-            <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                alignItems: "center",
+                justifyContent: "flex-end",
+                padding: "7px 8px",
+                borderRadius: 8,
+                background: "rgba(255,255,255,.03)",
+                border: "1px solid rgba(255,255,255,.06)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  background: `${payPlanColor}14`,
+                  color: payPlanColor,
+                  border: `1px solid ${payPlanColor}33`,
+                  maxWidth: "100%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={pp}
+              >
+                {pp}
+              </span>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.38)", marginBottom: 5 }}>المبلغ المؤكد</div>
+              <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
               <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
-              {r.paymentConfirmed && r.confirmedAt && (
-                <span style={{ fontSize: 10, color: "rgba(52,211,153,.6)", marginTop: 1 }}>
-                  {typeof r.confirmedAt === "string" && r.confirmedAt.includes("T") ? fmtDate(r.confirmedAt) : r.confirmedAt}
+              {confirmedLine && (
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", whiteSpace: "nowrap" }} title="تاريخ التأكيد">
+                  {confirmedLine}
                 </span>
               )}
             </div>
-            <span style={{ fontSize: 10, color: C.muted }}>تقدّم المنصّة: {r.progress || "—"}</span>
+
+            <div
+              style={{
+                fontSize: 10,
+                color: "rgba(255,255,255,.4)",
+                paddingTop: 6,
+                borderTop: "1px solid rgba(255,255,255,.06)",
+              }}
+            >
+              تقدّم المنصّة: <span style={{ color: "rgba(255,255,255,.65)" }}>{r.progress || "—"}</span>
+            </div>
           </div>
         );
       },
@@ -630,7 +846,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
 
             <p style={{ margin: 0, fontSize: 10, color: "rgba(255,255,255,.4)", lineHeight: 1.6 }}>
               الأعمدة المالية (ديبوزت / أقساط / عمر / اسم رباعي / ملاحظات) تُقرأ من حقول اختيارية على طلب التسجيل في Firestore:
-              <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · studentAge · adminNotes · depositAmount · installment1…4 · coursePriceOverride </code>
+              <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · adminNotes · depositAmount · installment1…3 · coursePriceOverride · totalPaidManual </code>
               — يمكن تعبئتها يدويًا أو لاحقًا من نموذج إداري.
             </p>
 

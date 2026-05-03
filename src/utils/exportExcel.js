@@ -35,25 +35,19 @@ export const attendanceLabelAr = (trainingType) => {
   return trainingType ? String(trainingType) : "—";
 };
 
-/** حقول مالية اختيارية على enrollmentRequests: depositAmount, installment1..4, coursePriceOverride, studentFullName, studentAge, adminNotes */
+/** حقول مالية اختيارية على enrollmentRequests: depositAmount, installment1..3, coursePriceOverride, adminNotes, totalPaidManual (يدوي من المسؤول) */
 export function computeStudentFinance(r, course) {
   const courseCost = Number(r.coursePriceOverride ?? course?.price ?? 0) || 0;
   const dep = r.depositAmount;
   const i1 = r.installment1;
   const i2 = r.installment2;
   const i3 = r.installment3;
-  const i4 = r.installment4;
-  const sumParts =
-    (Number(dep) || 0) +
-    (Number(i1) || 0) +
-    (Number(i2) || 0) +
-    (Number(i3) || 0) +
-    (Number(i4) || 0);
-  const amountQuoted = r.amountQuoted != null ? Number(r.amountQuoted) : null;
-  const confirmed = r.paymentConfirmed === true;
+  const manualRaw = r.totalPaidManual;
   let totalPaid = null;
-  if (sumParts > 0) totalPaid = sumParts;
-  else if (confirmed && amountQuoted != null && !Number.isNaN(amountQuoted)) totalPaid = amountQuoted;
+  if (manualRaw != null && manualRaw !== "") {
+    const n = Number(manualRaw);
+    if (!Number.isNaN(n)) totalPaid = n;
+  }
   let remaining = null;
   if (courseCost > 0 && totalPaid != null && !Number.isNaN(totalPaid)) remaining = Math.max(0, courseCost - totalPaid);
   return {
@@ -62,7 +56,6 @@ export function computeStudentFinance(r, course) {
     installment1: i1 ?? "",
     installment2: i2 ?? "",
     installment3: i3 ?? "",
-    installment4: i4 ?? "",
     totalPaid: totalPaid ?? "",
     remaining: remaining ?? "",
   };
@@ -133,14 +126,12 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      fmtDate(r.createdAt),
       sheetDate:        fmtDateShort(r.createdAt),
       diplomaTitle:     course?.title || r.courseTitle || "—",
-      age:              r.studentAge ?? "",
       notes:            r.adminNotes || "",
       courseCost:       fin.courseCost,
       deposit:          fin.deposit,
       installment1:     fin.installment1,
       installment2:     fin.installment2,
       installment3:     fin.installment3,
-      installment4:     fin.installment4,
       totalPaid:        fin.totalPaid,
       remaining:        fin.remaining,
       paymentConfirmed: r.paymentConfirmed === true,
@@ -162,7 +153,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       installment1: enrollment?.installment1,
       installment2: enrollment?.installment2,
       installment3: enrollment?.installment3,
-      installment4: enrollment?.installment4,
+      totalPaidManual: enrollment?.totalPaidManual,
       coursePriceOverride: enrollment?.coursePriceOverride,
       amountQuoted: null,
       paymentConfirmed: false,
@@ -195,14 +186,12 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      u.createdAt ? fmtDate(u.createdAt) : "",
       sheetDate:        sheetDateGuest,
       diplomaTitle:     course?.title || "—",
-      age:              u.studentAge ?? "",
       notes:            enrollment?.adminNotes || "",
       courseCost:       finG.courseCost,
       deposit:          finG.deposit,
       installment1:     finG.installment1,
       installment2:     finG.installment2,
       installment3:     finG.installment3,
-      installment4:     finG.installment4,
       totalPaid:        finG.totalPaid,
       remaining:        finG.remaining,
       paymentConfirmed: false,
@@ -249,7 +238,6 @@ const EXPORT_COLS = [
   { key: "sheetDate", label: "التاريخ\nDate", w: 14 },
   { key: "fullName", label: "اسم الطالب رباعي\nFull name", w: 28 },
   { key: "phone", label: "رقم التليفون\nPhone", w: 16 },
-  { key: "age", label: "العمر\nAge", w: 8 },
   { key: "attendanceAr", label: "حضور الكورس\nAttendance", w: 16 },
   { key: "diplomaTitle", label: "اسم الدبلومة\nDiploma", w: 26 },
   { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 20 },
@@ -259,8 +247,7 @@ const EXPORT_COLS = [
   { key: "installment1", label: "القسط الأول\nInst. 1", w: 12 },
   { key: "installment2", label: "القسط الثاني\nInst. 2", w: 12 },
   { key: "installment3", label: "القسط الثالث\nInst. 3", w: 12 },
-  { key: "installment4", label: "القسط الرابع\nInst. 4", w: 12 },
-  { key: "totalPaid", label: "المدفوع\nPaid", w: 12 },
+  { key: "totalPaid", label: "المدفوع (يدوي)\nPaid (manual)", w: 12 },
   { key: "remaining", label: "المتبقي\nBalance", w: 12 },
   { key: "email", label: "البريد\nEmail", w: 30 },
   { key: "payPlan", label: "خطة الدفع\nPlan", w: 18 },
@@ -282,7 +269,7 @@ export async function exportCourseStudents(course, allUsers = []) {
       EXPORT_COLS.map((col) => {
         const v = r[col.key];
         if (col.key === "paymentConfirmed") return v ? "نعم" : "لا";
-        if (["courseCost", "deposit", "installment1", "installment2", "installment3", "installment4", "totalPaid", "remaining"].includes(col.key)) {
+        if (["courseCost", "deposit", "installment1", "installment2", "installment3", "totalPaid", "remaining"].includes(col.key)) {
           if (v === "" || v == null) return "";
           const n = Number(v);
           return Number.isFinite(n) ? n : "";
@@ -313,7 +300,7 @@ export async function exportCourseStudents(course, allUsers = []) {
     EXPORT_COLS.forEach((col, c) => {
       const addr = XLSX.utils.encode_cell({ r, c });
       if (!ws[addr]) ws[addr] = { v: "", t: "s" };
-      if (["courseCost", "deposit", "installment1", "installment2", "installment3", "installment4", "totalPaid", "remaining"].includes(col.key)) {
+      if (["courseCost", "deposit", "installment1", "installment2", "installment3", "totalPaid", "remaining"].includes(col.key)) {
         const v = row[col.key];
         const n = v === "" || v == null ? "" : Number(v);
         ws[addr] = {
