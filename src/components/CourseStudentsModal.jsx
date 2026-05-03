@@ -80,6 +80,9 @@ const MONEY_SAVING_SPINNER = {
 };
 const EDIT_PENCIL_ICON_SZ = 12;
 
+/** Lets fixed-layout table cells constrain money boxes equally (deposit / installments / course cost) */
+const MONEY_COL_WRAP = { width: "100%", minWidth: 0, boxSizing: "border-box" };
+
 function moneyCellHoverProps() {
   return {
     onMouseEnter(e) {
@@ -312,7 +315,7 @@ function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving 
 
   if (editing) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <div style={MONEY_EDIT_ROW}>
         <input
           autoFocus
           type="number"
@@ -326,21 +329,9 @@ function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving 
               setVal(displayVal);
             }
           }}
-          style={{
-            width: 88,
-            padding: "4px 8px",
-            borderRadius: 7,
-            background: "rgba(255,255,255,.1)",
-            border: `1.5px solid ${C.purple}`,
-            color: "#fff",
-            fontFamily: font,
-            fontSize: 13,
-            fontWeight: 700,
-            outline: "none",
-            textAlign: "right",
-          }}
+          style={moneyInputEditStyle}
         />
-        <span style={{ fontSize: 10, color: C.muted }}>ج</span>
+        <span style={MONEY_SUFFIX}>ج</span>
       </div>
     );
   }
@@ -355,38 +346,23 @@ function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving 
       }}
       title={title}
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
+        ...MONEY_CELL_BOX,
         cursor: saving ? "wait" : "pointer",
-        padding: "6px 10px",
-        borderRadius: 8,
-        border: "1px solid rgba(255,255,255,.12)",
-        background: "rgba(255,255,255,.04)",
-        transition: "border-color .15s, background .15s",
-        width: "100%",
-        boxSizing: "border-box",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
-        e.currentTarget.style.background = "rgba(125,61,158,.08)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
-        e.currentTarget.style.background = "rgba(255,255,255,.04)";
-      }}
+      {...moneyCellHoverProps()}
     >
       {saving ? (
         <span style={MONEY_SAVING_SPINNER} />
       ) : displayVal ? (
         <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
-          {Number(raw).toLocaleString()}        <small style={MONEY_AMOUNT_INLINE_SUFFIX}>ج</small>        </span>
+          {Number(raw).toLocaleString()}
+          <small style={MONEY_AMOUNT_INLINE_SUFFIX}>ج</small>
+        </span>
       ) : (
         <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>+ مبلغ</span>
       )}
       {!saving && (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
+        <svg width={EDIT_PENCIL_ICON_SZ} height={EDIT_PENCIL_ICON_SZ} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
@@ -999,14 +975,16 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "courseCost",
       label: "تكلفة الكورس",
-      w: 108,
+      w: 96,
       render: (r) => (
-        <CourseCostCell
-          row={r}
-          course={course}
-          onSave={handleSaveCourseCost}
-          saving={savingCourseCost === (r.docId || r.userId)}
-        />
+        <div style={MONEY_COL_WRAP}>
+          <CourseCostCell
+            row={r}
+            course={course}
+            onSave={handleSaveCourseCost}
+            saving={savingCourseCost === (r.docId || r.userId)}
+          />
+        </div>
       ),
     },
     {
@@ -1014,59 +992,67 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       label: "ديبوزت الحجز",
       w: 96,
       render: (r) => (
-        <FinancePartCell
-          row={r}
-          firestoreField="depositAmount"
-          valueKey="deposit"
-          title="ديبوزت الحجز — اضغط للتعديل (يُحفظ في Firestore ويُحدّث عمود المدفوع تلقائيًا)"
-          onSave={handleSaveFinancePart}
-          saving={financeSaving(r, "depositAmount")}
-        />
+        <div style={MONEY_COL_WRAP}>
+          <FinancePartCell
+            row={r}
+            firestoreField="depositAmount"
+            valueKey="deposit"
+            title="ديبوزت الحجز — اضغط للتعديل (يُحفظ في Firestore ويُحدّث عمود المدفوع تلقائيًا)"
+            onSave={handleSaveFinancePart}
+            saving={financeSaving(r, "depositAmount")}
+          />
+        </div>
       ),
     },
     {
       key: "installment1",
       label: "القسط ١",
-      w: 88,
+      w: 96,
       render: (r) => (
-        <FinancePartCell
-          row={r}
-          firestoreField="installment1"
-          valueKey="installment1"
-          title="القسط الأول — اضغط للتعديل"
-          onSave={handleSaveFinancePart}
-          saving={financeSaving(r, "installment1")}
-        />
+        <div style={MONEY_COL_WRAP}>
+          <FinancePartCell
+            row={r}
+            firestoreField="installment1"
+            valueKey="installment1"
+            title="القسط الأول — اضغط للتعديل"
+            onSave={handleSaveFinancePart}
+            saving={financeSaving(r, "installment1")}
+          />
+        </div>
       ),
     },
     {
       key: "installment2",
       label: "القسط ٢",
-      w: 88,
+      w: 96,
       render: (r) => (
-        <FinancePartCell
-          row={r}
-          firestoreField="installment2"
-          valueKey="installment2"
-          title="القسط الثاني — اضغط للتعديل"
-          onSave={handleSaveFinancePart}
-          saving={financeSaving(r, "installment2")}
-        />
+        <div style={MONEY_COL_WRAP}>
+          <FinancePartCell
+            row={r}
+            firestoreField="installment2"
+            valueKey="installment2"
+            title="القسط الثاني — اضغط للتعديل"
+            onSave={handleSaveFinancePart}
+            saving={financeSaving(r, "installment2")}
+          />
+        </div>
       ),
     },
     {
       key: "installment3",
       label: "القسط ٣",
-      w: 88,
+      w: 96,
       render: (r) => (
-        <FinancePartCell
-          row={r}
-          firestoreField="installment3"
-          valueKey="installment3"
-          title="القسط الثالث — اضغط للتعديل"
-          onSave={handleSaveFinancePart}
-          saving={financeSaving(r, "installment3")}
-        />
+        <div style={MONEY_COL_WRAP}>
+          <FinancePartCell
+            row={r}
+            firestoreField="installment3"
+            valueKey="installment3"
+            title="القسط الثالث — اضغط للتعديل"
+            onSave={handleSaveFinancePart}
+            saving={financeSaving(r, "installment3")}
+          />
+        </div>
       ),
     },
     {
