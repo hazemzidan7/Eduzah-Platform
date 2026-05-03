@@ -507,7 +507,7 @@ function PayConfirmBtn({ row, onToggle, loading }) {
 }
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
-export default function CourseStudentsModal({ course, allUsers, onClose }) {
+export default function CourseStudentsModal({ course, allUsers, onClose, notify, lang = "ar" }) {
   const [rows,       setRows]       = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
@@ -533,7 +533,10 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       // - Requests tab: all enrollmentRequests
       // - Students tab (this modal): pending + approved (exclude rejected)
       .then((list) => setRows((list || []).filter((r) => (r.status || "pending") !== "rejected")))
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setRows([]);
+      })
       .finally(() => { if (!silent) setLoading(false); });
   }, [course, allUsers]);
 
@@ -784,9 +787,26 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
 
   const handleExport = async () => {
     setExporting(true);
-    try { await exportCourseStudents(course, allUsers); }
-    catch(e) { console.error(e); }
-    finally { setExporting(false); }
+    try {
+      const result = await exportCourseStudents(course, allUsers);
+      if (typeof notify === "function") {
+        if (result.ok) {
+          const arUi = lang === "ar";
+          notify(
+            arUi
+              ? `تم تصدير ${result.count} طالب — ${result.fileName}`
+              : `Exported ${result.count} student(s) — ${result.fileName}`,
+          );
+        } else {
+          notify(result.msg || (lang === "ar" ? "فشل التصدير" : "Export failed"), "error");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      notify?.(lang === "ar" ? `فشل التصدير: ${e.message}` : `Export failed: ${e.message}`, "error");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const renderContactSelector = (r) => {

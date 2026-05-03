@@ -89,10 +89,23 @@ export const fmtTraining = (v) => ({ online:"Live Online", offline:"Offline (Bra
 export const fmtPlan     = (v) => ({ full:"دفع كامل (−5%)", installments:"أقساط (3×)" }[v] || v || "—");
 export const fmtLevel    = (v) => ({ beginner:"مبتدئ", basic:"أساسيات", intermediate:"متوسط", advanced:"متقدم" }[v] || v || "—");
 
-/** Match enrollment `courseId` to admin course.id whether stored as number or string. */
+/**
+ * Match `enrollmentRequests.courseId` / `enrolledCourses[].courseId` to a course doc.
+ * Handles: string vs number, trim, and id vs slug when historical data disagrees.
+ */
 function sameCourseId(a, course) {
-  if (a == null || course?.id == null) return false;
-  return String(a) === String(course.id);
+  if (a == null || course == null) return false;
+  const av = String(a).trim();
+  const id = course.id != null ? String(course.id).trim() : "";
+  const slug = course.slug != null ? String(course.slug).trim() : "";
+  if (av === "" || (!id && !slug)) return false;
+  const nStored = Number(av);
+  if (Number.isFinite(nStored) && String(nStored) === av) {
+    const matchNum = id !== "" && String(Number(id)) === id.trim() && Number(id) === nStored;
+    const matchSlugNum = slug !== "" && String(Number(slug)) === slug.trim() && Number(slug) === nStored;
+    return av === id || av === slug || matchNum || matchSlugNum;
+  }
+  return av === id || (slug !== "" && av === slug);
 }
 
 function enrollmentDedupeKey(r) {
@@ -106,28 +119,54 @@ function enrollmentDedupeKey(r) {
 // ─── Shared data fetcher ────────────────────────────────────────────────────
 export async function fetchCourseStudents(course, allUsers = []) {
   let requests = [];
+  const byDocId = new Map();
+  const mergeSnap = (snap) => {
+    for (const d of snap.docs) {
+      if (!byDocId.has(d.id)) byDocId.set(d.id, { id: d.id, ...d.data() });
+    }
+  };
+  const stringKeys = [
+    ...new Set(
+      [String(course?.id ?? "").trim(), String(course?.slug ?? "").trim()].filter(Boolean),
+    ),
+  ];
+  let anyQueryOk = false;
+  let lastQueryErr = null;
   try {
-    const courseIdStr = String(course?.id ?? "").trim();
-    const byDocId = new Map();
-    const mergeSnap = (snap) => {
-      for (const d of snap.docs) {
-        if (!byDocId.has(d.id)) byDocId.set(d.id, { id: d.id, ...d.data() });
-      }
-    };
-    const qStr = query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr));
-    mergeSnap(await getDocs(qStr));
-    const n = Number(courseIdStr);
-    if (courseIdStr !== "" && Number.isFinite(n) && String(n) === courseIdStr.trim()) {
+    for (const key of stringKeys) {
       try {
-        const qNum = query(collection(db, "enrollmentRequests"), where("courseId", "==", n));
-        mergeSnap(await getDocs(qNum));
-      } catch (_) {
-        /* ignore */
+        mergeSnap(
+          await getDocs(query(collection(db, "enrollmentRequests"), where("courseId", "==", key))),
+        );
+        anyQueryOk = true;
+      } catch (e) {
+        lastQueryErr = e;
+        console.warn("enrollmentRequests(string courseId=", key, "):", e?.message || e);
+      }
+    }
+    const numericVariants = new Set();
+    for (const key of stringKeys) {
+      const n = Number(key);
+      if (key !== "" && Number.isFinite(n) && String(n) === String(key).trim()) numericVariants.add(n);
+    }
+    for (const n of numericVariants) {
+      try {
+        mergeSnap(
+          await getDocs(query(collection(db, "enrollmentRequests"), where("courseId", "==", n))),
+        );
+        anyQueryOk = true;
+      } catch (e) {
+        lastQueryErr = e;
+        console.warn("enrollmentRequests(number courseId=", n, "):", e?.message || e);
       }
     }
     requests = [...byDocId.values()];
+    if (!anyQueryOk && stringKeys.length > 0 && lastQueryErr) {
+      throw lastQueryErr;
+    }
   } catch (err) {
-    console.warn("enrollmentRequests:", err.message);
+    console.error("enrollmentRequests fetch failed:", err);
+    throw err;
   }
 
   const reqByKey = new Map();
@@ -360,8 +399,19 @@ const EXPORT_COLS = [
 ];
 
 export async function exportCourseStudents(course, allUsers = []) {
-  const rows = await fetchCourseStudents(course, allUsers);
-  if (rows.length === 0) return { ok:false, msg:"لا يوجد طلاب مسجلون في هذا الكورس بعد" };
+  let rows;
+  try {
+    rows = await fetchCourseStudents(course, allUsers);
+  } catch (e) {
+    console.error("exportCourseStudents fetchCourseStudents:", e);
+    const code = e?.code || "";
+    const denied = code === "permission-denied";
+    const msg = denied
+      ? "لا صلاحية لقراءة طلبات التسجيل. سجّل الدخولة كأدمن أو راجع قواعد Firestore."
+      : `تعذر تحميل بيانات الطلاب (${e?.message || code || "خطأ شبكة"})`;
+    return { ok: false, msg };
+  }
+  if (rows.length === 0) return { ok: false, msg: "لا يوجد طلاب مسجلون في هذا الكورس بعد (أو معرّف الكورس في الطلبات لا يطابق id/slug هذا الكورس)" };
 
   const wb = XLSX.utils.book_new();
   const TITLE_ROW=0, HEADER_ROW=2, DATA_START=3;
@@ -461,18 +511,24 @@ export async function exportCourseStudents(course, allUsers = []) {
   const fileName=`Eduzah_${safeName}_Students.xlsx`;
 
   stripWorkbookCellStyles(wb);
-  // Use blob URL download — works reliably in all browsers without xlsx Pro
-  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  let wbout;
+  try {
+    wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  } catch (e) {
+    console.error("XLSX.write failed:", e);
+    return { ok: false, msg: `فشل إنشاء ملف Excel: ${e?.message || e}` };
+  }
   const blob = new Blob([wbout], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement("a");
-  a.href = url; a.download = fileName;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  return { ok:true, count:rows.length, fileName, rows };
+  return { ok: true, count: rows.length, fileName, rows };
 }

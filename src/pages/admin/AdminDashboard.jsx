@@ -2101,6 +2101,8 @@ export default function AdminDashboard() {
           course={modal.course}
           allUsers={users}
           onClose={() => setModal(null)}
+          notify={showT}
+          lang={lang}
         />
       )}
       {modal?.type === "add-course"      && <AddCourseModal />}
