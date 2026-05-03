@@ -645,83 +645,91 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               ? fmtDate(r.confirmedAt)
               : r.confirmedAt
             : null;
+        const mini = {
+          padding: "10px 11px",
+          borderRadius: 10,
+          background: "rgba(255,255,255,.04)",
+          border: `1px solid rgba(255,255,255,.1)`,
+          boxSizing: "border-box",
+        };
+        const lbl = {
+          fontSize: 9,
+          fontWeight: 700,
+          color: "rgba(255,255,255,.4)",
+          marginBottom: 6,
+          letterSpacing: 0.2,
+        };
         return (
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              gap: 12,
               alignItems: "stretch",
-              background: "rgba(0,0,0,.18)",
-              border: `1px solid ${C.border}`,
-              borderRadius: 12,
-              padding: "10px 11px",
               minWidth: 232,
             }}
           >
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.38)", marginBottom: 5, letterSpacing: 0.2 }}>
-                حالة المتابعة
-              </div>
+            <div style={mini}>
+              <div style={lbl}>حالة المتابعة</div>
               {renderContactSelector(r)}
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 8,
-                alignItems: "center",
-                justifyContent: "flex-end",
-                padding: "7px 8px",
-                borderRadius: 8,
-                background: "rgba(255,255,255,.03)",
-                border: "1px solid rgba(255,255,255,.06)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  background: `${payPlanColor}14`,
-                  color: payPlanColor,
-                  border: `1px solid ${payPlanColor}33`,
-                  maxWidth: "100%",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={pp}
-              >
-                {pp}
-              </span>
+            <div style={mini}>
+              <div style={lbl}>خطة الدفع</div>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: `${payPlanColor}14`,
+                    color: payPlanColor,
+                    border: `1px solid ${payPlanColor}33`,
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={pp}
+                >
+                  {pp}
+                </span>
+              </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,.38)", marginBottom: 5 }}>المبلغ المؤكد</div>
+            <div style={mini}>
+              <div style={lbl}>المبلغ المؤكد</div>
               <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-              <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
-              {confirmedLine && (
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,.45)", whiteSpace: "nowrap" }} title="تاريخ التأكيد">
-                  {confirmedLine}
-                </span>
-              )}
+            <div style={mini}>
+              <div style={lbl}>تأكيد استلام الدفع</div>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
+              </div>
+              {confirmedLine ? (
+                <div
+                  style={{
+                    marginTop: 8,
+                    paddingTop: 8,
+                    borderTop: "1px solid rgba(255,255,255,.08)",
+                    fontSize: 10,
+                    color: "rgba(255,255,255,.48)",
+                    textAlign: "right",
+                  }}
+                  title="تاريخ التأكيد"
+                >
+                  تاريخ التأكيد: {confirmedLine}
+                </div>
+              ) : null}
             </div>
 
-            <div
-              style={{
-                fontSize: 10,
-                color: "rgba(255,255,255,.4)",
-                paddingTop: 6,
-                borderTop: "1px solid rgba(255,255,255,.06)",
-              }}
-            >
-              تقدّم المنصّة: <span style={{ color: "rgba(255,255,255,.65)" }}>{r.progress || "—"}</span>
+            <div style={{ ...mini, padding: "8px 11px" }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,.42)" }}>
+                تقدّم المنصّة:{" "}
+                <span style={{ color: "rgba(255,255,255,.72)", fontWeight: 600 }}>{r.progress || "—"}</span>
+              </span>
             </div>
           </div>
         );
