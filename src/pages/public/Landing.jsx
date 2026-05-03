@@ -594,7 +594,13 @@ export default function Landing() {
       </div>
 
       {/* Footer */}
-      <footer style={{background:"#1a0f24",padding:"36px 5% 18px",borderTop:`1px solid ${C.border}`}}>
+      <footer
+        style={{
+          background: "linear-gradient(180deg, #3a2d4a 0%, #2e2438 55%, #261d30 100%)",
+          padding: "36px 5% 18px",
+          borderTop: `1px solid ${C.border}`,
+        }}
+      >
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:24,marginBottom:20}}>
           <div>
             <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 12 }}>
