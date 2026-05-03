@@ -634,7 +634,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "_admin",
       label: "متابعة · دفع",
-      w: 260,
+      w: 800,
       render: (r) => {
         const pp = r.payPlan || "—";
         const full = pp.includes("كامل");
@@ -645,12 +645,17 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               ? fmtDate(r.confirmedAt)
               : r.confirmedAt
             : null;
-        const mini = {
+        const miniBase = {
           padding: "10px 11px",
           borderRadius: 10,
           background: "rgba(255,255,255,.04)",
-          border: `1px solid rgba(255,255,255,.1)`,
+          border: "1px solid rgba(255,255,255,.1)",
           boxSizing: "border-box",
+          flex: "1 1 168px",
+          minWidth: 152,
+          maxWidth: 220,
+          display: "flex",
+          flexDirection: "column",
         };
         const lbl = {
           fontSize: 9,
@@ -663,20 +668,23 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              gap: 12,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
               alignItems: "stretch",
-              minWidth: 232,
+              justifyContent: "flex-start",
+              direction: "rtl",
+              minWidth: 640,
             }}
           >
-            <div style={mini}>
+            <div style={miniBase}>
               <div style={lbl}>حالة المتابعة</div>
               {renderContactSelector(r)}
             </div>
 
-            <div style={mini}>
+            <div style={miniBase}>
               <div style={lbl}>خطة الدفع</div>
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", flex: 1, alignItems: "center" }}>
                 <span
                   style={{
                     fontSize: 10,
@@ -698,12 +706,12 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               </div>
             </div>
 
-            <div style={mini}>
+            <div style={miniBase}>
               <div style={lbl}>المبلغ المؤكد</div>
               <AmountCell row={r} onSave={handleSaveAmount} saving={savingAmount === r.docId} />
             </div>
 
-            <div style={mini}>
+            <div style={{ ...miniBase, maxWidth: 240 }}>
               <div style={lbl}>تأكيد استلام الدفع</div>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
@@ -725,11 +733,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               ) : null}
             </div>
 
-            <div style={{ ...mini, padding: "8px 11px" }}>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,.42)" }}>
-                تقدّم المنصّة:{" "}
-                <span style={{ color: "rgba(255,255,255,.72)", fontWeight: 600 }}>{r.progress || "—"}</span>
-              </span>
+            <div style={{ ...miniBase, padding: "8px 11px", justifyContent: "center" }}>
+              <div style={lbl}>تقدّم المنصّة</div>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,.72)", fontWeight: 700 }}>{r.progress || "—"}</span>
             </div>
           </div>
         );
@@ -853,7 +859,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
             </div>
 
             <p style={{ margin: 0, fontSize: 10, color: "rgba(255,255,255,.4)", lineHeight: 1.6 }}>
-              الأعمدة المالية (ديبوزت / أقساط / عمر / اسم رباعي / ملاحظات) تُقرأ من حقول اختيارية على طلب التسجيل في Firestore:
+              الأعمدة المالية (ديبوزت / أقساط / اسم رباعي / ملاحظات) تُقرأ من حقول اختيارية على طلب التسجيل في Firestore:
               <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · adminNotes · depositAmount · installment1…3 · coursePriceOverride · totalPaidManual </code>
               — يمكن تعبئتها يدويًا أو لاحقًا من نموذج إداري.
             </p>
@@ -915,7 +921,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
                           <td key={col.key}
                             style={{ padding:"10px 12px",
                               borderBottom:`1px solid rgba(255,255,255,.04)`,
-                              verticalAlign:"middle", textAlign:"right" }}>
+                              verticalAlign: col.key === "_admin" ? "top" : "middle",
+                              textAlign:"right" }}>
                             {col.render ? col.render(row,idx) : (row[col.key]||"—")}
                           </td>
                         ))}
