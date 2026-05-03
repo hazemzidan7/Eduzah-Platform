@@ -623,6 +623,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     attendanceAr: "نوع الحضور: أونلاين مباشر أو حضوري",
     diplomaTitle: "اسم الدبلومة/الكورس على المنصّة",
     bookingChannel: "مصدر الحجز (سوشيال، موقع، إحالة، …)",
+    contactStatus:
+      "آخر حالة متابعة اتصال أو حجز — اضغط لتغييرها (مردش، أكد وهيدفع، حجز ودفع، …)",
     notes: "ملاحظات إدارية على الطلب (من Firestore)",
     courseCost: "تكلفة الكورس لهذا الطالب — اضغط على الخلية للتعديل",
     deposit: "ديبوزت الحجز إن وُجد في البيانات",
@@ -631,7 +633,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     installment3: "مبلغ القسط الثالث إن وُجد",
     totalPaid: "إجمالي المدفوع — يُسجَّل يدويًا من المسؤول",
     remaining: "المتبقي = تكلفة الكورس − المدفوع (حسب الأرقام المعروضة)",
-    _admin: "متابعة التواصل، خطة الدفع، وتأكيد استلام الدفع",
+    _admin: "خطة الدفع وتأكيد استلام الدفع (بعد حالة المتابعة في العمود المنفصل)",
   };
 
   const TABLE_COL_DIVIDER = "1px solid rgba(255,255,255,.12)";
@@ -686,6 +688,13 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       render: (r) => <span style={{ fontSize: 11 }}>{r.bookingChannel || "—"}</span>,
     },
     {
+      key: "contactStatus",
+      label: "حالة المتابعة",
+      w: 200,
+      sortable: true,
+      render: (r) => <div style={{ minWidth: 0 }}>{renderContactSelector(r)}</div>,
+    },
+    {
       key: "notes",
       label: "ملاحظات",
       w: 140,
@@ -738,7 +747,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "_admin",
       label: "متابعة · دفع",
-      w: 800,
+      w: 620,
       render: (r) => {
         const pp = r.payPlan || "—";
         const full = pp.includes("كامل");
@@ -778,14 +787,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               alignItems: "stretch",
               justifyContent: "flex-start",
               direction: "rtl",
-              minWidth: 640,
+              minWidth: 480,
             }}
           >
-            <div style={miniBase}>
-              <div style={lbl}>حالة المتابعة</div>
-              {renderContactSelector(r)}
-            </div>
-
             <div style={miniBase}>
               <div style={lbl}>خطة الدفع</div>
               <div style={{ display: "flex", justifyContent: "flex-end", flex: 1, alignItems: "center" }}>

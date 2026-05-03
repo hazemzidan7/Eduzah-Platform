@@ -35,6 +35,21 @@ export const attendanceLabelAr = (trainingType) => {
   return trainingType ? String(trainingType) : "—";
 };
 
+/** نص عربي يعرض في الجدول / Excel لحقل contactStatus */
+export function contactStatusLabelAr(code) {
+  const map = {
+    no_response: "مردش",
+    wont_book: "مش هيحجز",
+    thinking: "هيفكر ويحجز",
+    confirmed_will_pay: "أكد وهيدفع",
+    booked_paid: "حجز حالياً ودفع",
+    future_round: "هيحجز في راوند قادمة",
+    booked_previous: "حاجز في راوند سابقة",
+    attending_current: "بيحضر في الراوند الحالية",
+  };
+  return map[code] || "—";
+}
+
 /** حقول مالية اختيارية على enrollmentRequests: depositAmount, installment1..3, coursePriceOverride, adminNotes, totalPaidManual (يدوي من المسؤول) */
 export function computeStudentFinance(r, course) {
   const courseCost = Number(r.coursePriceOverride ?? course?.price ?? 0) || 0;
@@ -137,6 +152,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
       contactStatus,
+      contactStatusLabel: contactStatusLabelAr(contactStatus),
       contactUpdatedAt: enrollment?.contactUpdatedAt || r.contactUpdatedAt || null,
       coursePriceOverride: effPrice.coursePriceOverride ?? null,
     });
@@ -166,6 +182,13 @@ export async function fetchCourseStudents(course, allUsers = []) {
       typeof enrollDateRaw === "string" && /^\d{4}-\d{2}-\d{2}/.test(enrollDateRaw)
         ? fmtDateShort(enrollDateRaw)
         : enrollDateRaw || fmtDateShort(u.createdAt) || "";
+    const guestContactStatus = (() => {
+      const v = enrollment?.contactStatus;
+      if (!v) return "no_response";
+      if (v === "not_contacted") return "no_response";
+      if (v === "contacted") return "confirmed_will_pay";
+      return v;
+    })();
     rows.push({
       docId:            null,
       userId:           u.id || null,
@@ -196,13 +219,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       remaining:        finG.remaining,
       paymentConfirmed: false,
       confirmedAt:      null,
-      contactStatus:    (() => {
-        const v = enrollment?.contactStatus;
-        if (!v) return "no_response";
-        if (v === "not_contacted") return "no_response";
-        if (v === "contacted") return "confirmed_will_pay";
-        return v;
-      })(),
+      contactStatus:    guestContactStatus,
+      contactStatusLabel: contactStatusLabelAr(guestContactStatus),
       contactUpdatedAt: enrollment?.contactUpdatedAt || null,
       coursePriceOverride: enrollment?.coursePriceOverride ?? null,
     });
@@ -254,6 +272,7 @@ const EXPORT_COLS = [
   { key: "attendanceAr", label: "حضور الكورس\nAttendance", w: 16 },
   { key: "diplomaTitle", label: "اسم الدبلومة\nDiploma", w: 26 },
   { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 20 },
+  { key: "contactStatusLabel", label: "حالة المتابعة\nFollow-up", w: 22 },
   { key: "notes", label: "ملاحظات\nNotes", w: 32 },
   { key: "courseCost", label: "تكلفة الكورس\nCourse cost", w: 14 },
   { key: "deposit", label: "ديبوزت الحجز\nDeposit", w: 12 },
