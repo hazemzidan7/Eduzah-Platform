@@ -258,7 +258,7 @@ export default function Landing() {
           </p>
           <p style={{ color: "rgba(255,255,255,.55)", fontSize: 12, lineHeight: 1.65, marginBottom: 18, maxWidth: 520 }}>
             {lang === "ar"
-              ? "مسار سريع: تصفّح البرامج ← سجّل حسابك ← نفعّل وصولك ← تبدأ التعلّم. للشركات: برامج مخصصة من صفحة «تدريب الشركات»."
+              ? "مسار سريع: تصفّح البرامج ← سجّل حسابك ← نفعّل وصولك ← تبدأ التعلّم. للشركات: برامج مخصصة عبر الزر أدناه."
               : "Fast path: browse programs → sign up → we activate access → you learn. For teams: custom programs via Corporate Training."}
           </p>
           <div className="hero-cta-row" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
@@ -312,10 +312,10 @@ export default function Landing() {
                 />
                 <Btn
                   children={lang === "ar" ? "تدريب للشركات" : "Corporate training"}
-                  v="ghost"
+                  v="outline"
                   sm
                   onClick={() => navigate("/corporate")}
-                  style={{ padding: "10px 14px", fontSize: 12 }}
+                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
                 />
               </>
             )}
@@ -703,7 +703,13 @@ export default function Landing() {
           {!currentUser && (
             <div className="hero-cta-secondary-row" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <Btn children={lang === "ar" ? "احجز استشارة مجانية" : "Book a free consult"} v="outline" sm onClick={() => navigate("/consultation")} style={{ padding: "10px 20px", borderRadius: 10 }} />
-              <Btn children={lang === "ar" ? "برنامج لمؤسستك" : "Training for your org"} v="ghost" sm onClick={() => navigate("/corporate")} style={{ padding: "10px 16px" }} />
+              <Btn
+                children={lang === "ar" ? "برنامج لمؤسستك" : "Training for your org"}
+                v="outline"
+                sm
+                onClick={() => navigate("/corporate")}
+                style={{ padding: "10px 20px", borderRadius: 10 }}
+              />
             </div>
           )}
         </div>
