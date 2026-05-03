@@ -1,8 +1,7 @@
 /**
- * Eduzah — Excel Export Utility  (SheetJS / xlsx)
- * Also exports `fetchCourseStudents` for in-platform table view.
+ * Eduzah — Excel export utilities
+ * Student export uses ExcelJS so fills/fonts/borders appear in Excel (SheetJS CE does not write styles).
  */
-import * as XLSX from "xlsx";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -354,56 +353,30 @@ export function computeCourseStudentRevenue(studentRows) {
   };
 }
 
-// ─── Excel export ─────────────────────────────────────────────────────────────
-const PURPLE = "3D1F5C";
-const STRIPE_A = "FFFFFF";
-const STRIPE_B = "EDE8F5";
-const WHITE = "FFFFFF";
-const BORDER_C = "B8A9D9";
-const border = () => ({
-  top: { style: "thin", color: { rgb: BORDER_C } },
-  bottom: { style: "thin", color: { rgb: BORDER_C } },
-  left: { style: "thin", color: { rgb: BORDER_C } },
-  right: { style: "thin", color: { rgb: BORDER_C } },
-});
-const titleBarStyle = () => ({
-  font: { bold: true, sz: 15, color: { rgb: WHITE } },
-  fill: { fgColor: { rgb: "2B1446" } },
-  alignment: { horizontal: "center", vertical: "center", wrapText: true },
-  border: border(),
-});
-const hStyle = () => ({
-  font: { bold: true, sz: 11, color: { rgb: WHITE } },
-  fill: { fgColor: { rgb: PURPLE } },
-  alignment: { horizontal: "center", vertical: "center", wrapText: true },
-  border: border(),
-});
-const dStyle = (ri) => ({
-  font: { sz: 10 },
-  fill: { fgColor: { rgb: ri % 2 === 0 ? STRIPE_A : STRIPE_B } },
-  alignment: { horizontal: "right", vertical: "center", wrapText: true },
-  border: border(),
-});
-const aStyle = (ri) => ({
-  font: { sz: 10, bold: true, color: { rgb: "1D6F42" } },
-  fill: { fgColor: { rgb: ri % 2 === 0 ? STRIPE_A : STRIPE_B } },
-  alignment: { horizontal: "center", vertical: "center" },
-  border: border(),
-});
+// ─── Excel export (students) ────────────────────────────────────────────────
+const BORDER_ARGB = "FFB8A9D9";
+const EX_BORDER = {
+  top: { style: "thin", color: { argb: BORDER_ARGB } },
+  left: { style: "thin", color: { argb: BORDER_ARGB } },
+  bottom: { style: "thin", color: { argb: BORDER_ARGB } },
+  right: { style: "thin", color: { argb: BORDER_ARGB } },
+};
+const TITLE_FILL = "FF2B1446";
+const HEAD_FILL = "FF3D1F5C";
+const STRIPE_A = "FFFFFFFF";
+const STRIPE_B = "FFEDE8F5";
+const HEADER_ROW_IDX = 3;
+const DATA_START_IDX = 4;
 
-/** Strip per-cell `s` styles before XLSX.write — avoids corrupt / blank files with community `xlsx`. */
-function stripWorkbookCellStyles(wb) {
-  if (!wb?.SheetNames) return;
-  for (const name of wb.SheetNames) {
-    const ws = wb.Sheets[name];
-    if (!ws || typeof ws !== "object") continue;
-    for (const addr of Object.keys(ws)) {
-      if (addr.startsWith("!")) continue;
-      const cell = ws[addr];
-      if (cell && typeof cell === "object" && Object.prototype.hasOwnProperty.call(cell, "s")) delete cell.s;
-    }
-  }
-}
+const MONEY_KEYS = new Set([
+  "courseCost",
+  "deposit",
+  "installment1",
+  "installment2",
+  "installment3",
+  "totalPaid",
+  "remaining",
+]);
 
 const EXPORT_COLS = [
   { key: "sheetDate", label: "التاريخ\nDate", w: 15 },
@@ -426,6 +399,154 @@ const EXPORT_COLS = [
   { key: "paymentConfirmed", label: "دفع مؤكد\nPay OK", w: 12 },
 ];
 
+/** Build styled .xlsx for course students — dynamic import keeps bundle lighter until export. */
+async function writeCourseStudentsExcelBuffer(course, rows) {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Eduzah";
+  wb.created = new Date();
+
+  const ncol = EXPORT_COLS.length;
+
+  const ws = wb.addWorksheet("Students", {
+    views: [
+      {
+        rightToLeft: true,
+        state: "frozen",
+        xSplit: 0,
+        ySplit: HEADER_ROW_IDX,
+        topLeftCell: `A${DATA_START_IDX}`,
+        activeCell: "A1",
+      },
+    ],
+  });
+
+  EXPORT_COLS.forEach((col, i) => {
+    ws.getColumn(i + 1).width = col.w;
+  });
+
+  ws.mergeCells(1, 1, 1, ncol);
+  const title = ws.getCell(1, 1);
+  title.value = `Eduzah — ${course.title_en || course.title} | Student Export`;
+  title.font = { bold: true, size: 15, color: { argb: "FFFFFFFF" } };
+  title.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TITLE_FILL } };
+  title.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  title.border = EX_BORDER;
+  ws.getRow(1).height = 38;
+  ws.getRow(2).height = 8;
+
+  EXPORT_COLS.forEach((col, c) => {
+    const cell = ws.getCell(HEADER_ROW_IDX, c + 1);
+    cell.value = col.label;
+    cell.font = { bold: true, size: 11, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEAD_FILL } };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    cell.border = EX_BORDER;
+  });
+  ws.getRow(HEADER_ROW_IDX).height = 46;
+
+  rows.forEach((row, ri) => {
+    const r = DATA_START_IDX + ri;
+    const fg = ri % 2 === 0 ? STRIPE_A : STRIPE_B;
+    EXPORT_COLS.forEach((col, c) => {
+      const cell = ws.getCell(r, c + 1);
+      const raw = row[col.key];
+      if (col.key === "paymentConfirmed") {
+        cell.value = raw ? "نعم" : "لا";
+      } else if (MONEY_KEYS.has(col.key)) {
+        if (raw === "" || raw == null) {
+          cell.value = null;
+        } else {
+          const n = Number(raw);
+          if (Number.isFinite(n)) {
+            cell.value = n;
+            cell.numFmt = "#,##0";
+          } else {
+            cell.value = String(raw);
+          }
+        }
+      } else {
+        cell.value = raw ?? "";
+      }
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fg } };
+      cell.border = EX_BORDER;
+      if (MONEY_KEYS.has(col.key)) {
+        cell.font = { bold: true, size: 10, color: { argb: "FF1D6F42" } };
+        cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+      } else {
+        cell.font = { size: 10 };
+        cell.alignment = { vertical: "middle", horizontal: "right", wrapText: true };
+      }
+    });
+  });
+
+  const totalRevenue = rows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
+  const ws2 = wb.addWorksheet("Summary", { views: [{ rightToLeft: true }] });
+  ws2.getColumn(1).width = 44;
+  ws2.getColumn(2).width = 52;
+
+  ws2.mergeCells(1, 1, 1, 2);
+  const st = ws2.getCell(1, 1);
+  st.value = `Eduzah — ${course.title_en || course.title} | Summary`;
+  st.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+  st.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TITLE_FILL } };
+  st.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+  st.border = EX_BORDER;
+  ws2.getRow(1).height = 36;
+  ws2.getRow(2).height = 8;
+
+  const summaryRows = [
+    ["الكورس / Course", course.title],
+    ["Course EN", course.title_en || course.title],
+    ["السعر / Price", `${(course.price || 0).toLocaleString()} EGP`],
+    ["تاريخ التصدير / Export Date", fmtDate(new Date().toISOString())],
+    null,
+    ["إجمالي الطلاب / Total Students", rows.length],
+    [
+      "دفع كامل / Full Payment",
+      rows.filter((r) => String(r.payPlan || "").includes("كامل") || String(r.payPlan || "").includes("Full"))
+        .length,
+    ],
+    [
+      "أقساط / Installments",
+      rows.filter((r) => String(r.payPlan || "").includes("قساط") || String(r.payPlan || "").includes("Install"))
+        .length,
+    ],
+    ["أونلاين / Online", rows.filter((r) => String(r.training || "").includes("Online")).length],
+    [
+      "حضوري / Offline",
+      rows.filter(
+        (r) =>
+          String(r.training || "").includes("Offline") || String(r.training || "").includes("Branch"),
+      ).length,
+    ],
+    null,
+    ["إجمالي الإيرادات / Total Revenue", `${totalRevenue.toLocaleString()} EGP`],
+  ];
+
+  let rr = 3;
+  for (const line of summaryRows) {
+    if (line == null) {
+      rr += 1;
+      continue;
+    }
+    const [k, v] = line;
+    const c1 = ws2.getCell(rr, 1);
+    const c2 = ws2.getCell(rr, 2);
+    c1.value = k;
+    c2.value = v;
+    c1.font = { bold: true, size: 10, color: { argb: "FF3D1F5C" } };
+    c1.alignment = { vertical: "middle", horizontal: "right", wrapText: true };
+    c2.font = { size: 10 };
+    c2.alignment = { vertical: "middle", horizontal: "right", wrapText: true };
+    c1.border = EX_BORDER;
+    c2.border = EX_BORDER;
+    rr += 1;
+  }
+
+  return wb.xlsx.writeBuffer();
+}
+
 export async function exportCourseStudents(course, allUsers = []) {
   let rows;
   try {
@@ -441,142 +562,18 @@ export async function exportCourseStudents(course, allUsers = []) {
   }
   if (rows.length === 0) return { ok: false, msg: "لا يوجد طلاب مسجلون في هذا الكورس بعد (أو معرّف الكورس في الطلبات لا يطابق id/slug هذا الكورس)" };
 
-  const wb = XLSX.utils.book_new();
-  const TITLE_ROW=0, HEADER_ROW=2, DATA_START=3;
+  const safeName = (course.title_en || course.title || "course")
+    .replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 40);
+  const fileName = `Eduzah_${safeName}_Students.xlsx`;
 
-  const aoa = [
-    [`Eduzah — ${course.title_en||course.title} | Student Export`],
-    [],
-    EXPORT_COLS.map((c) => c.label),
-    ...rows.map((r) =>
-      EXPORT_COLS.map((col) => {
-        const v = r[col.key];
-        if (col.key === "paymentConfirmed") return v ? "نعم" : "لا";
-        if (["courseCost", "deposit", "installment1", "installment2", "installment3", "totalPaid", "remaining"].includes(col.key)) {
-          if (v === "" || v == null) return "";
-          const n = Number(v);
-          return Number.isFinite(n) ? n : "";
-        }
-        return v ?? "";
-      }),
-    ),
-  ];
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"]   = EXPORT_COLS.map((c) => ({ wch: c.w }));
-  ws["!rows"]   = [{ hpx: 40 }, { hpx: 8 }, { hpx: 48 }, ...rows.map(() => ({ hpx: 26 }))];
-  ws["!merges"] = [{ s: { r: TITLE_ROW, c: 0 }, e: { r: TITLE_ROW, c: EXPORT_COLS.length - 1 } }];
-
-  // Title
-  const ta = XLSX.utils.encode_cell({r:TITLE_ROW,c:0});
-  ws[ta] = { v:aoa[0][0], t:"s", s:titleBarStyle() };
-
-  // Headers
-  EXPORT_COLS.forEach((col, c) => {
-    const a = XLSX.utils.encode_cell({ r: HEADER_ROW, c });
-    ws[a] = { v: col.label, t: "s", s: hStyle() };
-  });
-
-  // Data
-  rows.forEach((row, ri) => {
-    const r = DATA_START + ri;
-    EXPORT_COLS.forEach((col, c) => {
-      const addr = XLSX.utils.encode_cell({ r, c });
-      if (!ws[addr]) ws[addr] = { v: "", t: "s" };
-      if (["courseCost", "deposit", "installment1", "installment2", "installment3", "totalPaid", "remaining"].includes(col.key)) {
-        const v = row[col.key];
-        const n = v === "" || v == null ? "" : Number(v);
-        ws[addr] = {
-          v: n === "" ? "" : n,
-          t: n === "" ? "s" : "n",
-          s: aStyle(ri),
-        };
-      } else {
-        ws[addr].s = dStyle(ri);
-      }
-    });
-  });
-
-  ws["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: DATA_START + rows.length - 1, c: EXPORT_COLS.length - 1 } });
-  XLSX.utils.book_append_sheet(wb, ws, "Students");
-
-  // Summary sheet
-  const totalRevenue = rows.reduce((s, r) => s + ledgerAmountForStats(r), 0);
-  const sumAoa=[
-    [`Eduzah — ${course.title_en||course.title} | Summary`],[],
-    ["الكورس / Course", course.title],
-    ["Course EN", course.title_en||course.title],
-    ["السعر / Price", `${(course.price||0).toLocaleString()} EGP`],
-    ["تاريخ التصدير / Export Date", fmtDate(new Date().toISOString())],[],
-    ["إجمالي الطلاب / Total Students", rows.length],
-    [
-      "دفع كامل / Full Payment",
-      rows.filter((r) =>
-        String(r.payPlan || "").includes("كامل") || String(r.payPlan || "").includes("Full")
-      ).length,
-    ],
-    [
-      "أقساط / Installments",
-      rows.filter((r) =>
-        String(r.payPlan || "").includes("قساط") || String(r.payPlan || "").includes("Install")
-      ).length,
-    ],
-    ["أونلاين / Online", rows.filter((r) => String(r.training || "").includes("Online")).length],
-    [
-      "حضوري / Offline",
-      rows.filter(
-        (r) =>
-          String(r.training || "").includes("Offline") || String(r.training || "").includes("Branch")
-      ).length,
-    ],[],
-    ["إجمالي الإيرادات / Total Revenue", `${totalRevenue.toLocaleString()} EGP`],
-  ];
-  const ws2 = XLSX.utils.aoa_to_sheet(sumAoa);
-  ws2["!cols"] = [{ wch: 44 }, { wch: 52 }];
-  ws2["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-  const sumTitle = XLSX.utils.encode_cell({ r: 0, c: 0 });
-  ws2[sumTitle] = { v: sumAoa[0][0], t: "s", s: titleBarStyle() };
-  for (let r = 2; r < sumAoa.length; r++) {
-    const row = sumAoa[r];
-    if (!Array.isArray(row) || row.length === 0) continue;
-    if (row.length >= 2) {
-      const k = XLSX.utils.encode_cell({ r, c: 0 });
-      const val = XLSX.utils.encode_cell({ r, c: 1 });
-      if (ws2[k]?.v != null && String(ws2[k].v).length > 0) {
-        ws2[k].s = {
-          font: { bold: true, sz: 10, color: { rgb: PURPLE } },
-          alignment: { horizontal: "right", vertical: "center", wrapText: true },
-          border: border(),
-        };
-      }
-      if (ws2[val]) {
-        ws2[val].s = {
-          font: { sz: 10 },
-          alignment: { horizontal: "right", vertical: "center", wrapText: true },
-          border: border(),
-        };
-      }
-    }
-  }
-
-  XLSX.utils.book_append_sheet(wb, ws2, "Summary");
-
-  const safeName=(course.title_en||course.title||"course").replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,"_").replace(/_+/g,"_").slice(0,40);
-  const fileName=`Eduzah_${safeName}_Students.xlsx`;
-
-  /** Prefer styled output; SheetJS CE may omit some styles — retry plain if write throws. */
   let wbout;
   try {
-    wbout = XLSX.write(wb, { bookType: "xlsx", type: "array", cellStyles: true });
-  } catch (e1) {
-    console.warn("XLSX.write(cellStyles:true) failed, retrying plain:", e1?.message || e1);
-    try {
-      stripWorkbookCellStyles(wb);
-      wbout = XLSX.write(wb, { bookType: "xlsx", type: "array", cellStyles: false });
-    } catch (e2) {
-      console.error("XLSX.write failed:", e2);
-      return { ok: false, msg: `فشل إنشاء ملف Excel: ${e2?.message || e2}` };
-    }
+    wbout = await writeCourseStudentsExcelBuffer(course, rows);
+  } catch (e) {
+    console.error("ExcelJS export failed:", e);
+    return { ok: false, msg: `فشل إنشاء ملف Excel: ${e?.message || e}` };
   }
   const blob = new Blob([wbout], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
