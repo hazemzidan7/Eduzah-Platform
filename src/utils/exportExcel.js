@@ -50,18 +50,27 @@ export function contactStatusLabelAr(code) {
   return map[code] || "—";
 }
 
-/** حقول مالية اختيارية على enrollmentRequests: depositAmount, installment1..3, coursePriceOverride, adminNotes, totalPaidManual (يدوي من المسؤول) */
+/** حقول مالية على enrollmentRequests: depositAmount، installment1..3، coursePriceOverride، adminNotes. المدفوع = مجموع الديبوزت + الأقساط (مع احتياطي totalPaidManual للبيانات القديمة). */
 export function computeStudentFinance(r, course) {
   const courseCost = Number(r.coursePriceOverride ?? course?.price ?? 0) || 0;
   const dep = r.depositAmount;
   const i1 = r.installment1;
   const i2 = r.installment2;
   const i3 = r.installment3;
-  const manualRaw = r.totalPaidManual;
+  const toNum = (v) => {
+    if (v === "" || v == null) return 0;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const sumParts = toNum(dep) + toNum(i1) + toNum(i2) + toNum(i3);
   let totalPaid = null;
-  if (manualRaw != null && manualRaw !== "") {
-    const n = Number(manualRaw);
-    if (!Number.isNaN(n)) totalPaid = n;
+  if (sumParts > 0) totalPaid = sumParts;
+  else {
+    const manualRaw = r.totalPaidManual;
+    if (manualRaw != null && manualRaw !== "") {
+      const m = Number(manualRaw);
+      if (!Number.isNaN(m)) totalPaid = m;
+    }
   }
   let remaining = null;
   if (courseCost > 0 && totalPaid != null && !Number.isNaN(totalPaid)) remaining = Math.max(0, courseCost - totalPaid);
@@ -119,8 +128,16 @@ export async function fetchCourseStudents(course, allUsers = []) {
       if (v === "contacted") return "confirmed_will_pay";
       return v;
     })();
-    const effPrice = { ...r, coursePriceOverride: r.coursePriceOverride ?? enrollment?.coursePriceOverride };
-    const fin = computeStudentFinance(effPrice, course);
+    const effFinance = {
+      ...r,
+      coursePriceOverride: r.coursePriceOverride ?? enrollment?.coursePriceOverride,
+      depositAmount: r.depositAmount ?? enrollment?.depositAmount,
+      installment1: r.installment1 ?? enrollment?.installment1,
+      installment2: r.installment2 ?? enrollment?.installment2,
+      installment3: r.installment3 ?? enrollment?.installment3,
+      totalPaidManual: r.totalPaidManual ?? enrollment?.totalPaidManual,
+    };
+    const fin = computeStudentFinance(effFinance, course);
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       userId:           profile?.id || null,    // platform uid (if exists)
@@ -141,7 +158,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       requestedAt:      fmtDate(r.createdAt),
       sheetDate:        fmtDateShort(r.createdAt),
       diplomaTitle:     course?.title || r.courseTitle || "—",
-      notes:            r.adminNotes || "",
+      notes:            enrollment?.adminNotes ?? r.adminNotes ?? "",
       courseCost:       fin.courseCost,
       deposit:          fin.deposit,
       installment1:     fin.installment1,
@@ -149,12 +166,13 @@ export async function fetchCourseStudents(course, allUsers = []) {
       installment3:     fin.installment3,
       totalPaid:        fin.totalPaid,
       remaining:        fin.remaining,
+      totalPaidManual:  effFinance.totalPaidManual ?? null,
       paymentConfirmed: r.paymentConfirmed === true,
       confirmedAt:      r.confirmedAt || null,
       contactStatus,
       contactStatusLabel: contactStatusLabelAr(contactStatus),
       contactUpdatedAt: enrollment?.contactUpdatedAt || r.contactUpdatedAt || null,
-      coursePriceOverride: effPrice.coursePriceOverride ?? null,
+      coursePriceOverride: effFinance.coursePriceOverride ?? null,
     });
   }
 
@@ -217,6 +235,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       installment3:     finG.installment3,
       totalPaid:        finG.totalPaid,
       remaining:        finG.remaining,
+      totalPaidManual:  guestR.totalPaidManual ?? null,
       paymentConfirmed: false,
       confirmedAt:      null,
       contactStatus:    guestContactStatus,
@@ -274,15 +293,15 @@ const EXPORT_COLS = [
   { key: "bookingChannel", label: "حجز الكورس عن طريق\nBooking via", w: 20 },
   { key: "contactStatusLabel", label: "حالة المتابعة\nFollow-up", w: 22 },
   { key: "notes", label: "ملاحظات\nNotes", w: 32 },
+  { key: "payPlan", label: "خطة الدفع\nPlan", w: 18 },
   { key: "courseCost", label: "تكلفة الكورس\nCourse cost", w: 14 },
   { key: "deposit", label: "ديبوزت الحجز\nDeposit", w: 12 },
   { key: "installment1", label: "القسط الأول\nInst. 1", w: 12 },
   { key: "installment2", label: "القسط الثاني\nInst. 2", w: 12 },
   { key: "installment3", label: "القسط الثالث\nInst. 3", w: 12 },
-  { key: "totalPaid", label: "المدفوع (يدوي)\nPaid (manual)", w: 12 },
+  { key: "totalPaid", label: "المدفوع (مجموع ديبوزت + أقساط)\nPaid (sum)", w: 14 },
   { key: "remaining", label: "المتبقي\nBalance", w: 12 },
   { key: "email", label: "البريد\nEmail", w: 30 },
-  { key: "payPlan", label: "خطة الدفع\nPlan", w: 18 },
   { key: "paymentConfirmed", label: "دفع مؤكد\nPay OK", w: 10 },
 ];
 

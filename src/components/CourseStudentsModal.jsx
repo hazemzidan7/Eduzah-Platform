@@ -177,11 +177,89 @@ function CourseCostCell({ row, course, onSave, saving }) {
   );
 }
 
-/** المدفوع الإجمالي — يُسجَّل يدويًا من المسؤول (`totalPaidManual` في Firestore) */
-function TotalPaidCell({ row, onSave, saving }) {
+/** ملاحظات إدارية — تُحفظ في `adminNotes` على الطلب أو اشتراك المستخدم */
+function AdminNotesCell({ row, onSave, saving }) {
+  const canEdit = !!(row.docId || row.userId);
+  const displayVal = row.notes ?? "";
+  const [val, setVal] = useState(displayVal);
+
+  useEffect(() => {
+    setVal(displayVal);
+  }, [displayVal]);
+
+  const commit = () => {
+    const t = val.trim();
+    const p = String(displayVal ?? "").trim();
+    if (t === p) return;
+    onSave(row, val);
+  };
+
+  if (!canEdit) {
+    const t = String(displayVal || "").trim();
+    if (!t) return <span style={{ color: "rgba(255,255,255,.25)" }}>—</span>;
+    const short = t.length > 80 ? `${t.slice(0, 80)}…` : t;
+    return (
+      <span title={t} style={{ fontSize: 11, lineHeight: 1.5, color: "rgba(255,255,255,.88)" }}>
+        {short}
+      </span>
+    );
+  }
+
+  return (
+    <div style={{ position: "relative", width: "100%", minWidth: 0 }}>
+      <textarea
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commit}
+        disabled={saving}
+        rows={3}
+        dir="auto"
+        title="اضغط خارج المربع لحفظ الملاحظة. اتركها فارغة لمسح الحقل."
+        style={{
+          width: "100%",
+          minHeight: 52,
+          boxSizing: "border-box",
+          padding: "6px 8px",
+          borderRadius: 8,
+          border: `1px solid ${saving ? "rgba(125,61,158,.35)" : "rgba(255,255,255,.14)"}`,
+          background: "rgba(255,255,255,.06)",
+          color: "rgba(255,255,255,.92)",
+          fontFamily: font,
+          fontSize: 11,
+          lineHeight: 1.45,
+          resize: "vertical",
+          outline: "none",
+          opacity: saving ? 0.65 : 1,
+        }}
+      />
+      {saving ? (
+        <span
+          style={{
+            position: "absolute",
+            left: 8,
+            top: 8,
+            width: 11,
+            height: 11,
+            border: "2px solid rgba(255,255,255,.35)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin .6s linear infinite",
+            display: "inline-block",
+            pointerEvents: "none",
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** ديبوزت أو قسط — يُحفظ في Firestore؛ المدفوع الإجمالي يُحسب من المجموع */
+function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving }) {
   const canEdit = !!(row.docId || row.userId);
   const [editing, setEditing] = useState(false);
-  const displayVal = row.totalPaid != null && row.totalPaid !== "" ? String(row.totalPaid) : "";
+  const raw = row[valueKey];
+  const displayVal =
+    raw != null && raw !== "" && Number.isFinite(Number(raw)) ? String(raw) : "";
   const [val, setVal] = useState(displayVal);
 
   const commit = () => {
@@ -189,15 +267,13 @@ function TotalPaidCell({ row, onSave, saving }) {
     const t = val.trim();
     const num = t === "" ? null : Number(t);
     if (t !== "" && Number.isNaN(num)) return;
-    const prevRaw = row.totalPaid;
-    const prev =
-      prevRaw === "" || prevRaw == null ? null : Number(prevRaw);
+    const prev = raw === "" || raw == null ? null : Number(raw);
     if (num === prev || (Number.isNaN(prev) && num == null)) return;
-    onSave(row, num);
+    onSave(row, firestoreField, num);
   };
 
   if (!canEdit) {
-    return <MoneyCell v={row.totalPaid} />;
+    return <MoneyCell v={raw} />;
   }
 
   if (editing) {
@@ -217,7 +293,7 @@ function TotalPaidCell({ row, onSave, saving }) {
             }
           }}
           style={{
-            width: 90,
+            width: 88,
             padding: "4px 8px",
             borderRadius: 7,
             background: "rgba(255,255,255,.1)",
@@ -230,7 +306,7 @@ function TotalPaidCell({ row, onSave, saving }) {
             textAlign: "right",
           }}
         />
-        <span style={{ fontSize: 10, color: C.muted }}>EGP</span>
+        <span style={{ fontSize: 10, color: C.muted }}>ج</span>
       </div>
     );
   }
@@ -243,7 +319,7 @@ function TotalPaidCell({ row, onSave, saving }) {
           setEditing(true);
         }
       }}
-      title="اضغط لتسجيل إجمالي المدفوع (من المسؤول)"
+      title={title}
       style={{
         display: "flex",
         alignItems: "center",
@@ -281,11 +357,11 @@ function TotalPaidCell({ row, onSave, saving }) {
         />
       ) : displayVal ? (
         <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
-          {Number(row.totalPaid).toLocaleString()}
-          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>EGP</small>
+          {Number(raw).toLocaleString()}
+          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>ج</small>
         </span>
       ) : (
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>سجّل المدفوع…</span>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>+ مبلغ</span>
       )}
       {!saving && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
@@ -338,8 +414,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [sortCol,    setSortCol]    = useState("sheetDate");
   const [sortDir,    setSortDir]    = useState("desc");
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
-  const [savingTotalPaid, setSavingTotalPaid] = useState(null); // docId or userId
   const [savingCourseCost, setSavingCourseCost] = useState(null);
+  const [savingNotes, setSavingNotes] = useState(null); // docId||userId
+  const [savingFinanceField, setSavingFinanceField] = useState(null); // "doc|user::depositAmount"
   const [savingContact, setSavingContact] = useState(null); // userId being updated
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
@@ -384,29 +461,63 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     }
   };
 
-  const handleSaveTotalPaid = async (row, newAmount) => {
+  const handleSaveFinancePart = async (row, firebaseField, newVal) => {
     const lock = row.docId || row.userId;
-    if (!lock || savingTotalPaid) return;
-    setSavingTotalPaid(lock);
+    const sk = lock ? `${lock}::${firebaseField}` : null;
+    if (!sk) return;
+    if (savingFinanceField === sk) return;
+    setSavingFinanceField(sk);
     try {
       if (row.docId) {
-        await updateDoc(doc(db, "enrollmentRequests", row.docId), {
-          totalPaidManual: newAmount,
-        });
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), { [firebaseField]: newVal });
       } else if (row.userId) {
         const u = allUsers.find((x) => x.id === row.userId);
         const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
         const updatedEnrollments = enrolled.map((e) => {
           if (String(e.courseId) !== String(course.id)) return e;
-          return { ...e, totalPaidManual: newAmount };
+          return { ...e, [firebaseField]: newVal };
         });
         await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
       }
       loadRows({ silent: true });
     } catch (err) {
-      console.error("Total paid save error:", err);
+      console.error("Finance part save error:", err);
     } finally {
-      setSavingTotalPaid(null);
+      setSavingFinanceField((cur) => (cur === sk ? null : cur));
+    }
+  };
+
+  const financeSaving = (row, field) =>
+    savingFinanceField === `${row.docId || row.userId}::${field}`;
+
+  const handleSaveNotes = async (row, text) => {
+    const lock = row.docId || row.userId;
+    if (!lock || savingNotes) return;
+    const trimmed = (text ?? "").trim();
+    const newVal = trimmed === "" ? null : trimmed;
+    const prevRaw = row.notes;
+    const prev =
+      prevRaw === "" || prevRaw == null ? null : String(prevRaw).trim();
+    if (newVal === prev) return;
+
+    setSavingNotes(lock);
+    try {
+      if (row.docId) {
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), { adminNotes: newVal });
+      } else if (row.userId) {
+        const u = allUsers.find((x) => x.id === row.userId);
+        const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
+        const updatedEnrollments = enrolled.map((e) => {
+          if (String(e.courseId) !== String(course.id)) return e;
+          return { ...e, adminNotes: newVal };
+        });
+        await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      }
+      loadRows({ silent: true });
+    } catch (err) {
+      console.error("Admin notes save error:", err);
+    } finally {
+      setSavingNotes(null);
     }
   };
 
@@ -499,7 +610,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
           (r.email || "").toLowerCase().includes(q) ||
           (r.phone || "").includes(q) ||
           (r.notes || "").toLowerCase().includes(q) ||
-          (r.bookingChannel || "").toLowerCase().includes(q)
+          (r.bookingChannel || "").toLowerCase().includes(q) ||
+          (r.payPlan || "").toLowerCase().includes(q)
         );
       });
     }
@@ -625,15 +737,16 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     bookingChannel: "مصدر الحجز (سوشيال، موقع، إحالة، …)",
     contactStatus:
       "آخر حالة متابعة اتصال أو حجز — اضغط لتغييرها (مردش، أكد وهيدفع، حجز ودفع، …)",
-    notes: "ملاحظات إدارية على الطلب (من Firestore)",
+    notes: "ملاحظات إدارية — تُحرّر يدويًا في الخلية وتُحفظ في `adminNotes` في Firestore",
+    payPlan: "خطة الدفع كما اختارها الطالب عند الطلب (كامل أو أقساط)",
     courseCost: "تكلفة الكورس لهذا الطالب — اضغط على الخلية للتعديل",
-    deposit: "ديبوزت الحجز إن وُجد في البيانات",
-    installment1: "مبلغ القسط الأول إن وُجد",
-    installment2: "مبلغ القسط الثاني إن وُجد",
-    installment3: "مبلغ القسط الثالث إن وُجد",
-    totalPaid: "إجمالي المدفوع — يُسجَّل يدويًا من المسؤول",
+    deposit: "ديبوزت الحجز — يُدخل يدويًا؛ يُجمَّع ضمن عمود المدفوع",
+    installment1: "القسط الأول — يُدخل يدويًا ويُضاف للمدفوع",
+    installment2: "القسط الثاني — يُدخل يدويًا ويُضاف للمدفوع",
+    installment3: "القسط الثالث — يُدخل يدويًا ويُضاف للمدفوع",
+    totalPaid: "مجموع الديبوزت + الأقساط الثلاثة (تلقائي)؛ للبيانات القديمة بدون أجزاء يُعرض totalPaidManual إن وُجد",
     remaining: "المتبقي = تكلفة الكورس − المدفوع (حسب الأرقام المعروضة)",
-    _admin: "خطة الدفع وتأكيد استلام الدفع (بعد حالة المتابعة في العمود المنفصل)",
+    _admin: "تأكيد استلام الدفع (حالة المتابعة في العمود المنفصل)",
   };
 
   const TABLE_COL_DIVIDER = "1px solid rgba(255,255,255,.12)";
@@ -697,14 +810,44 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "notes",
       label: "ملاحظات",
+      w: 200,
+      render: (r) => (
+        <AdminNotesCell
+          row={r}
+          onSave={handleSaveNotes}
+          saving={savingNotes === (r.docId || r.userId)}
+        />
+      ),
+    },
+    {
+      key: "payPlan",
+      label: "خطة الدفع",
       w: 140,
+      sortable: true,
       render: (r) => {
-        const t = r.notes || "";
-        if (!t) return <span style={{ color: "rgba(255,255,255,.25)" }}>—</span>;
-        const short = t.length > 48 ? `${t.slice(0, 48)}…` : t;
+        const pp = r.payPlan || "";
+        if (!pp) return <span style={{ color: "rgba(255,255,255,.25)", fontSize: 11 }}>—</span>;
+        const full = pp.includes("كامل");
+        const payPlanColor = full ? "#5eead4" : C.orange;
         return (
-          <span title={t} style={{ fontSize: 11, lineHeight: 1.5, color: "rgba(255,255,255,.88)" }}>
-            {short}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              padding: "5px 10px",
+              borderRadius: 8,
+              background: `${payPlanColor}14`,
+              color: payPlanColor,
+              border: `1px solid ${payPlanColor}33`,
+              maxWidth: "100%",
+              display: "inline-block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={pp}
+          >
+            {pp}
           </span>
         );
       },
@@ -722,20 +865,77 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         />
       ),
     },
-    { key: "deposit", label: "ديبوزت الحجز", w: 96, render: (r) => <MoneyCell v={r.deposit} /> },
-    { key: "installment1", label: "القسط ١", w: 88, render: (r) => <MoneyCell v={r.installment1} /> },
-    { key: "installment2", label: "القسط ٢", w: 88, render: (r) => <MoneyCell v={r.installment2} /> },
-    { key: "installment3", label: "القسط ٣", w: 88, render: (r) => <MoneyCell v={r.installment3} /> },
+    {
+      key: "deposit",
+      label: "ديبوزت الحجز",
+      w: 96,
+      render: (r) => (
+        <FinancePartCell
+          row={r}
+          firestoreField="depositAmount"
+          valueKey="deposit"
+          title="ديبوزت الحجز — اضغط للتعديل (يُحفظ في Firestore ويُحدّث عمود المدفوع تلقائيًا)"
+          onSave={handleSaveFinancePart}
+          saving={financeSaving(r, "depositAmount")}
+        />
+      ),
+    },
+    {
+      key: "installment1",
+      label: "القسط ١",
+      w: 88,
+      render: (r) => (
+        <FinancePartCell
+          row={r}
+          firestoreField="installment1"
+          valueKey="installment1"
+          title="القسط الأول — اضغط للتعديل"
+          onSave={handleSaveFinancePart}
+          saving={financeSaving(r, "installment1")}
+        />
+      ),
+    },
+    {
+      key: "installment2",
+      label: "القسط ٢",
+      w: 88,
+      render: (r) => (
+        <FinancePartCell
+          row={r}
+          firestoreField="installment2"
+          valueKey="installment2"
+          title="القسط الثاني — اضغط للتعديل"
+          onSave={handleSaveFinancePart}
+          saving={financeSaving(r, "installment2")}
+        />
+      ),
+    },
+    {
+      key: "installment3",
+      label: "القسط ٣",
+      w: 88,
+      render: (r) => (
+        <FinancePartCell
+          row={r}
+          firestoreField="installment3"
+          valueKey="installment3"
+          title="القسط الثالث — اضغط للتعديل"
+          onSave={handleSaveFinancePart}
+          saving={financeSaving(r, "installment3")}
+        />
+      ),
+    },
     {
       key: "totalPaid",
       label: "المدفوع",
       w: 100,
       render: (r) => (
-        <TotalPaidCell
-          row={r}
-          onSave={handleSaveTotalPaid}
-          saving={savingTotalPaid === (r.docId || r.userId)}
-        />
+        <span
+          title="مجموع الديبوزت والأقساط — يُحسب تلقائيًا من ديبوزت الحجز + القسط ١ + ٢ + ٣. إن لم تُدخل أجزاء قد تُستخدم قيمة يدوية قديمة في النظام فقط."
+          style={{ display: "block" }}
+        >
+          <MoneyCell v={r.totalPaid} />
+        </span>
       ),
     },
     {
@@ -747,11 +947,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "_admin",
       label: "متابعة · دفع",
-      w: 620,
+      w: 280,
       render: (r) => {
-        const pp = r.payPlan || "—";
-        const full = pp.includes("كامل");
-        const payPlanColor = full ? "#5eead4" : C.orange;
         const confirmedLine =
           r.paymentConfirmed && r.confirmedAt
             ? typeof r.confirmedAt === "string" && r.confirmedAt.includes("T")
@@ -764,9 +961,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
           background: "rgba(255,255,255,.04)",
           border: "1px solid rgba(255,255,255,.1)",
           boxSizing: "border-box",
-          flex: "1 1 168px",
-          minWidth: 152,
-          maxWidth: 220,
+          width: "100%",
+          maxWidth: 260,
           display: "flex",
           flexDirection: "column",
         };
@@ -787,34 +983,10 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
               alignItems: "stretch",
               justifyContent: "flex-start",
               direction: "rtl",
-              minWidth: 480,
+              minWidth: 200,
             }}
           >
             <div style={miniBase}>
-              <div style={lbl}>خطة الدفع</div>
-              <div style={{ display: "flex", justifyContent: "flex-end", flex: 1, alignItems: "center" }}>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: `${payPlanColor}14`,
-                    color: payPlanColor,
-                    border: `1px solid ${payPlanColor}33`,
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={pp}
-                >
-                  {pp}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ ...miniBase, maxWidth: 240 }}>
               <div style={lbl}>تأكيد استلام الدفع</div>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <PayConfirmBtn row={r} onToggle={handleTogglePay} loading={confirming === r.docId} />
@@ -959,9 +1131,9 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
             </div>
 
             <p style={{ margin: 0, fontSize: 10, color: "rgba(255,255,255,.4)", lineHeight: 1.6 }}>
-              الأعمدة المالية (ديبوزت / أقساط / اسم رباعي / ملاحظات) تُقرأ من حقول اختيارية على طلب التسجيل في Firestore:
-              <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · adminNotes · depositAmount · installment1…3 · coursePriceOverride · totalPaidManual </code>
-              — يمكن تعبئتها يدويًا أو لاحقًا من نموذج إداري.
+              الديبوزت والأقساط تُدخل من الجدول وتُحفظ في Firestore؛ عمود «المدفوع» يُحدَّث تلقائيًا كمجموعها. الحقول الاختيارية الأخرى:
+              <code style={{ fontSize: 9, marginRight: 6 }}> studentFullName · adminNotes · coursePriceOverride </code>
+              — يمكن تعبئتها يدويًا أو في Firestore.
             </p>
 
             {/* ── Table ── */}
