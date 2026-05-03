@@ -597,12 +597,24 @@ export default function Landing() {
       <footer style={{background:"#1a0f24",padding:"36px 5% 18px",borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:24,marginBottom:20}}>
           <div>
-            <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 10 }}>
-              <img
-                src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
-                alt="Eduzah"
-                style={{ height: 38, width: "auto", maxWidth: 220, objectFit: "contain", display: "block" }}
-              />
+            <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 12 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "linear-gradient(180deg, #ffffff 0%, #f4f2f8 100%)",
+                  padding: "10px 18px",
+                  borderRadius: 14,
+                  boxShadow: "0 2px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.9)",
+                }}
+              >
+                <img
+                  src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
+                  alt="Eduzah"
+                  style={{ height: 44, width: "auto", maxWidth: 210, objectFit: "contain", display: "block" }}
+                />
+              </span>
             </Link>
             <p style={{color:C.muted,fontSize:12,lineHeight:1.9}}>{lang==="ar"?SITE.tagline:SITE.tagline_en}</p>
           </div>
