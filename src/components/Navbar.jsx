@@ -80,7 +80,8 @@ export default function Navbar() {
 
   const linkSx = (path, isMobile = false) => ({
     display: "block",
-    padding: isMobile ? "11px 14px" : "6px 12px",
+    padding: isMobile ? "14px 14px" : "6px 12px",
+    minHeight: isMobile ? 48 : undefined,
     borderRadius: 8,
     background: isActive(path) ? "rgba(217,27,91,.10)" : "transparent",
     border: isActive(path) ? `1px solid ${C.red}33` : "1px solid transparent",
@@ -251,11 +252,21 @@ export default function Navbar() {
             {/* Divider */}
             <div style={{ borderTop: "1px solid var(--nav-border)", paddingTop: 14 }}>
               {!currentUser ? (
-                <div style={{ display: "flex", gap: 10 }}>
-                  <Btn children={lang==="ar" ? "دخول"  : "Login"}
-                    sm onClick={() => { navigate("/login"); setOpen(false); }} />
-                  <Btn children={lang==="ar" ? "سجّل"  : "Register"}
-                    sm onClick={() => { navigate("/register"); setOpen(false); }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <Btn
+                    children={lang === "ar" ? "دخول" : "Login"}
+                    sm
+                    full
+                    onClick={() => { navigate("/login"); setOpen(false); }}
+                    style={{ minHeight: 48 }}
+                  />
+                  <Btn
+                    children={lang === "ar" ? "إنشاء حساب" : "Create account"}
+                    sm
+                    full
+                    onClick={() => { navigate("/register"); setOpen(false); }}
+                    style={{ minHeight: 48 }}
+                  />
                 </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

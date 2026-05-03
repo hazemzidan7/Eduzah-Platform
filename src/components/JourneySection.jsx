@@ -3,7 +3,7 @@ import { useInView } from "../hooks/useInView";
 
 const STEPS = [
   { num:"01", image:"/images/journey/Register.png",       color:"#d91b5b", ar:"سجّل حسابك",        en:"Register",         desc_ar:"أنشئ حسابك في دقيقة واحدة",                desc_en:"Create your account in just one minute" },
-  { num:"02", image:"/images/journey/Get_Approved.png",   color:"#f59e0b", ar:"احصل على الموافقة", en:"Get Approved",     desc_ar:"يراجع فريقنا طلبك ويوافق عليه بسرعة",     desc_en:"Our team reviews and approves your request" },
+  { num:"02", image:"/images/journey/Get_Approved.png",   color:"#f59e0b", ar:"تفعيل حسابك", en:"Account activation", desc_ar:"نؤكد بياناتك لضمان جودة التدريب وحماية المجتمع — عادةً خلال ساعات قليلة", desc_en:"We verify your details for quality & community safety — usually within hours" },
   { num:"03", image:"/images/journey/Start_Course.png",   color:"#7d3d9e", ar:"ابدأ الكورس",       en:"Start Course",     desc_ar:"ادخل عالم التعلم واختر الكورس المناسب لك", desc_en:"Enter the learning world and pick your course" },
   { num:"04", image:"/images/journey/Practice_Learn.png", color:"#0ea5e9", ar:"تدرّب وتعلّم",      en:"Practice & Learn", desc_ar:"طبّق مشاريع حقيقية واكتسب خبرة عملية",    desc_en:"Apply real projects and gain hands-on skills" },
   { num:"05", image:"/images/journey/Get_Hired.png",      color:"#34d399", ar:"تخرّج وانضم",       en:"Get Hired",        desc_ar:"احصل على شهادتك وابدأ مسيرتك المهنية",    desc_en:"Get certified and launch your career" },

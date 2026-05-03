@@ -4,6 +4,13 @@ export const SITE = {
   name: "Eduzah",
   tagline: "Eduzah شركة سوفتوير متخصصة في تقديم التدريبات التقنية في مجالات تطوير البرمجيات والذكاء الاصطناعي",
   tagline_en: "Eduzah — A software company specialized in technical training in software development and AI",
+  /** أرقام موحّدة للعرض العام (Landing، نسخ تسويقية) — حدّثها من مكان واحد */
+  publicStats: {
+    trainees: 5000,
+    partners: 50,
+    rating: 4.8,
+    years: 3,
+  },
   about: "Eduzah أكاديمية التدريب المهني الرائدة في مصر. منذ تأسيسنا دربنا أكثر من 5000 محترف في مجالات التكنولوجيا، إدارة الموارد البشرية، اللغات، وتدريب الأطفال.",
   phone: "+201044222881",
   email: "info@eduzah.com",

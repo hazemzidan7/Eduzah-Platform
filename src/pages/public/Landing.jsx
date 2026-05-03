@@ -106,11 +106,12 @@ export default function Landing() {
 
   // ── Animated counter hook ──────────────────────────────
   const [statsRef, statsInView] = useInView();
+  const ps = SITE.publicStats;
   const STATS = [
-    { target: 5000, suffix: "+", label: lang==="ar"?"متدرب":"Trainees" },
-    { target: 50,   suffix: "+", label: lang==="ar"?"مؤسسة شريكة":"Partners" },
-    { target: 48,   suffix: "/5", label: lang==="ar"?"تقييم":"Rating", display:"4.8" },
-    { target: 3,    suffix: "+", label: lang==="ar"?"سنوات":"Years" },
+    { target: ps.trainees, suffix: "+", label: lang === "ar" ? "متدرب" : "Trainees" },
+    { target: ps.partners, suffix: "+", label: lang === "ar" ? "مؤسسة شريكة" : "Partners" },
+    { target: 48, suffix: "/5", label: lang === "ar" ? "تقييم" : "Rating", display: String(ps.rating) },
+    { target: ps.years, suffix: "+", label: lang === "ar" ? "سنوات" : "Years" },
   ];
   // Start at target so numbers are never misleadingly 0 before animation
   const [counts, setCounts] = useState(STATS.map(s => s.display ?? s.target));
@@ -122,12 +123,12 @@ export default function Landing() {
     const steps = 60;
     const interval = duration / steps;
     let step = 0;
-    setCounts(STATS.map(() => 0));
+    setCounts(STATS.map((s) => (s.display != null ? s.display : 0)));
     const timer = setInterval(() => {
       step++;
       const progress = step / steps;
       const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-      setCounts(STATS.map(s => s.display ? s.display : Math.round(s.target * ease)));
+      setCounts(STATS.map((s) => (s.display != null ? s.display : Math.round(s.target * ease))));
       if (step >= steps) clearInterval(timer);
     }, interval);
     return () => clearInterval(timer);
@@ -146,10 +147,10 @@ export default function Landing() {
   const [testimonialsRef, testimonialsInView] = useInView();
   const [journeyRef, journeyInView] = useInView();
 
-  /** Light footer strip — readable logo + typography, matches white nav */
+  /** Footer: off-white top fade يخفف القفزة من أقسام داكنة */
   const F = {
-    bg: "#ffffff",
-    line: "#e8e4ef",
+    bg: "linear-gradient(180deg, #f0ecf5 0%, #faf9fc 28px, #ffffff 100%)",
+    line: "#e2dce8",
     h: "#1a1522",
     t: "#4f4d5c",
     m: "#7d778a",
@@ -184,6 +185,24 @@ export default function Landing() {
           animation: none;
           box-shadow: 0 14px 45px rgba(217,27,91,.75) !important;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-cta-primary { animation: none !important; }
+          .hero-float-orb { animation: none !important; }
+        }
+        @media (max-width: 640px) {
+          .hero-cta-row { flex-direction: column !important; align-items: stretch !important; }
+          .hero-cta-row > button { width: 100% !important; min-height: 48px; justify-content: center; }
+          .hero-cta-secondary-row { flex-direction: column !important; align-items: stretch !important; }
+          .hero-cta-secondary-row > button { width: 100% !important; min-height: 46px; justify-content: center; }
+          .hero-stats-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px 12px;
+            justify-items: center;
+            max-width: 360px;
+            margin-inline: auto;
+          }
+        }
         .landing-footer-link {
           display: block;
           text-decoration: none;
@@ -200,31 +219,64 @@ export default function Landing() {
         description={lang === "ar" ? SITE.tagline : (SITE.tagline_en || SITE.tagline)}
       />
       {/* ── Hero ── */}
-      <div style={{minHeight:"calc(100vh - 60px)",background:gHero,display:"flex",alignItems:"center",padding:"50px 5%",position:"relative",overflow:"hidden",gap:40,flexWrap:"wrap"}}>
-        <div style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatA 8s ease-in-out infinite"}}/>
-        <div style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,background:`radial-gradient(circle,rgba(217,27,91,.25),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 10s ease-in-out infinite"}}/>
-        <div style={{position:"absolute",top:"30%",left:"20%",width:200,height:200,background:`radial-gradient(circle,rgba(255,184,77,.08),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 7s ease-in-out infinite 2s"}}/>
+      <div style={{minHeight:"calc(100vh - 60px)",background:gHero,display:"flex",alignItems:"center",padding:"clamp(32px,6vw,50px) 5% clamp(40px,8vw,56px)",position:"relative",overflow:"hidden",gap:40,flexWrap:"wrap"}}>
+        <div className="hero-float-orb" style={{position:"absolute",top:"-15%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.3),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatA 8s ease-in-out infinite"}}/>
+        <div className="hero-float-orb" style={{position:"absolute",bottom:"-15%",left:"-5%",width:400,height:400,background:`radial-gradient(circle,rgba(217,27,91,.25),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 10s ease-in-out infinite"}}/>
+        <div className="hero-float-orb" style={{position:"absolute",top:"30%",left:"20%",width:200,height:200,background:`radial-gradient(circle,rgba(255,184,77,.08),transparent 70%)`,borderRadius:"50%",pointerEvents:"none",animation:"floatB 7s ease-in-out infinite 2s"}}/>
+        {/* جسر بصري خفيف قبل أقسام الصفحة */}
+        <div aria-hidden style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56, pointerEvents: "none", background: "linear-gradient(180deg, transparent 0%, rgba(26,10,46,.35) 100%)" }} />
 
         <div style={{flex:"1 1 300px",position:"relative",zIndex:2}}>
-          <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:16}}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 12,
+              padding: "5px 14px",
+              borderRadius: 999,
+              background: "rgba(255,184,77,.12)",
+              border: `1px solid rgba(255,184,77,.35)`,
+              color: C.orange,
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: lang === "ar" ? 0 : 0.5,
+            }}
+          >
+            {lang === "ar" ? "تدريب تقني ومهني — للأفراد والشركات" : "Tech & professional training — individuals & teams"}
+          </div>
+          <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:14}}>
             {lang==="ar"
-              ? <><span style={{color:C.orange}}>حوّل</span> مسيرتك المهنية<br/>مع <span style={{color:C.red}}>Eduzah</span></>
-              : <>Transform Your Career<br/><span style={{color:C.orange}}>with</span> <span style={{color:C.red}}>Eduzah</span></>}
+              ? <><span style={{color:C.orange}}>امشِ خطوة</span> لقدّام في شغلك<br/>مع <span style={{color:C.red}}>Eduzah</span></>
+              : <>Move Your Career<br/><span style={{color:C.orange}}>Forward</span> <span style={{color:C.red}}>with Eduzah</span></>}
           </h1>
-          <p style={{color:C.muted,fontSize:14,lineHeight:1.9,marginBottom:30,maxWidth:480}}>
+          <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:14,maxWidth:500}}>
             {lang==="ar"
-              ? "شركة Eduzah تقدم حلولاً تدريبية احترافية للأفراد والمؤسسات في التكنولوجيا والإدارة واللغات وتدريب الأطفال."
-              : "Eduzah provides professional training solutions for individuals and organizations in Technology, Management, Languages, and Children's Programs."
+              ? "دورات ودبلومات عملية في البرمجة، الذكاء الاصطناعي، الموارد البشرية، والإنجليزي — مع مدربين خبراء ودعم يقربك من سوق العمل."
+              : "Hands-on diplomas in software, AI, HR & English — expert instructors and support that gets you job-ready."
             }
           </p>
-          <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:36}}>
+          <p style={{ color: "rgba(255,255,255,.55)", fontSize: 12, lineHeight: 1.65, marginBottom: 18, maxWidth: 520 }}>
+            {lang === "ar"
+              ? "مسار سريع: تصفّح البرامج ← سجّل حسابك ← نفعّل وصولك ← تبدأ التعلّم. للشركات: برامج مخصصة من صفحة «تدريب الشركات»."
+              : "Fast path: browse programs → sign up → we activate access → you learn. For teams: custom programs via Corporate Training."}
+          </p>
+          <div className="hero-cta-row" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
             {!currentUser ? (
-              <Btn
-                className="hero-cta-primary"
-                children={lang==="ar" ? "ابدأ رحلتك 🚀" : "Start Your Journey 🚀"}
-                onClick={()=>navigate("/register")}
-                style={{padding:"13px 28px",fontSize:14,borderRadius:12,background:"linear-gradient(135deg,#d91b5b,#b51549)"}}
-              />
+              <>
+                <Btn
+                  className="hero-cta-primary"
+                  children={lang === "ar" ? "سجّل مجاناً وابدأ الآن" : "Sign up free — start now"}
+                  onClick={() => navigate("/register")}
+                  style={{ padding: "13px 26px", fontSize: 14, borderRadius: 12, background: "linear-gradient(135deg,#d91b5b,#b51549)" }}
+                />
+                <Btn
+                  children={lang === "ar" ? "تصفّح البرامج أولاً" : "Browse programs first"}
+                  v="outline"
+                  onClick={() => navigate("/courses")}
+                  style={{ padding: "13px 26px", fontSize: 14, borderRadius: 12 }}
+                />
+              </>
             ) : currentUser.role === "admin" ? (
               <Btn
                 className="hero-cta-primary"
@@ -235,15 +287,40 @@ export default function Landing() {
             ) : (
               <Btn
                 className="hero-cta-primary"
-                children={lang==="ar" ? "كمل التعلم ▶" : "Continue learning ▶"}
+                children={lang==="ar" ? "كمل تعلّمك ▶" : "Continue learning ▶"}
                 onClick={()=>navigate("/dashboard")}
                 style={{padding:"13px 28px",fontSize:14,borderRadius:12}}
               />
             )}
-            <Btn children={lang==="ar" ? "\u0645\u0634 \u0639\u0627\u0631\u0641 \u062a\u0628\u062f\u0623 \u0645\u0646\u064a\u0646\u061f" : "Find my path"} v="outline" onClick={()=>navigate("/find-path")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
-            <Btn children={lang==="ar" ? "استشارة مجانية" : "Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 28px",fontSize:14,borderRadius:12}}/>
           </div>
-          <div ref={statsRef} style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap",justifyContent:"center"}}>
+          <div className="hero-cta-secondary-row" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 32 }}>
+            {!currentUser && (
+              <>
+                <Btn
+                  children={lang === "ar" ? "لسه متردد؟ اختبر مسارك" : "Not sure? Find your path"}
+                  v="outline"
+                  sm
+                  onClick={() => navigate("/find-path")}
+                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
+                />
+                <Btn
+                  children={lang === "ar" ? "استشارة مجانية (١٥ دقيقة)" : "Free 15‑min consult"}
+                  v="outline"
+                  sm
+                  onClick={() => navigate("/consultation")}
+                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
+                />
+                <Btn
+                  children={lang === "ar" ? "تدريب للشركات" : "Corporate training"}
+                  v="ghost"
+                  sm
+                  onClick={() => navigate("/corporate")}
+                  style={{ padding: "10px 14px", fontSize: 12 }}
+                />
+              </>
+            )}
+          </div>
+          <div ref={statsRef} className="hero-stats-grid" style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap",justifyContent:"center"}}>
             {STATS.map((s, i)=>(
               <div key={s.label}>
                 <div style={{fontSize:"clamp(1.4rem,3vw,2rem)",fontWeight:900,color:C.orange}}>
@@ -359,7 +436,7 @@ export default function Landing() {
             ))}
           </div>
           <div style={{textAlign:"center",marginTop:28}}>
-            <Btn children={lang==="ar"?"عرض كل البرامج ←":"View All Programs →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
+            <Btn children={lang==="ar"?"استكشف كل البرامج ←":"Explore all programs →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
           </div>
         </div>
       )}
@@ -382,7 +459,7 @@ export default function Landing() {
               </div>
             ))}</div>}
         <div style={{textAlign:"center",marginTop:28}}>
-          <Btn children={lang==="ar"?"عرض كل الكورسات ←":"View All Courses →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
+          <Btn children={lang==="ar"?"شاهد كل الكورسات ←":"See all courses →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
         </div>
       </div>
 
@@ -398,8 +475,8 @@ export default function Landing() {
             </h2>
             <p style={{color:C.muted,fontSize:14,lineHeight:1.9,marginBottom:20}}>
               {lang==="ar"
-                ? "شركة Eduzah متخصصة في تقديم حلول التدريب المهني للأفراد والمؤسسات والشركات في مصر. نهدف إلى بناء كوادر بشرية مؤهلة قادرة على المنافسة في سوق العمل."
-                : "Eduzah specializes in professional training solutions for individuals, institutions, and companies in Egypt. Our mission is to build qualified human capital ready for the job market."
+                ? "نركّز على المهارة قبل الشهادة: مشاريع عملية، متابعة من الفريق، وربط بمسارات توظيف لمن يناسبه. سواء كنت فرداً أو شركة، نبني برنامجاً يطابق هدفك ووقتك."
+                : "Skills first, certificates follow: real projects, team follow-up, and hiring pathways where it fits. Whether you’re an individual or a company, we shape a program around your goal and schedule."
               }
             </p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
@@ -417,9 +494,9 @@ export default function Landing() {
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
               <Btn onClick={()=>window.open(`https://wa.me/${SITE.phone.replace(/[^0-9]/g,"")}`)}>
-                {lang==="ar"?"تواصل معنا":"Contact Us"}
+                {lang==="ar"?"راسلنا على واتساب":"Message us on WhatsApp"}
               </Btn>
-              <Btn children={lang==="ar"?"خدماتنا للشركات":"Corporate Services"} v="outline" onClick={()=>navigate("/corporate")}/>
+              <Btn children={lang==="ar"?"طلب تدريب للشركات":"Request corporate training"} v="outline" onClick={()=>navigate("/corporate")}/>
             </div>
           </div>
           <div style={{borderRadius:20,overflow:"hidden",boxShadow:`0 20px 60px rgba(0,0,0,.4)`}}>
@@ -591,24 +668,44 @@ export default function Landing() {
         </div>
       )}
 
-      {/* ── CTA ── */}
-      <div style={{background:gHero,padding:"clamp(36px,7vw,60px) 5%",textAlign:"center"}}>
-        <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:12}}>
-          {lang==="ar" ? "جاهز لتطوير مسيرتك أو مؤسستك؟" : "Ready to Elevate Your Career or Organization?"}
-        </h2>
-        <p style={{color:C.muted,fontSize:14,marginBottom:26}}>
-          {lang==="ar" ? "انضم لأكثر من 5,000 متدرب اختاروا Eduzah" : "Join 5,000+ trainees who chose Eduzah"}
-        </p>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          {!currentUser
-            ? <Btn className="hero-cta-primary" children={lang==="ar"?"ابدأ رحلتك 🚀":"Start Your Journey 🚀"} onClick={()=>navigate("/register")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#d91b5b,#b51549)"}}/>
-            : currentUser.role === "admin"
-              ? <Btn className="hero-cta-primary" children={lang==="ar"?"\u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645":"Dashboard"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12,background:"linear-gradient(135deg,#f59e0b,#d97706)"}}/>
-              : <Btn className="hero-cta-primary" children={lang==="ar"?"كمل التعلم ▶":"Continue learning ▶"} onClick={()=>navigate("/dashboard")} style={{padding:"13px 30px",borderRadius:12}}/>
-          }
-          <Btn children={lang==="ar"?"\u0645\u0634 \u0639\u0627\u0631\u0641 \u062a\u0628\u062f\u0623 \u0645\u0646\u064a\u0646\u061f":"Find my path"} v="outline" onClick={()=>navigate("/find-path")} style={{padding:"13px 30px"}}/>
-          <Btn children={lang==="ar"?"تدريب الشركات":"Corporate Training"} v="outline" onClick={()=>navigate("/corporate")} style={{padding:"13px 30px"}}/>
-          <Btn children={lang==="ar"?"استشارة مجانية":"Free Consultation"} v="outline" onClick={()=>navigate("/consultation")} style={{padding:"13px 30px"}}/>
+      {/* ── Closing CTA — تسلسل واحد: تحويل رئيسي ثم بدائل ── */}
+      <div style={{ background: gHero, padding: "clamp(40px,8vw,72px) 5%", textAlign: "center", position: "relative" }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(217,27,91,.12), transparent 55%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 640, marginInline: "auto" }}>
+          <h2 style={{ fontSize: "clamp(1.35rem,3vw,2.1rem)", fontWeight: 900, marginBottom: 10, lineHeight: 1.35 }}>
+            {lang === "ar" ? "جاهز للخطوة الجاية؟" : "Ready for your next step?"}
+          </h2>
+          <p style={{ color: C.muted, fontSize: 14, marginBottom: 8, lineHeight: 1.8 }}>
+            {lang === "ar"
+              ? `انضم لأكثر من ${SITE.publicStats.trainees.toLocaleString()}+ متدرب اختاروا التعلّم العملي معنا.`
+              : `Join ${SITE.publicStats.trainees.toLocaleString()}+ learners who chose hands-on training with us.`}
+          </p>
+          <p style={{ color: "rgba(255,255,255,.5)", fontSize: 12, marginBottom: 24, lineHeight: 1.65 }}>
+            {lang === "ar" ? "الأسرع: سجّل حسابك. أو تصفّح الكورسات لو حابب تقارن قبل ما تختار." : "Fastest: create your account. Or browse courses first if you like to compare."}
+          </p>
+          <div className="hero-cta-row" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
+            {!currentUser ? (
+              <Btn
+                className="hero-cta-primary"
+                children={lang === "ar" ? "أنشئ حسابك مجاناً" : "Create your free account"}
+                onClick={() => navigate("/register")}
+                style={{ padding: "14px 28px", borderRadius: 12, background: "linear-gradient(135deg,#d91b5b,#b51549)", fontSize: 14 }}
+              />
+            ) : currentUser.role === "admin" ? (
+              <Btn className="hero-cta-primary" children={lang === "ar" ? "لوحة التحكم" : "Dashboard"} onClick={() => navigate("/dashboard")} style={{ padding: "14px 28px", borderRadius: 12, background: "linear-gradient(135deg,#f59e0b,#d97706)", fontSize: 14 }} />
+            ) : (
+              <Btn className="hero-cta-primary" children={lang === "ar" ? "متابعة التعلّم" : "Continue learning"} onClick={() => navigate("/dashboard")} style={{ padding: "14px 28px", borderRadius: 12, fontSize: 14 }} />
+            )}
+            {!currentUser && (
+              <Btn children={lang === "ar" ? "تصفّح الكورسات" : "Browse courses"} v="outline" onClick={() => navigate("/courses")} style={{ padding: "14px 28px", borderRadius: 12, fontSize: 14 }} />
+            )}
+          </div>
+          {!currentUser && (
+            <div className="hero-cta-secondary-row" style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <Btn children={lang === "ar" ? "احجز استشارة مجانية" : "Book a free consult"} v="outline" sm onClick={() => navigate("/consultation")} style={{ padding: "10px 20px", borderRadius: 10 }} />
+              <Btn children={lang === "ar" ? "برنامج لمؤسستك" : "Training for your org"} v="ghost" sm onClick={() => navigate("/corporate")} style={{ padding: "10px 16px" }} />
+            </div>
+          )}
         </div>
       </div>
 
