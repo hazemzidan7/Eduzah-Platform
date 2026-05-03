@@ -137,6 +137,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       installment3: r.installment3 ?? enrollment?.installment3,
       totalPaidManual: r.totalPaidManual ?? enrollment?.totalPaidManual,
     };
+    const effPaymentPlan = r.paymentPlan ?? enrollment?.paymentPlan ?? null;
     const fin = computeStudentFinance(effFinance, course);
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
@@ -148,7 +149,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       training:         fmtTraining(r.trainingType),
       attendanceAr:     attendanceLabelAr(r.trainingType),
       payMethod:        (r.paymentMethod || "InstaPay").toUpperCase(),
-      payPlan:          fmtPlan(r.paymentPlan),
+      paymentPlan:      effPaymentPlan,
+      payPlan:          fmtPlan(effPaymentPlan),
       amount:           r.amountQuoted ?? null,
       level:            fmtLevel(r.level),
       source:           r.source || "—",
@@ -195,6 +197,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       confirmedAt: null,
     };
     const finG = computeStudentFinance(guestR, course);
+    const guestPaymentPlan = enrollment?.paymentPlan ?? null;
     const enrollDateRaw = enrollment?.enrollDate;
     const sheetDateGuest =
       typeof enrollDateRaw === "string" && /^\d{4}-\d{2}-\d{2}/.test(enrollDateRaw)
@@ -217,7 +220,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       training:         "—",
       attendanceAr:     "—",
       payMethod:        "—",
-      payPlan:          "—",
+      paymentPlan:      guestPaymentPlan,
+      payPlan:          fmtPlan(guestPaymentPlan),
       amount:           null,
       level:            "—",
       source:           "—",

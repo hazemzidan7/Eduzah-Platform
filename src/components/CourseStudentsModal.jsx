@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { C, font } from "../theme";
-import { fetchCourseStudents, fmtDate, exportCourseStudents, ledgerAmountForStats } from "../utils/exportExcel";
+import { fetchCourseStudents, fmtDate, fmtPlan, exportCourseStudents, ledgerAmountForStats } from "../utils/exportExcel";
 
 // ─── Mini UI helpers ──────────────────────────────────────────────────────────
 const CONTACT_CFG = {
@@ -19,6 +19,79 @@ const CONTACT_CFG = {
   booked_previous:    { label: "حاجز في راوند سابقة",     color: "#fb7185" },
   attending_current:  { label: "بيحضر في الراوند الحالية", color: "#22c55e" },
 };
+
+/** Display / edit wrappers for currency cells — match ديبوزت الحجز (FinancePartCell) across columns */
+const MONEY_CELL_BOX = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "6px 10px",
+  borderRadius: 8,
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(255,255,255,.04)",
+  transition: "border-color .15s, background .15s",
+  width: "100%",
+  boxSizing: "border-box",
+  minWidth: 0,
+};
+
+const MONEY_EDIT_ROW = {
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+  width: "100%",
+  boxSizing: "border-box",
+  minWidth: 0,
+};
+
+const moneyInputEditStyle = {
+  flex: "1 1 0%",
+  minWidth: 0,
+  width: "100%",
+  padding: "4px 8px",
+  borderRadius: 7,
+  background: "rgba(255,255,255,.1)",
+  border: `1.5px solid ${C.purple}`,
+  color: "#fff",
+  fontFamily: font,
+  fontSize: 13,
+  fontWeight: 700,
+  outline: "none",
+  textAlign: "right",
+  boxSizing: "border-box",
+};
+
+const MONEY_SUFFIX = { fontSize: 10, color: C.muted };
+const MONEY_AMOUNT_INLINE_SUFFIX = {
+  fontSize: 10,
+  color: "rgba(255,255,255,.45)",
+  fontWeight: 500,
+  marginRight: 4,
+};
+const MONEY_SAVING_SPINNER = {
+  width: 12,
+  height: 12,
+  border: "2px solid rgba(255,255,255,.35)",
+  borderTopColor: "transparent",
+  borderRadius: "50%",
+  animation: "spin .6s linear infinite",
+  display: "inline-block",
+};
+const EDIT_PENCIL_ICON_SZ = 12;
+
+function moneyCellHoverProps() {
+  return {
+    onMouseEnter(e) {
+      e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
+      e.currentTarget.style.background = "rgba(125,61,158,.08)";
+    },
+    onMouseLeave(e) {
+      e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
+      e.currentTarget.style.background = "rgba(255,255,255,.04)";
+    },
+  };
+}
 
 function MoneyCell({ v }) {
   if (v === "" || v == null) return <span style={{ color: "rgba(255,255,255,.28)" }}>—</span>;
@@ -82,7 +155,7 @@ function CourseCostCell({ row, course, onSave, saving }) {
 
   if (editing) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <div style={MONEY_EDIT_ROW}>
         <input
           autoFocus
           type="number"
@@ -96,21 +169,9 @@ function CourseCostCell({ row, course, onSave, saving }) {
               setVal(displayVal);
             }
           }}
-          style={{
-            width: 90,
-            padding: "4px 8px",
-            borderRadius: 7,
-            background: "rgba(255,255,255,.1)",
-            border: `1.5px solid ${C.purple}`,
-            color: "#fff",
-            fontFamily: font,
-            fontSize: 13,
-            fontWeight: 700,
-            outline: "none",
-            textAlign: "right",
-          }}
+          style={moneyInputEditStyle}
         />
-        <span style={{ fontSize: 10, color: C.muted }}>EGP</span>
+        <span style={MONEY_SUFFIX}>EGP</span>
       </div>
     );
   }
@@ -125,50 +186,23 @@ function CourseCostCell({ row, course, onSave, saving }) {
       }}
       title="اضغط لتعديل تكلفة الكورس لهذا الطالب. امسح القيمة لإلغاء التخصيص والاعتماد على سعر الكورس الافتراضي."
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
+        ...MONEY_CELL_BOX,
         cursor: saving ? "wait" : "pointer",
-        padding: "6px 10px",
-        borderRadius: 8,
-        border: "1px solid rgba(255,255,255,.12)",
-        background: "rgba(255,255,255,.04)",
-        transition: "border-color .15s, background .15s",
-        width: "100%",
-        boxSizing: "border-box",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
-        e.currentTarget.style.background = "rgba(125,61,158,.08)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
-        e.currentTarget.style.background = "rgba(255,255,255,.04)";
-      }}
+      {...moneyCellHoverProps()}
     >
       {saving ? (
-        <span
-          style={{
-            width: 12,
-            height: 12,
-            border: "2px solid rgba(255,255,255,.35)",
-            borderTopColor: "transparent",
-            borderRadius: "50%",
-            animation: "spin .6s linear infinite",
-            display: "inline-block",
-          }}
-        />
+        <span style={MONEY_SAVING_SPINNER} />
       ) : displayVal ? (
         <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
           {Number(row.courseCost).toLocaleString()}
-          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>EGP</small>
+          <small style={MONEY_AMOUNT_INLINE_SUFFIX}>EGP</small>
         </span>
       ) : (
         <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>حدّد التكلفة…</span>
       )}
       {!saving && (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
+        <svg width={EDIT_PENCIL_ICON_SZ} height={EDIT_PENCIL_ICON_SZ} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
@@ -344,22 +378,10 @@ function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving 
       }}
     >
       {saving ? (
-        <span
-          style={{
-            width: 12,
-            height: 12,
-            border: "2px solid rgba(255,255,255,.35)",
-            borderTopColor: "transparent",
-            borderRadius: "50%",
-            animation: "spin .6s linear infinite",
-            display: "inline-block",
-          }}
-        />
+        <span style={MONEY_SAVING_SPINNER} />
       ) : displayVal ? (
         <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
-          {Number(raw).toLocaleString()}
-          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>ج</small>
-        </span>
+          {Number(raw).toLocaleString()}        <small style={MONEY_AMOUNT_INLINE_SUFFIX}>ج</small>        </span>
       ) : (
         <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>+ مبلغ</span>
       )}
@@ -369,6 +391,111 @@ function FinancePartCell({ row, firestoreField, valueKey, title, onSave, saving 
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       )}
+    </div>
+  );
+}
+
+const PAYMENT_PLAN_VALUES = ["full", "installments"];
+
+/** خطة الدفع — `full` | `installments` في Firestore؛ العرض بصيغة fmtPlan */
+function PaymentPlanCell({ row, onSave, saving }) {
+  const canEdit = !!(row.docId || row.userId);
+  const raw = row.paymentPlan;
+  const current = PAYMENT_PLAN_VALUES.includes(raw) ? raw : null;
+
+  const readOnlyPill = (pp) => {
+    const full = pp.includes("كامل");
+    const payPlanColor = full ? "#5eead4" : C.orange;
+    return (
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          padding: "5px 10px",
+          borderRadius: 8,
+          background: `${payPlanColor}14`,
+          color: payPlanColor,
+          border: `1px solid ${payPlanColor}33`,
+          maxWidth: "100%",
+          display: "inline-block",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        title={pp}
+      >
+        {pp}
+      </span>
+    );
+  };
+
+  if (!canEdit) {
+    const pp = row.payPlan || "";
+    if (!pp || pp === "—") return <span style={{ color: "rgba(255,255,255,.25)", fontSize: 11 }}>—</span>;
+    return readOnlyPill(pp);
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 4,
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        direction: "rtl",
+        minHeight: 28,
+      }}
+      title="خطة الدفع — اضغط لاختيار كامل أو أقساط (يُحفظ في Firestore)"
+    >
+      {saving ? (
+        <span
+          style={{
+            width: 12,
+            height: 12,
+            border: "2px solid rgba(255,255,255,.35)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin .6s linear infinite",
+            display: "inline-block",
+            flexShrink: 0,
+          }}
+        />
+      ) : null}
+      {PAYMENT_PLAN_VALUES.map((v) => {
+        const active = current === v;
+        const label = fmtPlan(v);
+        const full = v === "full";
+        const accent = full ? "#5eead4" : C.orange;
+        return (
+          <button
+            key={v}
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              if (saving || active) return;
+              onSave(row, v);
+            }}
+            style={{
+              padding: "5px 8px",
+              borderRadius: 8,
+              fontFamily: font,
+              fontSize: 9,
+              fontWeight: 700,
+              cursor: saving ? "wait" : active ? "default" : "pointer",
+              border: `1px solid ${active ? `${accent}88` : "rgba(255,255,255,.14)"}`,
+              background: active ? `${accent}22` : "rgba(255,255,255,.05)",
+              color: active ? accent : "rgba(255,255,255,.75)",
+              whiteSpace: "nowrap",
+              lineHeight: 1.25,
+              flex: "1 1 auto",
+              minWidth: 0,
+            }}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -418,6 +545,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [savingNotes, setSavingNotes] = useState(null); // docId||userId
   const [savingFinanceField, setSavingFinanceField] = useState(null); // "doc|user::depositAmount"
   const [savingContact, setSavingContact] = useState(null); // userId being updated
+  const [savingPayPlan, setSavingPayPlan] = useState(null); // docId||userId
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
 
@@ -518,6 +646,41 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       console.error("Admin notes save error:", err);
     } finally {
       setSavingNotes(null);
+    }
+  };
+
+  const handleSavePaymentPlan = async (row, rawValue) => {
+    const lock = row.docId || row.userId;
+    if (!lock || savingPayPlan === lock) return;
+    const normalized =
+      rawValue === "full" || rawValue === "installments" ? rawValue : null;
+    if (!normalized) return;
+    const prev =
+      row.paymentPlan === "full" || row.paymentPlan === "installments"
+        ? row.paymentPlan
+        : null;
+    if (prev === normalized) return;
+
+    setSavingPayPlan(lock);
+    try {
+      if (row.docId) {
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), {
+          paymentPlan: normalized,
+        });
+      } else if (row.userId) {
+        const u = allUsers.find((x) => x.id === row.userId);
+        const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
+        const updatedEnrollments = enrolled.map((e) => {
+          if (String(e.courseId) !== String(course.id)) return e;
+          return { ...e, paymentPlan: normalized };
+        });
+        await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      }
+      loadRows({ silent: true });
+    } catch (err) {
+      console.error("Payment plan save error:", err);
+    } finally {
+      setSavingPayPlan((cur) => (cur === lock ? null : cur));
     }
   };
 
@@ -738,7 +901,8 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     contactStatus:
       "آخر حالة متابعة اتصال أو حجز — اضغط لتغييرها (مردش، أكد وهيدفع، حجز ودفع، …)",
     notes: "ملاحظات إدارية — تُحرّر يدويًا في الخلية وتُحفظ في `adminNotes` في Firestore",
-    payPlan: "خطة الدفع كما اختارها الطالب عند الطلب (كامل أو أقساط)",
+    payPlan:
+      "خطة الدفع (`full` أو `installments` في Firestore) — أزرار كامل / أقساط؛ يُفضّل تصحيح الخطة عند خطأ الطالب أو بيانات قديمة",
     courseCost: "تكلفة الكورس لهذا الطالب — اضغط على الخلية للتعديل",
     deposit: "ديبوزت الحجز — يُدخل يدويًا؛ يُجمَّع ضمن عمود المدفوع",
     installment1: "القسط الأول — يُدخل يدويًا ويُضاف للمدفوع",
@@ -822,35 +986,15 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
     {
       key: "payPlan",
       label: "خطة الدفع",
-      w: 140,
+      w: 168,
       sortable: true,
-      render: (r) => {
-        const pp = r.payPlan || "";
-        if (!pp) return <span style={{ color: "rgba(255,255,255,.25)", fontSize: 11 }}>—</span>;
-        const full = pp.includes("كامل");
-        const payPlanColor = full ? "#5eead4" : C.orange;
-        return (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              padding: "5px 10px",
-              borderRadius: 8,
-              background: `${payPlanColor}14`,
-              color: payPlanColor,
-              border: `1px solid ${payPlanColor}33`,
-              maxWidth: "100%",
-              display: "inline-block",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={pp}
-          >
-            {pp}
-          </span>
-        );
-      },
+      render: (r) => (
+        <PaymentPlanCell
+          row={r}
+          onSave={handleSavePaymentPlan}
+          saving={savingPayPlan === (r.docId || r.userId)}
+        />
+      ),
     },
     {
       key: "courseCost",
