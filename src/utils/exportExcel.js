@@ -89,35 +89,66 @@ export const fmtTraining = (v) => ({ online:"Live Online", offline:"Offline (Bra
 export const fmtPlan     = (v) => ({ full:"دفع كامل (−5%)", installments:"أقساط (3×)" }[v] || v || "—");
 export const fmtLevel    = (v) => ({ beginner:"مبتدئ", basic:"أساسيات", intermediate:"متوسط", advanced:"متقدم" }[v] || v || "—");
 
+/** Match enrollment `courseId` to admin course.id whether stored as number or string. */
+function sameCourseId(a, course) {
+  if (a == null || course?.id == null) return false;
+  return String(a) === String(course.id);
+}
+
+function enrollmentDedupeKey(r) {
+  const em = (r.studentEmail || "").toLowerCase().trim();
+  if (em) return `email:${em}`;
+  const ph = String(r.studentPhone ?? "").replace(/\s+/g, "");
+  if (ph) return `phone:${ph}`;
+  return `doc:${r.id || "?"}`;
+}
+
 // ─── Shared data fetcher ────────────────────────────────────────────────────
 export async function fetchCourseStudents(course, allUsers = []) {
   let requests = [];
   try {
-    const courseIdStr = String(course?.id ?? "");
-    const snap = await getDocs(
-      query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr))
-    );
-    requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const courseIdStr = String(course?.id ?? "").trim();
+    const byDocId = new Map();
+    const mergeSnap = (snap) => {
+      for (const d of snap.docs) {
+        if (!byDocId.has(d.id)) byDocId.set(d.id, { id: d.id, ...d.data() });
+      }
+    };
+    const qStr = query(collection(db, "enrollmentRequests"), where("courseId", "==", courseIdStr));
+    mergeSnap(await getDocs(qStr));
+    const n = Number(courseIdStr);
+    if (courseIdStr !== "" && Number.isFinite(n) && String(n) === courseIdStr.trim()) {
+      try {
+        const qNum = query(collection(db, "enrollmentRequests"), where("courseId", "==", n));
+        mergeSnap(await getDocs(qNum));
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    requests = [...byDocId.values()];
   } catch (err) {
     console.warn("enrollmentRequests:", err.message);
   }
 
-  // Deduplicate by email — keep latest
-  const reqByEmail = new Map();
+  const reqByKey = new Map();
   for (const r of requests) {
-    const key = (r.studentEmail || "").toLowerCase().trim();
-    if (!key) continue;
-    const ex = reqByEmail.get(key);
-    if (!ex || (r.createdAt || "") > (ex.createdAt || "")) reqByEmail.set(key, r);
+    if (!sameCourseId(r.courseId, course)) continue;
+    const dk = enrollmentDedupeKey(r);
+    const ex = reqByKey.get(dk);
+    const exTime = typeof ex?.createdAt?.toMillis === "function" ? ex.createdAt.toMillis() : 0;
+    const rTime = typeof r.createdAt?.toMillis === "function" ? r.createdAt.toMillis() : 0;
+    if (!ex || rTime >= exTime) reqByKey.set(dk, r);
   }
 
-  const seen = new Set();
+  /** Emails already covered by an enrollment-request row (skip duplicate user rows). */
+  const seenEmails = new Set();
   const rows = [];
 
-  for (const [key, r] of reqByEmail) {
-    seen.add(key);
-    const profile    = allUsers.find(u => u.email?.toLowerCase() === key);
-    const enrollment = profile?.enrolledCourses?.find(e => e.courseId === course.id);
+  for (const [, r] of reqByKey) {
+    const em = (r.studentEmail || "").toLowerCase().trim();
+    if (em) seenEmails.add(em);
+    const profile = allUsers.find((u) => u.email?.toLowerCase() === em);
+    const enrollment = profile?.enrolledCourses?.find((e) => sameCourseId(e.courseId, course));
     const reqSt = r.enrollmentStatus ?? "pending";
     const status = reqSt === "pending" && enrollment ? "approved" : reqSt;
     const contactStatus = (() => {
@@ -185,11 +216,11 @@ export async function fetchCourseStudents(course, allUsers = []) {
 
   // Enrolled users not in enrollmentRequests
   for (const u of allUsers) {
-    const enrollment = (u.enrolledCourses || []).find(e => e.courseId === course.id);
+    const enrollment = (u.enrolledCourses || []).find((e) => sameCourseId(e.courseId, course));
     if (!enrollment) continue;
     const key = (u.email || "").toLowerCase().trim();
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (key && seenEmails.has(key)) continue;
+    if (key) seenEmails.add(key);
     const guestR = {
       depositAmount: enrollment?.depositAmount,
       installment1: enrollment?.installment1,
@@ -293,6 +324,20 @@ const dStyle = (ri) => ({ font:{sz:10}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}
 const aStyle = (ri) => ({ font:{sz:10,bold:true,color:{rgb:"1D6F42"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
 const sStyle = (v,ri) => ({ font:{sz:10,bold:true,color:{rgb:v==="approved"?"1D6F42":v==="pending"?"9B5D00":"C00000"}}, fill:{fgColor:{rgb:ri%2===0?WHITE:LIGHT}}, alignment:{horizontal:"center",vertical:"center"}, border:border() });
 
+/** Strip per-cell `s` styles before XLSX.write — avoids corrupt / blank files with community `xlsx`. */
+function stripWorkbookCellStyles(wb) {
+  if (!wb?.SheetNames) return;
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    if (!ws || typeof ws !== "object") continue;
+    for (const addr of Object.keys(ws)) {
+      if (addr.startsWith("!")) continue;
+      const cell = ws[addr];
+      if (cell && typeof cell === "object" && Object.prototype.hasOwnProperty.call(cell, "s")) delete cell.s;
+    }
+  }
+}
+
 const EXPORT_COLS = [
   { key: "sheetDate", label: "التاريخ\nDate", w: 14 },
   { key: "fullName", label: "اسم الطالب رباعي\nFull name", w: 28 },
@@ -386,10 +431,26 @@ export async function exportCourseStudents(course, allUsers = []) {
     ["السعر / Price", `${(course.price||0).toLocaleString()} EGP`],
     ["تاريخ التصدير / Export Date", fmtDate(new Date().toISOString())],[],
     ["إجمالي الطلاب / Total Students", rows.length],
-    ["دفع كامل / Full Payment", rows.filter(r=>r.payPlan.includes("كامل")||r.payPlan.includes("Full")).length],
-    ["أقساط / Installments", rows.filter(r=>r.payPlan.includes("قساط")||r.payPlan.includes("Install")).length],
-    ["أونلاين / Online", rows.filter(r=>r.training.includes("Online")).length],
-    ["حضوري / Offline", rows.filter(r=>r.training.includes("Offline")||r.training.includes("Branch")).length],[],
+    [
+      "دفع كامل / Full Payment",
+      rows.filter((r) =>
+        String(r.payPlan || "").includes("كامل") || String(r.payPlan || "").includes("Full")
+      ).length,
+    ],
+    [
+      "أقساط / Installments",
+      rows.filter((r) =>
+        String(r.payPlan || "").includes("قساط") || String(r.payPlan || "").includes("Install")
+      ).length,
+    ],
+    ["أونلاين / Online", rows.filter((r) => String(r.training || "").includes("Online")).length],
+    [
+      "حضوري / Offline",
+      rows.filter(
+        (r) =>
+          String(r.training || "").includes("Offline") || String(r.training || "").includes("Branch")
+      ).length,
+    ],[],
     ["إجمالي الإيرادات / Total Revenue", `${totalRevenue.toLocaleString()} EGP`],
   ];
   const ws2=XLSX.utils.aoa_to_sheet(sumAoa);
@@ -399,9 +460,12 @@ export async function exportCourseStudents(course, allUsers = []) {
   const safeName=(course.title_en||course.title||"course").replace(/[^a-zA-Z0-9\u0600-\u06FF]/g,"_").replace(/_+/g,"_").slice(0,40);
   const fileName=`Eduzah_${safeName}_Students.xlsx`;
 
+  stripWorkbookCellStyles(wb);
   // Use blob URL download — works reliably in all browsers without xlsx Pro
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const blob  = new Blob([wbout], { type: "application/octet-stream" });
+  const blob = new Blob([wbout], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
   const url   = URL.createObjectURL(blob);
   const a     = document.createElement("a");
   a.href = url; a.download = fileName;
