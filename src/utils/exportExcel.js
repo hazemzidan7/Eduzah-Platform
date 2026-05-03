@@ -104,7 +104,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
       if (v === "contacted") return "confirmed_will_pay";
       return v;
     })();
-    const fin = computeStudentFinance(r, course);
+    const effPrice = { ...r, coursePriceOverride: r.coursePriceOverride ?? enrollment?.coursePriceOverride };
+    const fin = computeStudentFinance(effPrice, course);
     rows.push({
       docId:            r.id || null,           // Firestore doc ID for payment confirmation
       userId:           profile?.id || null,    // platform uid (if exists)
@@ -137,6 +138,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
       confirmedAt:      r.confirmedAt || null,
       contactStatus,
       contactUpdatedAt: enrollment?.contactUpdatedAt || r.contactUpdatedAt || null,
+      coursePriceOverride: effPrice.coursePriceOverride ?? null,
     });
   }
 
@@ -202,6 +204,7 @@ export async function fetchCourseStudents(course, allUsers = []) {
         return v;
       })(),
       contactUpdatedAt: enrollment?.contactUpdatedAt || null,
+      coursePriceOverride: enrollment?.coursePriceOverride ?? null,
     });
   }
 

@@ -44,6 +44,139 @@ function Stat({ label, value, sub, color="#fff", accent=false }) {
   );
 }
 
+/** تكلفة الكورس للطلب — يدويًا في `coursePriceOverride` (فارغ = سعر الكورس الافتراضي من الكتالوج) */
+function CourseCostCell({ row, course, onSave, saving }) {
+  const canEdit = !!(row.docId || row.userId);
+  const catalog = course?.price != null ? Number(course.price) : null;
+  const [editing, setEditing] = useState(false);
+  const displayVal =
+    row.courseCost != null && row.courseCost !== "" && Number.isFinite(Number(row.courseCost))
+      ? String(row.courseCost)
+      : "";
+  const [val, setVal] = useState(displayVal);
+
+  const commit = () => {
+    setEditing(false);
+    const t = val.trim();
+    const num = t === "" ? null : Number(t);
+    if (t !== "" && Number.isNaN(num)) return;
+    const prevOr = row.coursePriceOverride;
+    const prev =
+      prevOr === "" || prevOr == null ? null : Number(prevOr);
+    if (num === prev || (Number.isNaN(prev) && num == null)) return;
+    if (
+      num != null &&
+      row.coursePriceOverride == null &&
+      catalog != null &&
+      Number.isFinite(catalog) &&
+      num === catalog
+    ) {
+      return;
+    }
+    onSave(row, num);
+  };
+
+  if (!canEdit) {
+    return <MoneyCell v={row.courseCost} />;
+  }
+
+  if (editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <input
+          autoFocus
+          type="number"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") {
+              setEditing(false);
+              setVal(displayVal);
+            }
+          }}
+          style={{
+            width: 90,
+            padding: "4px 8px",
+            borderRadius: 7,
+            background: "rgba(255,255,255,.1)",
+            border: `1.5px solid ${C.purple}`,
+            color: "#fff",
+            fontFamily: font,
+            fontSize: 13,
+            fontWeight: 700,
+            outline: "none",
+            textAlign: "right",
+          }}
+        />
+        <span style={{ fontSize: 10, color: C.muted }}>EGP</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => {
+        if (!saving) {
+          setVal(displayVal);
+          setEditing(true);
+        }
+      }}
+      title="اضغط لتعديل تكلفة الكورس لهذا الطالب. امسح القيمة لإلغاء التخصيص والاعتماد على سعر الكورس الافتراضي."
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        cursor: saving ? "wait" : "pointer",
+        padding: "6px 10px",
+        borderRadius: 8,
+        border: "1px solid rgba(255,255,255,.12)",
+        background: "rgba(255,255,255,.04)",
+        transition: "border-color .15s, background .15s",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "rgba(125,61,158,.45)";
+        e.currentTarget.style.background = "rgba(125,61,158,.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "rgba(255,255,255,.12)";
+        e.currentTarget.style.background = "rgba(255,255,255,.04)";
+      }}
+    >
+      {saving ? (
+        <span
+          style={{
+            width: 12,
+            height: 12,
+            border: "2px solid rgba(255,255,255,.35)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin .6s linear infinite",
+            display: "inline-block",
+          }}
+        />
+      ) : displayVal ? (
+        <span style={{ fontWeight: 800, fontSize: 13, color: "rgba(255,255,255,.95)" }}>
+          {Number(row.courseCost).toLocaleString()}
+          <small style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontWeight: 500, marginRight: 4 }}>EGP</small>
+        </span>
+      ) : (
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,.38)" }}>حدّد التكلفة…</span>
+      )}
+      {!saving && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
 /** المدفوع الإجمالي — يُسجَّل يدويًا من المسؤول (`totalPaidManual` في Firestore) */
 function TotalPaidCell({ row, onSave, saving }) {
   const canEdit = !!(row.docId || row.userId);
@@ -206,6 +339,7 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
   const [sortDir,    setSortDir]    = useState("desc");
   const [confirming,   setConfirming]   = useState(null); // docId being toggled
   const [savingTotalPaid, setSavingTotalPaid] = useState(null); // docId or userId
+  const [savingCourseCost, setSavingCourseCost] = useState(null);
   const [savingContact, setSavingContact] = useState(null); // userId being updated
   const [contactPopup, setContactPopup] = useState(null); // { rowKey, row }
   const [exporting,    setExporting]    = useState(false);
@@ -273,6 +407,32 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
       console.error("Total paid save error:", err);
     } finally {
       setSavingTotalPaid(null);
+    }
+  };
+
+  const handleSaveCourseCost = async (row, newPrice) => {
+    const lock = row.docId || row.userId;
+    if (!lock || savingCourseCost) return;
+    setSavingCourseCost(lock);
+    try {
+      if (row.docId) {
+        await updateDoc(doc(db, "enrollmentRequests", row.docId), {
+          coursePriceOverride: newPrice,
+        });
+      } else if (row.userId) {
+        const u = allUsers.find((x) => x.id === row.userId);
+        const enrolled = Array.isArray(u?.enrolledCourses) ? u.enrolledCourses : [];
+        const updatedEnrollments = enrolled.map((e) => {
+          if (String(e.courseId) !== String(course.id)) return e;
+          return { ...e, coursePriceOverride: newPrice };
+        });
+        await updateDoc(doc(db, "users", row.userId), { enrolledCourses: updatedEnrollments });
+      }
+      loadRows({ silent: true });
+    } catch (err) {
+      console.error("Course cost save error:", err);
+    } finally {
+      setSavingCourseCost(null);
     }
   };
 
@@ -517,7 +677,19 @@ export default function CourseStudentsModal({ course, allUsers, onClose }) {
         );
       },
     },
-    { key: "courseCost", label: "تكلفة الكورس", w: 100, render: (r) => <MoneyCell v={r.courseCost} /> },
+    {
+      key: "courseCost",
+      label: "تكلفة الكورس",
+      w: 108,
+      render: (r) => (
+        <CourseCostCell
+          row={r}
+          course={course}
+          onSave={handleSaveCourseCost}
+          saving={savingCourseCost === (r.docId || r.userId)}
+        />
+      ),
+    },
     { key: "deposit", label: "ديبوزت الحجز", w: 96, render: (r) => <MoneyCell v={r.deposit} /> },
     { key: "installment1", label: "القسط ١", w: 88, render: (r) => <MoneyCell v={r.installment1} /> },
     { key: "installment2", label: "القسط ٢", w: 88, render: (r) => <MoneyCell v={r.installment2} /> },
