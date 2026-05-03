@@ -146,6 +146,15 @@ export default function Landing() {
   const [testimonialsRef, testimonialsInView] = useInView();
   const [journeyRef, journeyInView] = useInView();
 
+  /** Light footer strip — readable logo + typography, matches white nav */
+  const F = {
+    bg: "#ffffff",
+    line: "#e8e4ef",
+    h: "#1a1522",
+    t: "#4f4d5c",
+    m: "#7d778a",
+  };
+
   return (
     <div dir={dir}>
       <style>{`
@@ -175,6 +184,16 @@ export default function Landing() {
           animation: none;
           box-shadow: 0 14px 45px rgba(217,27,91,.75) !important;
         }
+        .landing-footer-link {
+          display: block;
+          text-decoration: none;
+          color: ${F.t};
+          font-size: 12px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: color 0.15s ease;
+        }
+        .landing-footer-link:hover { color: ${C.red}; }
       `}</style>
       <Seo
         title={lang === "ar" ? "Eduzah" : "Eduzah"}
@@ -593,54 +612,57 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer — light strip (aligned with white navbar) */}
       <footer
         style={{
-          background: "linear-gradient(180deg, #3a2d4a 0%, #2e2438 55%, #261d30 100%)",
-          padding: "36px 5% 18px",
-          borderTop: `1px solid ${C.border}`,
+          background: F.bg,
+          padding: "40px 5% 20px",
+          borderTop: `1px solid ${F.line}`,
+          boxShadow: "0 -8px 32px rgba(26,15,36,.06)",
         }}
       >
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:24,marginBottom:20}}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 28, marginBottom: 24, maxWidth: 1100, marginInline: "auto" }}>
           <div>
-            <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 12 }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "linear-gradient(180deg, #ffffff 0%, #f4f2f8 100%)",
-                  padding: "10px 18px",
-                  borderRadius: 14,
-                  boxShadow: "0 2px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.9)",
-                }}
-              >
-                <img
-                  src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
-                  alt="Eduzah"
-                  style={{ height: 44, width: "auto", maxWidth: 210, objectFit: "contain", display: "block" }}
-                />
-              </span>
+            <Link to="/" style={{ textDecoration: "none", display: "inline-block", marginBottom: 10 }}>
+              <img
+                src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
+                alt="Eduzah"
+                style={{ height: 40, width: "auto", maxWidth: 200, objectFit: "contain", display: "block" }}
+              />
             </Link>
-            <p style={{color:C.muted,fontSize:12,lineHeight:1.9}}>{lang==="ar"?SITE.tagline:SITE.tagline_en}</p>
+            <p style={{ color: F.m, fontSize: 12, lineHeight: 1.85, maxWidth: 280 }}>{lang === "ar" ? SITE.tagline : SITE.tagline_en}</p>
           </div>
           <div>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>{lang==="ar"?"روابط سريعة":"Quick Links"}</div>
+            <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 14, color: F.h, letterSpacing: "0.02em" }}>{lang === "ar" ? "روابط سريعة" : "Quick Links"}</div>
             {[
-              ["/courses",     lang==="ar"?"البرامج":"Programs"],
-              ["/corporate",   lang==="ar"?"تدريب الشركات":"Corporate"],
-              ["/hiring",      lang==="ar"?"التوظيف":"Hiring"],
-              ["/consultation",lang==="ar"?"استشارة":"Consultation"],
-              ["/news",        lang==="ar"?"الأخبار":"News"],
-            ].map(([p,l])=>(
-              <div key={p} style={{color:C.muted,fontSize:12,marginBottom:7,cursor:"pointer"}} onClick={()=>navigate(p)}>{l}</div>
+              ["/courses", lang === "ar" ? "البرامج" : "Programs"],
+              ["/corporate", lang === "ar" ? "تدريب الشركات" : "Corporate"],
+              ["/hiring", lang === "ar" ? "التوظيف" : "Hiring"],
+              ["/consultation", lang === "ar" ? "استشارة" : "Consultation"],
+              ["/news", lang === "ar" ? "الأخبار" : "News"],
+            ].map(([p, l]) => (
+              <Link key={p} to={p} className="landing-footer-link">
+                {l}
+              </Link>
             ))}
           </div>
           <div>
-            <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>{lang==="ar"?"تواصل معنا":"Contact"}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"الموقع:":"Location:"} {SITE.location}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"الهاتف:":"Phone:"} {SITE.phone}</div>
-            <div style={{color:C.muted,fontSize:12,marginBottom:6}}>{lang==="ar"?"البريد:":"Email:"} {SITE.email}</div>
+            <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 14, color: F.h, letterSpacing: "0.02em" }}>{lang === "ar" ? "تواصل معنا" : "Contact"}</div>
+            <div style={{ color: F.t, fontSize: 12, marginBottom: 8, lineHeight: 1.5 }}>
+              {lang === "ar" ? "الموقع:" : "Location:"} <span style={{ color: F.h }}>{SITE.location}</span>
+            </div>
+            <div style={{ color: F.t, fontSize: 12, marginBottom: 8, lineHeight: 1.5 }}>
+              {lang === "ar" ? "الهاتف:" : "Phone:"}{" "}
+              <a href={`tel:${String(SITE.phone).replace(/\s/g, "")}`} style={{ color: F.h, textDecoration: "none" }}>
+                {SITE.phone}
+              </a>
+            </div>
+            <div style={{ color: F.t, fontSize: 12, marginBottom: 6, lineHeight: 1.5 }}>
+              {lang === "ar" ? "البريد:" : "Email:"}{" "}
+              <a href={`mailto:${SITE.email}`} style={{ color: F.h, textDecoration: "none" }}>
+                {SITE.email}
+              </a>
+            </div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
               {/* Facebook */}
               <a href={SITE.social.facebook} target="_blank" rel="noreferrer"
@@ -672,8 +694,18 @@ export default function Landing() {
             </div>
           </div>
         </div>
-        <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14,textAlign:"center",color:C.muted,fontSize:11}}>
-          &copy; 2025 Eduzah. {lang==="ar"?"جميع الحقوق محفوظة.":"All rights reserved."}
+        <div
+          style={{
+            borderTop: `1px solid ${F.line}`,
+            paddingTop: 16,
+            textAlign: "center",
+            color: F.m,
+            fontSize: 11,
+            maxWidth: 1100,
+            marginInline: "auto",
+          }}
+        >
+          &copy; {new Date().getFullYear()} Eduzah. {lang === "ar" ? "جميع الحقوق محفوظة." : "All rights reserved."}
         </div>
       </footer>
     </div>
