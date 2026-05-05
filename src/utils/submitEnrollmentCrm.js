@@ -29,7 +29,6 @@ export async function submitEnrollmentCrm(payload) {
       mode: "cors",
       headers: {
         "Content-Type": "text/plain;charset=UTF-8",
-        ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
       },
       body,
     });
