@@ -6,7 +6,7 @@ import { Btn, Input, Select } from "../../components/UI";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
-import { submitToSheet } from "../../utils/sheets";
+import { submitEnrollmentCrm } from "../../utils/submitEnrollmentCrm";
 import { appendPlainNotification } from "../../utils/gamification";
 import { auth, db } from "../../firebase";
 
@@ -187,25 +187,25 @@ export default function CourseRegister() {
 
       const uidForDoc = auth.currentUser?.uid ?? null;
 
-      await submitToSheet("enrollment", {
-        name:             form.fullName.trim(),
+      // Send to Google Sheets CRM (fire-and-forget — doesn't block Firestore save)
+      submitEnrollmentCrm({
+        fullName:         form.fullName.trim(),
         phone:            form.phone,
         email:            form.email,
         governorate:      form.governorate,
-        education:        form.education,
-        level:            form.level,
+        educationLevel:   form.education,
+        programmingLevel: form.level,
         hasPC:            form.hasPC,
         employmentStatus: form.employmentStatus,
-        contactPreference:form.contactPreference,
-        source:           form.source,
+        contactMethod:    form.contactPreference,
+        attendance:       form.trainingType || "",
+        bookingVia:       form.source,
         notes:            form.notes,
-        course:           course?.title || "",
-        trainingType:     form.trainingType || "",
-        payment:          "instapay",
-        paymentPlan,
-        amountQuoted,
-        price:            course?.price ?? "",
-      });
+        diploma:          ar ? course?.title : (course?.title_en || course?.title || ""),
+        plan:             paymentPlan,
+        courseCost:       course?.price ?? 0,
+        deposit:          amountQuoted,
+      }).catch(err => console.warn("[CRM] Sheet submit failed (non-blocking):", err));
 
       const courseIdStr    = String(course.id ?? "");
       const courseTitleStr = String(course.title ?? course.title_en ?? "").trim();
