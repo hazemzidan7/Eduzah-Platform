@@ -5,7 +5,7 @@
  * Spreadsheet ID: hardcoded below.
  */
 
-var HARDCODED_SPREADSHEET_ID = "1vQwCLUT2EP3PIiKud_UFIJi9ItcMktUruQhbpNos3LI";
+var HARDCODED_SPREADSHEET_ID = "1AnzgvWeyaH-I1b6ZtobEJD8po0u9st4WdAlTIATh2Us";
 var DOC_PROP_SPREADSHEET_ID  = "MASTER_CRM_SPREADSHEET_ID";
 
 // Header row — bilingual Arabic / English
@@ -236,4 +236,40 @@ function reformatAllTabs() {
     applyHeaderStyle_(tabs[i]);
   }
   Logger.log("Done — formatted " + tabs.length + " tab(s).");
+}
+
+// ─── Setup: create one tab per course from the platform ──────
+// Run this once to pre-create all course tabs.
+function setupCourseTabs() {
+  var FIREBASE_PROJECT = "eduzah-platform";
+  var API_KEY          = "AIzaSyDlIpNL8CS5FPK7vipsDd2Vac-v8GGdNac";
+  var url = "https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT +
+            "/databases/(default)/documents/courses?pageSize=100&key=" + API_KEY;
+
+  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  var json     = JSON.parse(response.getContentText());
+
+  if (!json.documents || json.documents.length === 0) {
+    Logger.log("No courses found.");
+    return;
+  }
+
+  var ss      = getSpreadsheet();
+  var created = 0;
+
+  json.documents.forEach(function(doc) {
+    var fields = doc.fields || {};
+    var title  = (fields.title && fields.title.stringValue) ? fields.title.stringValue.trim() : "";
+    if (!title) return;
+
+    var safe = title.replace(/[\/\\?\*\[\]]/g, "-").slice(0, 100);
+    var sh   = ss.getSheetByName(safe);
+    if (!sh) {
+      sh = ss.insertSheet(safe);
+      created++;
+    }
+    applyHeaderStyle_(sh);
+  });
+
+  Logger.log("Done — created/formatted " + created + " new tab(s) for " + json.documents.length + " courses.");
 }
