@@ -1,9 +1,10 @@
 /**
  * Single master CRM spreadsheet + tab "enrollmentRequests".
- * Spreadsheet ID: PropertiesService key MASTER_CRM_SPREADSHEET_ID
+ * Spreadsheet ID hardcoded below (created via Claude on 2026-05-05).
  */
 
 var SHEET_TAB_NAME = "enrollmentRequests";
+var HARDCODED_SPREADSHEET_ID = "1AnzgvWeyaH-I1b6ZtobEJD8po0u9st4WdAlTIATh2Us";
 var DOC_PROP_SPREADSHEET_ID = "MASTER_CRM_SPREADSHEET_ID";
 var HEADER_ROW = [
   "Date",
@@ -51,16 +52,19 @@ function str_(v) {
 }
 
 function getOrCreateSpreadsheet() {
-  var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty(DOC_PROP_SPREADSHEET_ID);
+  // Use hardcoded sheet first, then Script Properties as fallback
+  var id = HARDCODED_SPREADSHEET_ID;
+  if (!id) {
+    var props = PropertiesService.getScriptProperties();
+    id = props.getProperty(DOC_PROP_SPREADSHEET_ID);
+  }
   if (id) {
     try {
       return SpreadsheetApp.openById(String(id).trim());
-    } catch (err) {
-      props.deleteProperty(DOC_PROP_SPREADSHEET_ID);
-    }
+    } catch (err) {}
   }
   var ss = SpreadsheetApp.create("CRM Enrollments Master");
+  var props = PropertiesService.getScriptProperties();
   props.setProperty(DOC_PROP_SPREADSHEET_ID, ss.getId());
   return ss;
 }
