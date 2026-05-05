@@ -23,6 +23,12 @@ var HEADER_ROW = [
   "Paid (sum)",
   "Balance",
   "Email",
+  "Governorate",
+  "Education Level",
+  "Has PC",
+  "Programming Level",
+  "Employment Status",
+  "Contact Method",
   "Pay OK",
 ];
 
@@ -67,25 +73,25 @@ function getOrCreateSheet(ss) {
   return sh;
 }
 
-function headersMatchRow1_(sh) {
-  if (sh.getLastRow() < 1) return false;
-  if (sh.getLastColumn() < HEADER_ROW.length) return false;
-  var row = sh.getRange(1, 1, 1, HEADER_ROW.length).getValues()[0];
-  for (var i = 0; i < HEADER_ROW.length; i++) {
-    if (String(row[i]).trim() !== HEADER_ROW[i]) return false;
-  }
-  return true;
-}
-
 function ensureHeaders(sh) {
-  if (!headersMatchRow1_(sh)) {
+  var needsUpdate = false;
+  if (sh.getLastRow() < 1) {
+    needsUpdate = true;
+  } else {
+    var lastCol = sh.getLastColumn();
+    if (lastCol < HEADER_ROW.length) {
+      needsUpdate = true;
+    } else {
+      var row = sh.getRange(1, 1, 1, HEADER_ROW.length).getValues()[0];
+      for (var i = 0; i < HEADER_ROW.length; i++) {
+        if (String(row[i]).trim() !== HEADER_ROW[i]) { needsUpdate = true; break; }
+      }
+    }
+  }
+  if (needsUpdate) {
     sh.getRange(1, 1, 1, HEADER_ROW.length).setValues([HEADER_ROW]);
     sh.getRange(1, 1, 1, HEADER_ROW.length).setFontWeight("bold");
   }
-}
-
-function validateHeadersExact(sh) {
-  return headersMatchRow1_(sh);
 }
 
 function parseRequest(e) {
@@ -93,43 +99,25 @@ function parseRequest(e) {
     throw new Error("Empty request body");
   }
   var raw = String(e.postData.contents).trim();
-  if (raw === "") {
-    throw new Error("Empty request body");
-  }
+  if (raw === "") throw new Error("Empty request body");
   var data;
-  try {
-    data = JSON.parse(raw);
-  } catch (parseErr) {
-    throw new Error("Invalid JSON");
-  }
-  if (!data || typeof data !== "object") {
-    throw new Error("JSON body must be an object");
-  }
+  try { data = JSON.parse(raw); } catch (parseErr) { throw new Error("Invalid JSON"); }
+  if (!data || typeof data !== "object") throw new Error("JSON body must be an object");
   var fullName = str_(data.fullName);
   var phone = str_(data.phone);
-  if (!fullName || !phone) {
-    throw new Error("Missing required fields: fullName, phone");
-  }
+  if (!fullName || !phone) throw new Error("Missing required fields: fullName, phone");
   return data;
 }
 
 function calculateFields(data) {
   var courseCost = round2_(num_(data.courseCost));
-  var deposit = round2_(num_(data.deposit));
-  var inst1 = round2_(num_(data.inst1));
-  var inst2 = round2_(num_(data.inst2));
-  var inst3 = round2_(num_(data.inst3));
-  var paidSum = round2_(deposit + inst1 + inst2 + inst3);
-  var balance = round2_(courseCost - paidSum);
-  return {
-    courseCost: courseCost,
-    deposit: deposit,
-    inst1: inst1,
-    inst2: inst2,
-    inst3: inst3,
-    paidSum: paidSum,
-    balance: balance,
-  };
+  var deposit    = round2_(num_(data.deposit));
+  var inst1      = round2_(num_(data.inst1));
+  var inst2      = round2_(num_(data.inst2));
+  var inst3      = round2_(num_(data.inst3));
+  var paidSum    = round2_(deposit + inst1 + inst2 + inst3);
+  var balance    = round2_(courseCost - paidSum);
+  return { courseCost, deposit, inst1, inst2, inst3, paidSum, balance };
 }
 
 function buildRow_(data, calc) {
@@ -151,6 +139,12 @@ function buildRow_(data, calc) {
     calc.paidSum,
     calc.balance,
     str_(data.email),
+    str_(data.governorate),
+    str_(data.educationLevel),
+    str_(data.hasPC),
+    str_(data.programmingLevel),
+    str_(data.employmentStatus),
+    str_(data.contactMethod),
     str_(data.payOk),
   ];
 }
@@ -161,27 +155,14 @@ function doPost(e) {
     var ss = getOrCreateSpreadsheet();
     var sh = getOrCreateSheet(ss);
     ensureHeaders(sh);
-    if (!validateHeadersExact(sh)) {
-      return jsonResponse_({
-        success: false,
-        message: "Sheet headers do not match required format",
-      });
-    }
     var calc = calculateFields(data);
     sh.appendRow(buildRow_(data, calc));
     return jsonResponse_({ success: true, message: "Row added successfully" });
   } catch (err) {
-    return jsonResponse_({
-      success: false,
-      message: err.message || String(err),
-    });
+    return jsonResponse_({ success: false, message: err.message || String(err) });
   }
 }
 
 function doGet() {
-  try {
-    return jsonResponse_({ success: true, message: "CRM master Web App active. POST text/plain JSON body." });
-  } catch (err) {
-    return jsonResponse_({ success: false, message: err.message || String(err) });
-  }
+  return jsonResponse_({ success: true, message: "CRM master Web App active. POST text/plain JSON body." });
 }
