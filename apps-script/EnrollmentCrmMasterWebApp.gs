@@ -1,40 +1,51 @@
 /**
- * Single master CRM spreadsheet + tab "enrollmentRequests".
- * Spreadsheet ID hardcoded below (created via Claude on 2026-05-05).
+ * Eduzah CRM — master enrollment spreadsheet.
+ * • One tab per course (tab name = course/diploma title)
+ * • Bilingual headers (Arabic + English) with purple styling
+ * Spreadsheet ID: hardcoded below.
  */
 
-var SHEET_TAB_NAME = "enrollmentRequests";
 var HARDCODED_SPREADSHEET_ID = "1AnzgvWeyaH-I1b6ZtobEJD8po0u9st4WdAlTIATh2Us";
-var DOC_PROP_SPREADSHEET_ID = "MASTER_CRM_SPREADSHEET_ID";
+var DOC_PROP_SPREADSHEET_ID  = "MASTER_CRM_SPREADSHEET_ID";
+
+// Header row — bilingual Arabic / English
 var HEADER_ROW = [
-  "Date",
-  "Full name",
-  "Phone",
-  "Attendance",
-  "Diploma",
-  "Booking via",
-  "Follow-up",
-  "Notes",
-  "Plan",
-  "Course cost",
-  "Deposit",
-  "Inst. 1",
-  "Inst. 2",
-  "Inst. 3",
-  "Paid (sum)",
-  "Balance",
-  "Email",
-  "Governorate",
-  "Education Level",
-  "Has PC",
-  "Programming Level",
-  "Employment Status",
-  "Contact Method",
-  "Pay OK",
+  "التاريخ\nDate",
+  "اسم الطالب رباعي\nFull name",
+  "رقم التليفون\nPhone",
+  "حضور الكورس\nAttendance",
+  "اسم الدبلومة\nDiploma",
+  "حجز الكورس عن طريق\nBooking via",
+  "حالة المتابعة\nFollow-up",
+  "ملاحظات\nNotes",
+  "خطة الدفع\nPlan",
+  "تكلفة الكورس\nCourse cost",
+  "المقدم\nDeposit",
+  "قسط 1\nInst. 1",
+  "قسط 2\nInst. 2",
+  "قسط 3\nInst. 3",
+  "إجمالي المدفوع\nPaid (sum)",
+  "الرصيد\nBalance",
+  "البريد الإلكتروني\nEmail",
+  "المحافظة\nGovernorate",
+  "المؤهل الدراسي\nEducation Level",
+  "هل عنده PC\nHas PC",
+  "مستوى البرمجة\nProgramming Level",
+  "الحالة الوظيفية\nEmployment Status",
+  "طريقة التواصل\nContact Method",
+  "الدفع OK\nPay OK",
 ];
 
+// Purple brand color (Eduzah)
+var HEADER_BG    = "#321D3D";
+var HEADER_FG    = "#FFFFFF";
+var ALT_ROW_BG   = "#F5F0FA";
+
+// ─── Helpers ────────────────────────────────────────────────
+
 function jsonResponse_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function num_(v) {
@@ -51,69 +62,102 @@ function str_(v) {
   return v === null || v === undefined ? "" : String(v).trim();
 }
 
-function getOrCreateSpreadsheet() {
-  // Use hardcoded sheet first, then Script Properties as fallback
+// ─── Spreadsheet / sheet access ─────────────────────────────
+
+function getSpreadsheet() {
   var id = HARDCODED_SPREADSHEET_ID;
-  if (!id) {
-    var props = PropertiesService.getScriptProperties();
-    id = props.getProperty(DOC_PROP_SPREADSHEET_ID);
-  }
   if (id) {
-    try {
-      return SpreadsheetApp.openById(String(id).trim());
-    } catch (err) {}
+    try { return SpreadsheetApp.openById(id); } catch (e) {}
+  }
+  var props = PropertiesService.getScriptProperties();
+  id = props.getProperty(DOC_PROP_SPREADSHEET_ID);
+  if (id) {
+    try { return SpreadsheetApp.openById(id); } catch (e) {}
   }
   var ss = SpreadsheetApp.create("CRM Enrollments Master");
-  var props = PropertiesService.getScriptProperties();
-  props.setProperty(DOC_PROP_SPREADSHEET_ID, ss.getId());
+  PropertiesService.getScriptProperties()
+    .setProperty(DOC_PROP_SPREADSHEET_ID, ss.getId());
   return ss;
 }
 
-function getOrCreateSheet(ss) {
-  var sh = ss.getSheetByName(SHEET_TAB_NAME);
+function getOrCreateTab(ss, tabName) {
+  var safe = tabName.replace(/[\/\\?\*\[\]]/g, "-").slice(0, 100);
+  var sh = ss.getSheetByName(safe);
   if (!sh) {
-    sh = ss.insertSheet(SHEET_TAB_NAME);
+    sh = ss.insertSheet(safe);
   }
   return sh;
 }
 
-function ensureHeaders(sh) {
-  var needsUpdate = false;
-  if (sh.getLastRow() < 1) {
-    needsUpdate = true;
-  } else {
-    var lastCol = sh.getLastColumn();
-    if (lastCol < HEADER_ROW.length) {
-      needsUpdate = true;
-    } else {
-      var row = sh.getRange(1, 1, 1, HEADER_ROW.length).getValues()[0];
-      for (var i = 0; i < HEADER_ROW.length; i++) {
-        if (String(row[i]).trim() !== HEADER_ROW[i]) { needsUpdate = true; break; }
-      }
-    }
-  }
-  if (needsUpdate) {
-    sh.getRange(1, 1, 1, HEADER_ROW.length).setValues([HEADER_ROW]);
-    sh.getRange(1, 1, 1, HEADER_ROW.length).setFontWeight("bold");
+// ─── Header + formatting ─────────────────────────────────────
+
+function applyHeaderStyle_(sh) {
+  var numCols = HEADER_ROW.length;
+  var headerRange = sh.getRange(1, 1, 1, numCols);
+
+  headerRange
+    .setValues([HEADER_ROW])
+    .setBackground(HEADER_BG)
+    .setFontColor(HEADER_FG)
+    .setFontWeight("bold")
+    .setFontSize(10)
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle")
+    .setWrap(true);
+
+  sh.setRowHeight(1, 52);
+  sh.setFrozenRows(1);
+
+  // Column widths
+  var widths = [90, 160, 110, 110, 180, 120, 110, 140,
+                90, 90, 80, 70, 70, 70, 90, 80,
+                160, 100, 110, 80, 110, 110, 110, 80];
+  for (var i = 0; i < widths.length && i < numCols; i++) {
+    sh.setColumnWidth(i + 1, widths[i]);
   }
 }
 
-function parseRequest(e) {
+function ensureHeaders_(sh) {
+  var needsFormat = false;
+
+  if (sh.getLastRow() < 1) {
+    needsFormat = true;
+  } else {
+    var firstCell = sh.getRange(1, 1).getValue();
+    if (String(firstCell).trim() !== HEADER_ROW[0]) needsFormat = true;
+  }
+
+  if (needsFormat) applyHeaderStyle_(sh);
+}
+
+// Stripe alternate rows for readability
+function applyRowStripe_(sh, rowIndex) {
+  if (rowIndex % 2 === 0) {
+    sh.getRange(rowIndex, 1, 1, HEADER_ROW.length)
+      .setBackground(ALT_ROW_BG);
+  }
+}
+
+// ─── Request parsing ─────────────────────────────────────────
+
+function parseRequest_(e) {
   if (!e || !e.postData || e.postData.contents === undefined) {
     throw new Error("Empty request body");
   }
   var raw = String(e.postData.contents).trim();
-  if (raw === "") throw new Error("Empty request body");
+  if (!raw) throw new Error("Empty request body");
   var data;
-  try { data = JSON.parse(raw); } catch (parseErr) { throw new Error("Invalid JSON"); }
-  if (!data || typeof data !== "object") throw new Error("JSON body must be an object");
-  var fullName = str_(data.fullName);
-  var phone = str_(data.phone);
-  if (!fullName || !phone) throw new Error("Missing required fields: fullName, phone");
+  try { data = JSON.parse(raw); } catch (err) { throw new Error("Invalid JSON"); }
+  if (!data || typeof data !== "object") throw new Error("JSON must be an object");
+  if (!str_(data.fullName) || !str_(data.phone)) {
+    throw new Error("Missing required fields: fullName, phone");
+  }
   return data;
 }
 
-function calculateFields(data) {
+// ─── Financials ──────────────────────────────────────────────
+
+function calcFinancials_(data) {
   var courseCost = round2_(num_(data.courseCost));
   var deposit    = round2_(num_(data.deposit));
   var inst1      = round2_(num_(data.inst1));
@@ -153,20 +197,43 @@ function buildRow_(data, calc) {
   ];
 }
 
+// ─── Web App endpoints ───────────────────────────────────────
+
 function doPost(e) {
   try {
-    var data = parseRequest(e);
-    var ss = getOrCreateSpreadsheet();
-    var sh = getOrCreateSheet(ss);
-    ensureHeaders(sh);
-    var calc = calculateFields(data);
-    sh.appendRow(buildRow_(data, calc));
-    return jsonResponse_({ success: true, message: "Row added successfully" });
+    var data   = parseRequest_(e);
+    var ss     = getSpreadsheet();
+
+    // One tab per course — fallback to "Enrollments" if no diploma
+    var tabName = str_(data.diploma) || "Enrollments";
+    var sh      = getOrCreateTab(ss, tabName);
+
+    ensureHeaders_(sh);
+
+    var calc     = calcFinancials_(data);
+    var row      = buildRow_(data, calc);
+    var newIndex = sh.getLastRow() + 1;
+
+    sh.appendRow(row);
+    applyRowStripe_(sh, newIndex);
+
+    return jsonResponse_({ success: true, message: "Row added to tab: " + tabName });
   } catch (err) {
     return jsonResponse_({ success: false, message: err.message || String(err) });
   }
 }
 
 function doGet() {
-  return jsonResponse_({ success: true, message: "CRM master Web App active. POST text/plain JSON body." });
+  return jsonResponse_({ success: true, message: "Eduzah CRM Web App active." });
+}
+
+// ─── Manual helper: reformat all existing tabs ───────────────
+// Run this once from the Apps Script editor after pasting the code.
+function reformatAllTabs() {
+  var ss   = getSpreadsheet();
+  var tabs = ss.getSheets();
+  for (var i = 0; i < tabs.length; i++) {
+    applyHeaderStyle_(tabs[i]);
+  }
+  Logger.log("Done — formatted " + tabs.length + " tab(s).");
 }
