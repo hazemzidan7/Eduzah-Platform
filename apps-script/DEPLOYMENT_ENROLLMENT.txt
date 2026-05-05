@@ -1,0 +1,14 @@
+1) script.google.com → New project (standalone) OR Extensions → Apps Script from any Sheet.
+2) Paste EnrollmentDriveWebApp.gs. Edit DEFAULT_TEAM_EDITORS_CSV to your team Gmail addresses.
+3) Run once from editor: setupEnrollmentApiKey_("your-long-secret") and setupTeamEditorEmails_("a@gmail.com,b@gmail.com").
+4) Authorize scopes: spreadsheet, drive (file sharing), script.properties.
+5) Deploy → New deployment → Web app:
+   - Execute as: Me
+   - Who has access: Anyone (anonymously) or Anyone with the link
+6) Copy the Web App URL. It looks like:
+   https://script.google.com/macros/s/AKfycby.../exec
+7) First POST creates the spreadsheet under the deployer’s Google Drive, saves ID in Script Properties, shares editors, creates tab enrollmentRequests.
+8) Vite .env:
+   VITE_APPS_SCRIPT_ENROLL_URL=<paste /exec URL>
+   VITE_ENROLLMENT_API_KEY=<same as setupEnrollmentApiKey_>
+9) npm run dev / build. API key is sent in JSON body, query string, and X-API-Key header; only body/query are visible to Apps Script Web App.

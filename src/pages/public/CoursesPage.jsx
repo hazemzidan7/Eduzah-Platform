@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, PBar } from "../../components/UI";
 import { useAuth } from "../../context/AuthContext";
@@ -58,6 +58,18 @@ export default function CoursesPage() {
           )}
           {" "}{lang==="ar" ? "برنامج متخصص" : "specialized programs"}
         </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", marginTop: 20 }}>
+          <Link to="/courses/ai" style={{ textDecoration: "none" }}>
+            <span style={{ fontWeight: 800, fontSize: 13, color: "#d91b5b", border: "2px solid rgba(217,27,91,.45)", borderRadius: 12, padding: "10px 18px", display: "inline-block" }}>
+              {lang === "ar" ? "دبلوم الذكاء الاصطناعي →" : "AI diploma program →"}
+            </span>
+          </Link>
+          <Link to="/courses/frontend" style={{ textDecoration: "none" }}>
+            <span style={{ fontWeight: 800, fontSize: 13, color: "#d91b5b", border: "2px solid rgba(217,27,91,.45)", borderRadius: 12, padding: "10px 18px", display: "inline-block" }}>
+              {lang === "ar" ? "دبلوم الواجهات (Frontend) →" : "Frontend diploma program →"}
+            </span>
+          </Link>
+        </div>
       </div>
 
       {/* Search */}

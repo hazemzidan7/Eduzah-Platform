@@ -36,6 +36,7 @@ const TeamPage           = lazy(() => import("./pages/public/TeamPage"));
 
 const CourseLanding      = lazy(() => import("./pages/course/CourseLanding"));
 const CourseRegister     = lazy(() => import("./pages/course/CourseRegister"));
+const SheetsCoursePage    = lazy(() => import("./pages/courses/SheetsCoursePage"));
 
 const StudentDashboard   = lazy(() => import("./pages/student/StudentDashboard"));
 const CourseViewer       = lazy(() => import("./pages/student/CourseViewer"));
@@ -102,6 +103,8 @@ export default function App() {
           {/* ── Public ─────────────────────────── */}
           <Route path="/"           element={<Landing />} />
           <Route path="/find-path" element={<PathQuiz />} />
+          <Route path="/courses/ai"       element={<SheetsCoursePage courseKey="ai" />} />
+          <Route path="/courses/frontend" element={<SheetsCoursePage courseKey="frontend" />} />
           <Route path="/courses"    element={<CoursesPage />} />
           <Route path="/news"       element={<NewsPage />} />
           <Route path="/services"   element={<ServicesPage />} />
