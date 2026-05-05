@@ -72,7 +72,7 @@ export default function CourseRegister() {
   const { slug }   = useParams();
   const navigate   = useNavigate();
   const { courses } = useData();
-  const { currentUser, register, refreshUserProfile } = useAuth();
+  const { currentUser, register, refreshUserProfile, enrollUser } = useAuth();
   const { lang } = useLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
   const ar  = lang === "ar";
@@ -229,10 +229,16 @@ export default function CourseRegister() {
         paymentMethod:     "instapay",
         paymentPlan,
         amountQuoted,
-        status:            "pending",
-        enrollmentStatus:  "pending",
+        status:            "approved",
+        enrollmentStatus:  "approved",
+        reviewedAt:        new Date().toISOString(),
         createdAt:         new Date().toISOString(),
       });
+
+      // Auto-enroll: add course to student's profile immediately
+      if (uidForDoc) {
+        try { await enrollUser(uidForDoc, courseIdStr); } catch (_) {}
+      }
 
       setDone(true);
 
