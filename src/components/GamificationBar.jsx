@@ -6,6 +6,18 @@ const XP_LEVELS = [0, 200, 500, 1000, 2000, 3500, 5000, 7000, 10000, 15000, Infi
 const LEVEL_NAMES_AR = ["", "مبتدئ", "متعلم", "متقدم", "محترف", "خبير", "معلم", "أستاذ", "نخبة", "أسطورة", "بطل"];
 const LEVEL_NAMES_EN = ["", "Beginner", "Learner", "Advancing", "Professional", "Expert", "Mentor", "Master", "Elite", "Legend", "Champion"];
 
+const BADGE_META = {
+  first_course:   { emoji: "🎯", ar: "أول كورس",      en: "First Course" },
+  first_step:     { emoji: "🎯", ar: "أول خطوة",       en: "First Step" },
+  lesson_5:       { emoji: "📚", ar: "5 دروس مكتملة", en: "5 Lessons Done" },
+  lessons_10:     { emoji: "📚", ar: "10 دروس",        en: "10 Lessons" },
+  lesson_20:      { emoji: "🔥", ar: "20 درس",         en: "20 Lessons" },
+  course_done:    { emoji: "🏆", ar: "كورس مكتمل",    en: "Course Complete" },
+  course_graduate:{ emoji: "🏆", ar: "خريج",           en: "Graduate" },
+  xp_500:         { emoji: "⚡", ar: "500 XP",         en: "500 XP" },
+  xp_2000:        { emoji: "💎", ar: "2000 XP",        en: "2000 XP" },
+};
+
 const LEVEL_GRADIENTS = [
   "",
   "linear-gradient(135deg,#6b7280,#9ca3af)",      // 1 - gray
@@ -28,7 +40,7 @@ const LEVEL_GLOW = [
   "rgba(255,215,0,.6)",
 ];
 
-export default function GamificationBar({ xp = 0, level = 1, badges = [] }) {
+export default function GamificationBar({ xp = 0, level = 1, badges = [], streak = 0 }) {
   const { lang } = useLang();
   const ar = lang === "ar";
 
@@ -45,32 +57,6 @@ export default function GamificationBar({ xp = 0, level = 1, badges = [] }) {
   const gradient = LEVEL_GRADIENTS[safeLevel];
   const glow = LEVEL_GLOW[safeLevel];
 
-  const motivational = ar
-    ? [
-        "واصل التعلم وحقق المزيد!",
-        "أنت تتقدم بشكل رائع!",
-        "الاستمرارية هي مفتاح النجاح!",
-        "كل درس يقربك من هدفك!",
-        "أنت نجم في طريقك!",
-        "إنجازاتك تلهم الآخرين!",
-        "وصلت لمستوى متقدم، استمر!",
-        "أنت من النخبة!",
-        "أسطورة حقيقية!",
-        "بطل لا يُقهر!",
-      ]
-    : [
-        "Keep learning and achieve more!",
-        "You're progressing amazingly!",
-        "Consistency is the key to success!",
-        "Every lesson brings you closer!",
-        "You're a rising star!",
-        "Your achievements inspire others!",
-        "Advanced level reached, keep going!",
-        "You're among the elite!",
-        "A true legend!",
-        "An unbeatable champion!",
-      ];
-  const motivText = motivational[safeLevel - 1];
 
   return (
     <div style={{
@@ -174,7 +160,11 @@ export default function GamificationBar({ xp = 0, level = 1, badges = [] }) {
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ color: C.muted, fontSize: 11, fontFamily: font }}>{motivText}</span>
+          {streak > 0 && (
+            <span className="streak-badge" style={{ fontSize: 11, padding: "2px 10px" }}>
+              🔥 {streak} {ar ? "يوم" : streak === 1 ? "day" : "days"}
+            </span>
+          )}
           {!isMaxLevel && (
             <span style={{ color: C.muted, fontSize: 11, fontFamily: font }}>
               {(nextThreshold - xp).toLocaleString()} {ar ? "للمستوى التالي" : "to next level"}
@@ -191,32 +181,30 @@ export default function GamificationBar({ xp = 0, level = 1, badges = [] }) {
       {/* Badges */}
       {badges && badges.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0, maxWidth: 160 }}>
-          {badges.slice(0, 6).map((badgeId, i) => (
-            <div
-              key={badgeId}
-              title={badgeId}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,.08)",
-                border: `1px solid ${C.border}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 16,
-                animation: `badgePop .4s ease ${i * 0.1}s both`,
-                cursor: "default",
-              }}>
-              {badgeId === "first_course" || badgeId === "first_step" ? "🎯"
-                : badgeId === "lessons_10" || badgeId === "lesson_5" ? "📚"
-                : badgeId === "lesson_20" ? "🔥"
-                : badgeId === "course_graduate" || badgeId === "course_done" ? "🏆"
-                : badgeId === "xp_500" ? "⚡"
-                : badgeId === "xp_2000" ? "💎"
-                : "🎖️"}
-            </div>
-          ))}
+          {badges.slice(0, 6).map((badgeId, i) => {
+            const meta = BADGE_META[badgeId];
+            return (
+              <div
+                key={badgeId}
+                title={meta ? (ar ? meta.ar : meta.en) : badgeId}
+                aria-label={meta ? (ar ? meta.ar : meta.en) : badgeId}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,.08)",
+                  border: `1px solid ${C.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                  animation: `badgePop .4s ease ${i * 0.1}s both`,
+                  cursor: "default",
+                }}>
+                {meta ? meta.emoji : "🎖️"}
+              </div>
+            );
+          })}
           {badges.length > 6 && (
             <div style={{
               width: 32, height: 32, borderRadius: "50%",
