@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { C } from "../../theme";
 import { Btn, PBar, Badge } from "../../components/UI";
@@ -30,6 +30,9 @@ export default function CourseViewer() {
   const [li,  setLi]  = useState(0);
   const [tab, setTab] = useState("lesson");
   const [iframePlay, setIframePlay] = useState(false);
+  const [xpFlash, setXpFlash] = useState(null);
+  const ytPlayerRef = useRef(null);
+  const ytContainerRef = useRef(null);
   useEffect(() => { setIframePlay(false); }, [li]);
 
   const course = courses.find(c => c.slug === slug);
@@ -59,6 +62,56 @@ export default function CourseViewer() {
   const isVimeo    = embedUrl && embedUrl.includes("player.vimeo.com");
   const isIframe   = isYouTube || isVimeo;
   const isDirectVid = embedUrl && !isIframe;
+
+  const autoComplete = useCallback(async () => {
+    if (done.includes(li)) {
+      if (li + 1 < total) setLi(li + 1);
+      return;
+    }
+    await markLesson(course.id, li, total, ar ? course.title : (course.title_en || course.title));
+    setXpFlash("+15 XP");
+    setTimeout(() => setXpFlash(null), 2000);
+    if (li + 1 < total) setTimeout(() => setLi(li + 1), 800);
+  }, [done, li, total, course, ar, markLesson]);
+
+  /* YouTube IFrame API auto-complete */
+  useEffect(() => {
+    if (!isYouTube || !iframePlay) return;
+    const ytUrl = embedUrl.replace("youtube.com/embed/", "youtube.com/embed/").split("?")[0];
+    const videoId = ytUrl.split("/").pop();
+    const containerId = `yt-player-${li}`;
+
+    const initPlayer = () => {
+      if (!ytContainerRef.current) return;
+      ytContainerRef.current.innerHTML = `<div id="${containerId}"></div>`;
+      ytPlayerRef.current = new window.YT.Player(containerId, {
+        videoId,
+        playerVars: { rel: 0, modestbranding: 1, autoplay: 1 },
+        events: {
+          onStateChange: (e) => {
+            if (e.data === window.YT.PlayerState.ENDED) autoComplete();
+          },
+        },
+      });
+    };
+
+    if (window.YT?.Player) {
+      initPlayer();
+    } else {
+      if (!document.getElementById("yt-iframe-api")) {
+        const tag = document.createElement("script");
+        tag.id = "yt-iframe-api";
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+      }
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      try { ytPlayerRef.current?.destroy(); } catch (_) {}
+      ytPlayerRef.current = null;
+    };
+  }, [isYouTube, iframePlay, li, embedUrl, autoComplete]);
 
   const tabLabels = ar
     ? [["lesson", "الدرس"], ["about", "عن الكورس"], ["outcomes", "المهارات"]]
@@ -144,13 +197,17 @@ export default function CourseViewer() {
                   watermarkText={wm}
                   ariaLabel={ar ? "مشغّل فيديو الدرس" : "Lesson video player"}
                 >
-                  <iframe
-                    src={embedUrl}
-                    title={video?.title || lesson}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                  />
+                  {isYouTube ? (
+                    <div ref={ytContainerRef} style={{ width: "100%", height: "100%" }} />
+                  ) : (
+                    <iframe
+                      src={embedUrl}
+                      title={video?.title || lesson}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                    />
+                  )}
                 </SecureVideoPlayer>
               )
             ) : embedUrl && isDirectVid ? (
@@ -164,6 +221,7 @@ export default function CourseViewer() {
                   controls
                   controlsList="nodownload noplaybackrate"
                   disablePictureInPicture
+                  onEnded={autoComplete}
                   style={{ width: "100%", height: "100%", display: "block" }}
                 />
               </SecureVideoPlayer>
@@ -243,10 +301,25 @@ export default function CourseViewer() {
                     ))}
                   </div>
                 )}
-                {done.includes(li)
-                  ? <Badge color={C.success}>{ar ? "تم الإكمال" : "Completed"}</Badge>
-                  : <Btn children={ar ? "تم مشاهدة الدرس" : "Mark as watched"} v="success" sm onClick={() => markLesson(course.id, li, total, ar ? course.title : (course.title_en || course.title))} />
-                }
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  {done.includes(li) ? (
+                    <>
+                      <Badge color={C.success}>{ar ? "✓ مكتمل" : "✓ Done"}</Badge>
+                      {li + 1 < total && (
+                        <Btn children={ar ? "الدرس التالي ←" : "Next lesson →"} sm onClick={() => setLi(li + 1)} />
+                      )}
+                    </>
+                  ) : (
+                    <Btn
+                      children={ar ? (li + 1 < total ? "أكملت وانتقل للتالي ←" : "أكملت الكورس") : (li + 1 < total ? "Complete & Next →" : "Complete course")}
+                      v="success"
+                      onClick={autoComplete}
+                    />
+                  )}
+                </div>
+                {xpFlash && (
+                  <div className="xp-toast">{xpFlash}</div>
+                )}
               </div>
             )}
             {tab === "about" && (
