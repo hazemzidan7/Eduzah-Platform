@@ -728,6 +728,17 @@ export function AuthProvider({ children }) {
     setCU((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
+  const toggleWishlist = async (courseId) => {
+    if (!currentUser?.id || !courseId) return;
+    const current = currentUser.wishlist || [];
+    const next = current.includes(courseId)
+      ? current.filter((id) => id !== courseId)
+      : [...current, courseId];
+    const patch = { wishlist: next };
+    await updateDoc(doc(db, "users", currentUser.id), patch);
+    setCU((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
   /**
    * Try 8-digit email code (Cloud Function + Resend). If unavailable, falls back to Firebase reset link.
    * Returns { ok, mode: 'otp'|'link', sent?: boolean, usedDefaultEmailLink?: boolean } or { ok: false, code }.
@@ -900,7 +911,7 @@ export function AuthProvider({ children }) {
       fetchUsers, login, logout, register, signInWithGoogle, refreshUserProfile,
       approveUser, rejectUser, deleteUser, approveEnrollmentRequest, rejectEnrollmentRequest,
       enrollUser, removeEnroll,
-      assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, updateProfile, adminUpdateUser,
+      assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, toggleWishlist, updateProfile, adminUpdateUser,
       requestPasswordReset, startPasswordReset, confirmPasswordResetOtp, changePassword,
       createAdminAccount, createInstructorAccount,
       finalizePhoneSignIn,

@@ -30,7 +30,7 @@ function recommendCourses(courses, currentUser, enrolledIds) {
 }
 
 export default function StudentDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, toggleWishlist } = useAuth();
   const { courses } = useData();
   const { lang } = useLang();
   const navigate = useNavigate();
@@ -82,6 +82,11 @@ export default function StudentDashboard() {
   }, [lastCourse, enrolled, currentUser?.enrolledCourses]);
 
   useStreak();
+
+  const wishlistCourses = useMemo(() => {
+    const ids = currentUser?.wishlist || [];
+    return courses.filter((c) => ids.includes(c.id));
+  }, [courses, currentUser?.wishlist]);
 
   const notifications = (currentUser?.userNotifications || []).slice().reverse().slice(0, 8);
   const streak = currentUser?.streak || 0;
@@ -164,37 +169,47 @@ export default function StudentDashboard() {
       </div>
 
       {/* Priority 1: Continue Learning card */}
-      {continueSlug && lastCourse && (
-        <div style={{
-          background: "linear-gradient(135deg, rgba(217,27,91,.15) 0%, rgba(125,61,158,.15) 100%)",
-          border: "1px solid rgba(217,27,91,.3)",
-          borderRadius: 18,
-          padding: "20px 22px",
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}>
-          <div>
-            <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>
-              {ar ? "آخر كورس شاهدته" : "Continue where you left off"}
+      {continueSlug && (() => {
+        const displayCourse = lastCourse || enrolled.find(c => c.slug === continueSlug);
+        if (!displayCourse) return null;
+        const prog = getED(displayCourse.id)?.progress || 0;
+        const isNew = !lastCourse;
+        return (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(217,27,91,.15) 0%, rgba(125,61,158,.15) 100%)",
+            border: "1px solid rgba(217,27,91,.3)",
+            borderRadius: 18,
+            padding: "20px 22px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+          }}>
+            <div>
+              <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>
+                {isNew
+                  ? (ar ? "ابدأ رحلتك مع هذا الكورس" : "Start your learning journey")
+                  : (ar ? "آخر كورس شاهدته" : "Continue where you left off")}
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>
+                {ar ? displayCourse.title : (displayCourse.title_en || displayCourse.title)}
+              </div>
+              <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>
+                {prog > 0
+                  ? `${prog}% ${ar ? "مكتمل" : "complete"}`
+                  : (ar ? "لم تبدأ بعد" : "Not started yet")}
+              </div>
             </div>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>
-              {ar ? lastCourse.title : (lastCourse.title_en || lastCourse.title)}
-            </div>
-            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>
-              {getED(lastCourse.id)?.progress || 0}% {ar ? "مكتمل" : "complete"}
-            </div>
+            <Btn
+              children={isNew ? (ar ? "ابدأ التعلم ▶" : "Start Learning ▶") : (ar ? "كمل التعلم ▶" : "Continue ▶")}
+              onClick={() => navigate(`/learn/${continueSlug}`)}
+              style={{ padding: "12px 24px", fontSize: 14, borderRadius: 12, flexShrink: 0 }}
+            />
           </div>
-          <Btn
-            children={ar ? "كمل التعلم ▶" : "Continue ▶"}
-            onClick={() => navigate(`/learn/${continueSlug}`)}
-            style={{ padding: "12px 24px", fontSize: 14, borderRadius: 12, flexShrink: 0 }}
-          />
-        </div>
-      )}
+        );
+      })()}
 
       {/* Priority 2: Stat row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 12, marginBottom: 22 }}>
@@ -322,6 +337,47 @@ export default function StudentDashboard() {
             </div>
           ))}
         </Card>
+      )}
+
+      {/* Saved / Wishlist */}
+      {wishlistCourses.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>{ar ? "الكورسات المحفوظة ❤️" : "Saved courses ❤️"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
+            {wishlistCourses.map((c) => (
+              <Card key={c.id} style={{ padding: 0, overflow: "hidden" }}>
+                <div
+                  onClick={() => navigate(`/courses/${c.slug}`)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div style={{ height: 80, background: `linear-gradient(135deg,${c.color || C.red}cc,#1a0f2e)`, position: "relative" }}>
+                    {c.image && <img src={c.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                  </div>
+                  <div style={{ padding: "10px 12px 12px" }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 4 }}>{ar ? c.title : (c.title_en || c.title)}</div>
+                    <div style={{ color: C.muted, fontSize: 11, marginBottom: 8 }}>{c.price?.toLocaleString()} EGP</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <Btn
+                        children={ar ? "تفاصيل" : "View"}
+                        sm
+                        v="outline"
+                        onClick={e => { e.stopPropagation(); navigate(`/courses/${c.slug}`); }}
+                        style={{ flex: 1, fontSize: 11 }}
+                      />
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleWishlist(c.id); }}
+                        title={ar ? "إزالة من المحفوظة" : "Remove from saved"}
+                        style={{ background: "rgba(217,27,91,.12)", border: "1px solid rgba(217,27,91,.3)", borderRadius: 8, padding: "4px 8px", cursor: "pointer", fontSize: 14 }}
+                      >
+                        ❤️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Notifications */}

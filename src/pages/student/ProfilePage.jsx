@@ -7,7 +7,10 @@ import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { courseCategoryLabel } from "../../constants/courseCategories";
 
-const readFile = (file, cb) => {
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2 MB
+
+const readFile = (file, cb, onErr) => {
+  if (file.size > MAX_AVATAR_BYTES) { onErr?.(); return; }
   const r = new FileReader();
   r.onloadend = () => cb(r.result);
   r.readAsDataURL(file);
@@ -20,9 +23,10 @@ export default function ProfilePage() {
   const { lang } = useLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [editing, setEditing] = useState(false);
-  const [saved,   setSaved]   = useState(false);
-  const [form,    setForm]    = useState({
+  const [editing,    setEditing]    = useState(false);
+  const [saved,      setSaved]      = useState(false);
+  const [avatarErr,  setAvatarErr]  = useState(false);
+  const [form,       setForm]       = useState({
     name:  currentUser?.name  || "",
     phone: currentUser?.phone || "",
   });
@@ -52,9 +56,12 @@ export default function ProfilePage() {
   const streak = currentUser.streak || 0;
 
   const pickAvatar = e => {
-    if (e.target.files[0]) readFile(e.target.files[0], data => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarErr(false);
+    readFile(file, data => {
       updateProfile({ avatar: data, avatarImg: data });
-    });
+    }, () => setAvatarErr(true));
   };
 
   const saveProfile = () => {
@@ -82,7 +89,12 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
+        <style>{`
+          @media (max-width: 700px) {
+            .profile-grid { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
+        <div className="profile-grid" style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
 
           {/* ── Left: Profile card ── */}
           <Card style={{ padding: 28, textAlign: "center" }}>
@@ -103,13 +115,16 @@ export default function ProfilePage() {
                 }
               </div>
               {/* Upload button */}
-              <label style={{
-                position: "absolute", bottom: 0, right: 0,
-                width: 28, height: 28, borderRadius: "50%",
-                background: C.red, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                border: "2px solid #1a0f24",
-              }}>
+              <label
+                aria-label={lang === "ar" ? "تحميل صورة الملف الشخصي (بحد أقصى 2MB)" : "Upload avatar (max 2MB)"}
+                title={lang === "ar" ? "تحميل صورة (2MB كحد أقصى)" : "Upload image (max 2MB)"}
+                style={{
+                  position: "absolute", bottom: 0, right: 0,
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: C.red, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: "2px solid #1a0f24",
+                }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
@@ -117,6 +132,11 @@ export default function ProfilePage() {
                 </svg>
                 <input type="file" accept="image/*" onChange={pickAvatar} style={{ display: "none" }} />
               </label>
+              {avatarErr && (
+                <div role="alert" style={{ position: "absolute", top: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 11, color: C.danger, fontWeight: 700 }}>
+                  {lang === "ar" ? "الصورة أكبر من 2MB" : "Image exceeds 2MB"}
+                </div>
+              )}
             </div>
 
             {/* Name */}
