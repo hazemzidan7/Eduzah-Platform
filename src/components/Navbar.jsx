@@ -42,11 +42,12 @@ export default function Navbar() {
   const avBg = role === "admin" ? gOr : role === "instructor" ? gPur : gRed;
 
   /* ── Link definitions ── */
-  // Public: only 3 primary links — everything else goes to footer
   const publicLinks = [
-    ["/courses",    lang === "ar" ? "الكورسات"    : "Courses"],
-    ["/find-path",  lang === "ar" ? "اكتشف مسارك" : "Find My Path"],
-    ["/team",       lang === "ar" ? "من نحن"       : "About Us"],
+    ["/courses",    lang === "ar" ? "الكورسات"       : "Courses"],
+    ["/find-path",  lang === "ar" ? "اكتشف مسارك"   : "Find My Path"],
+    ["/news",       lang === "ar" ? "الأخبار"        : "News"],
+    ["/services",   lang === "ar" ? "طلبات الخدمات" : "Services"],
+    ["/team",       lang === "ar" ? "من نحن"         : "About Us"],
   ];
   const studentLinks = [
     ["/dashboard",  lang === "ar" ? "لوحة التحكم" : "Dashboard"],
