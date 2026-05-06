@@ -43,11 +43,16 @@ export default function Navbar() {
 
   /* ── Link definitions ── */
   const publicLinks = [
-    ["/courses",    lang === "ar" ? "الكورسات"       : "Courses"],
-    ["/find-path",  lang === "ar" ? "اكتشف مسارك"   : "Find My Path"],
-    ["/news",       lang === "ar" ? "الأخبار"        : "News"],
-    ["/services",   lang === "ar" ? "طلبات الخدمات" : "Services"],
-    ["/team",       lang === "ar" ? "من نحن"         : "About Us"],
+    ["/",            lang === "ar" ? "الرئيسية"       : "Home"],
+    ["/courses",     lang === "ar" ? "الكورسات"       : "Courses"],
+    ["sep"],
+    ["/corporate",   lang === "ar" ? "تدريب الشركات" : "Corporate"],
+    ["/hiring",      lang === "ar" ? "التوظيف"        : "Hiring"],
+    ["/services",    lang === "ar" ? "الخدمات"        : "Services"],
+    ["sep"],
+    ["/team",        lang === "ar" ? "فريقنا"         : "Our Team"],
+    ["/consultation",lang === "ar" ? "استشارة مجانية": "Free Consult"],
+    ["/news",        lang === "ar" ? "الأخبار"        : "News"],
   ];
   const studentLinks = [
     ["/dashboard",  lang === "ar" ? "لوحة التحكم" : "Dashboard"],
@@ -120,15 +125,21 @@ export default function Navbar() {
         {/* ── Desktop links ── */}
         {!mobile && (
           <div style={{ display: "flex", gap: 4, flex: 1, justifyContent: "center", padding: "0 12px", alignItems: "center" }}>
-            {links.map(([path, label]) => (
-              <Link
-                key={path}
-                to={path}
-                className={`nav-link${isActive(path) ? " active" : ""}`}
-              >
-                {label}
-              </Link>
-            ))}
+            {links.map((item, idx) => {
+              if (item[0] === "sep") {
+                return <span key={`sep-${idx}`} aria-hidden="true" style={{ width: 1, height: 16, background: "rgba(255,255,255,.18)", flexShrink: 0, marginInline: 4 }} />;
+              }
+              const [path, label] = item;
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`nav-link${isActive(path) ? " active" : ""}`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
         )}
 
@@ -248,7 +259,7 @@ export default function Navbar() {
           direction:  lang === "ar" ? "rtl" : "ltr",
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
-            {links.map(([path, label]) => (
+            {links.filter(item => item[0] !== "sep").map(([path, label]) => (
               <Link
                 key={path}
                 to={path}
