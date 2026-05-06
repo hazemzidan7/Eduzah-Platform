@@ -8,9 +8,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { normalizeCourseCategory } from "../../constants/courseCategories";
+import { useStreak } from "../../hooks/useStreak";
 
-const MOTIS_AR = ["أنت على بعد خطوات من إتقان المهارة! استمر!", "الاستمرارية هي قوتك.", "كل درس يقربك من هدفك!", "متابعة رائعة!"];
-const MOTIS_EN = ["You're steps away from mastering this skill!", "Consistency is your strength.", "Every lesson brings you closer!", "Great momentum!"];
 
 function recommendCourses(courses, currentUser, enrolledIds) {
   const activity = currentUser?.courseActivity || {};
@@ -54,12 +53,12 @@ export default function StudentDashboard() {
     [currentUser?.enrolledCourses],
   );
 
-  const totalProg = enrolled.length > 0
-    ? Math.round(enrolled.reduce((s, c) => s + (getED(c.id)?.progress || 0), 0) / enrolled.length)
-    : 0;
-
-  const motis = ar ? MOTIS_AR : MOTIS_EN;
-  const moti = motis[Math.floor(Date.now() / 60000) % motis.length];
+  const lessonsCompleted = useMemo(
+    () => (currentUser?.enrolledCourses || []).reduce(
+      (sum, e) => sum + (e.completedLessons?.length || 0), 0
+    ),
+    [currentUser?.enrolledCourses],
+  );
 
   const lastCourse = useMemo(() => {
     const id = currentUser?.lastViewedCourseId;
@@ -82,7 +81,10 @@ export default function StudentDashboard() {
     return enrolled[0]?.slug || null;
   }, [lastCourse, enrolled, currentUser?.enrolledCourses]);
 
+  useStreak();
+
   const notifications = (currentUser?.userNotifications || []).slice().reverse().slice(0, 8);
+  const streak = currentUser?.streak || 0;
 
   const upcomingBlocks = useMemo(() => {
     return enrolled
@@ -91,16 +93,17 @@ export default function StudentDashboard() {
       .slice(0, 4);
   }, [enrolled]);
 
+  const certificates = enrolled.filter((c) => (getED(c.id)?.progress || 0) === 100).length;
   const statCards = ar
     ? [
         { l: "كورساتي", v: enrolled.length, c: C.red },
-        { l: "التقدم", v: `${totalProg}%`, c: C.orange },
-        { l: "شهادات", v: enrolled.filter((c) => (getED(c.id)?.progress || 0) === 100).length, c: C.purple },
+        { l: "دروس مكتملة", v: lessonsCompleted, c: C.orange },
+        { l: "شهادات", v: certificates, c: C.purple },
       ]
     : [
         { l: "My courses", v: enrolled.length, c: C.red },
-        { l: "Progress", v: `${totalProg}%`, c: C.orange },
-        { l: "Certificates", v: enrolled.filter((c) => (getED(c.id)?.progress || 0) === 100).length, c: C.purple },
+        { l: "Lessons done", v: lessonsCompleted, c: C.orange },
+        { l: "Certificates", v: certificates, c: C.purple },
       ];
 
   if (!currentUser) {
@@ -150,107 +153,60 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* GamificationBar */}
       <div style={{ marginBottom: 20 }}>
         <GamificationBar
           xp={currentUser.xp || 0}
           level={currentUser.level || 1}
           badges={currentUser.badges || []}
+          streak={streak}
         />
       </div>
 
-      {continueSlug && (
-        <div style={{ marginBottom: 20 }}>
+      {/* Priority 1: Continue Learning card */}
+      {continueSlug && lastCourse && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(217,27,91,.15) 0%, rgba(125,61,158,.15) 100%)",
+          border: "1px solid rgba(217,27,91,.3)",
+          borderRadius: 18,
+          padding: "20px 22px",
+          marginBottom: 20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ color: C.muted, fontSize: 11, marginBottom: 4 }}>
+              {ar ? "آخر كورس شاهدته" : "Continue where you left off"}
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>
+              {ar ? lastCourse.title : (lastCourse.title_en || lastCourse.title)}
+            </div>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>
+              {getED(lastCourse.id)?.progress || 0}% {ar ? "مكتمل" : "complete"}
+            </div>
+          </div>
           <Btn
-            children={ar ? "كمل التعلم" : "Continue learning"}
+            children={ar ? "كمل التعلم ▶" : "Continue ▶"}
             onClick={() => navigate(`/learn/${continueSlug}`)}
-            style={{ padding: "14px 28px", fontSize: 15, borderRadius: 14 }}
+            style={{ padding: "12px 24px", fontSize: 14, borderRadius: 12, flexShrink: 0 }}
           />
         </div>
       )}
 
-      <div style={{ background: "linear-gradient(135deg,rgba(250,166,51,.12),rgba(217,27,91,.12))", border: "1px solid rgba(250,166,51,.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{moti}</div>
-        <div style={{ color: C.muted, fontSize: 11 }}>{ar ? "واصل التعلم!" : "Keep it up!"}</div>
-      </div>
-
-      {lastCourse && (
-        <Card style={{ padding: "14px 16px", marginBottom: 18 }}>
-          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8 }}>{ar ? "آخر كورس شاهدته" : "Last viewed course"}</div>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate(`/learn/${lastCourse.slug}`)}
-            onKeyDown={(e) => e.key === "Enter" && navigate(`/learn/${lastCourse.slug}`)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              cursor: "pointer",
-              padding: 10,
-              borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              transition: "background .2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{ar ? lastCourse.title : (lastCourse.title_en || lastCourse.title)}</span>
-            <span style={{ color: C.orange, fontWeight: 800, fontSize: 12 }}>{ar ? "متابعة" : "Resume"}</span>
-          </div>
-        </Card>
-      )}
-
-      {suggestions.length > 0 && (
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>{ar ? "موصى بها لك" : "Recommended for you"}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
-            {suggestions.map((c) => (
-              <Card
-                key={c.id}
-                style={{ padding: 12 }}
-                onClick={() => navigate(`/courses/${c.slug}`)}
-              >
-                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>{ar ? c.title : (c.title_en || c.title)}</div>
-                <div style={{ color: C.muted, fontSize: 11 }}>{c.price?.toLocaleString?.()} EGP</div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {upcomingBlocks.length > 0 && (
-        <Card style={{ padding: "14px 16px", marginBottom: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{ar ? "جلسات قادمة" : "Upcoming sessions"}</div>
-          {upcomingBlocks.map(({ c, note }) => (
-            <div key={c.id} style={{ fontSize: 13, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
-              <strong>{ar ? c.title : (c.title_en || c.title)}:</strong>{" "}
-              <span style={{ color: C.muted }}>{note}</span>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {notifications.length > 0 && (
-        <Card style={{ padding: "14px 16px", marginBottom: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{ar ? "إشعارات" : "Notifications"}</div>
-          <ul style={{ margin: 0, paddingInlineStart: 18, color: C.muted, fontSize: 12, lineHeight: 1.7 }}>
-            {notifications.map((n) => (
-              <li key={n.id || n.createdAt} style={{ marginBottom: 6 }}>{n.message}</li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 12, marginBottom: 22 }}>
+      {/* Priority 2: Stat row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 12, marginBottom: 22 }}>
         {statCards.map((s) => (
           <Card key={s.l} style={{ padding: "16px 14px" }}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: s.c }}>{s.v}</div>
             <div style={{ color: C.muted, fontSize: 12 }}>{s.l}</div>
           </Card>
         ))}
       </div>
 
+      {/* Priority 3: My Courses */}
       <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>{ar ? "كورساتي" : "My courses"}</div>
       {enrolled.length === 0 ? (
         <Card style={{ padding: 40, textAlign: "center" }}>
@@ -263,8 +219,6 @@ export default function StudentDashboard() {
           {enrolled.map((c) => {
             const ed = getED(c.id);
             const prog = ed?.progress || 0;
-            const coverSrc = courseCardCoverUrl(c);
-            const hideTitleOverlay = courseCoverIsGraphic(c);
             return (
               <div
                 key={c.id}
@@ -340,6 +294,46 @@ export default function StudentDashboard() {
             );
           })}
         </div>
+      )}
+
+      {/* Recommendations */}
+      {suggestions.length > 0 && (
+        <div style={{ marginTop: 28, marginBottom: 22 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>{ar ? "موصى بها لك" : "Recommended for you"}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
+            {suggestions.map((c) => (
+              <Card key={c.id} style={{ padding: 12 }} onClick={() => navigate(`/courses/${c.slug}`)}>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>{ar ? c.title : (c.title_en || c.title)}</div>
+                <div style={{ color: C.muted, fontSize: 11 }}>{c.price?.toLocaleString?.()} EGP</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming sessions */}
+      {upcomingBlocks.length > 0 && (
+        <Card style={{ padding: "14px 16px", marginBottom: 22 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{ar ? "جلسات قادمة" : "Upcoming sessions"}</div>
+          {upcomingBlocks.map(({ c, note }) => (
+            <div key={c.id} style={{ fontSize: 13, marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
+              <strong>{ar ? c.title : (c.title_en || c.title)}:</strong>{" "}
+              <span style={{ color: C.muted }}>{note}</span>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <Card style={{ padding: "14px 16px", marginBottom: 22 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{ar ? "إشعارات" : "Notifications"}</div>
+          <ul style={{ margin: 0, paddingInlineStart: 18, color: C.muted, fontSize: 12, lineHeight: 1.7 }}>
+            {notifications.map((n) => (
+              <li key={n.id || n.createdAt} style={{ marginBottom: 6 }}>{n.message}</li>
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   );
