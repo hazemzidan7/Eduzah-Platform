@@ -23,14 +23,18 @@ export default function CoursesPage() {
   const { lang } = useLang();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [track, setTrack]   = useState(searchParams.get("track") || "all");
-  const [type,  setType]    = useState("all");
-  const [search, setSearch] = useState("");
+  const PAGE_SIZE = 12;
+  const [track,       setTrack]       = useState(searchParams.get("track") || "all");
+  const [type,        setType]        = useState("all");
+  const [search,      setSearch]      = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     const t = searchParams.get("track");
     if (t) setTrack(t);
   }, [searchParams]);
+
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [track, type, search]);
 
   const filtered = courses.filter(c => {
     const matchTrack  = track === "all" || c.trackId === track;
@@ -120,11 +124,21 @@ export default function CoursesPage() {
 
       {/* Results */}
       {filtered.length===0
-        ? <div style={{textAlign:"center",color:"var(--page-muted)",padding:"60px 0",fontSize:14}}>
-            {lang==="ar" ? "لا توجد كورسات مطابقة للبحث." : "No courses match your search."}
+        ? <div style={{textAlign:"center",padding:"60px 0"}}>
+            <div style={{fontSize:40,marginBottom:16}}>🔍</div>
+            <div style={{color:"var(--page-muted)",fontSize:14,marginBottom:16}}>
+              {lang==="ar" ? "لا توجد كورسات مطابقة للبحث." : "No courses match your search."}
+            </div>
+            <button
+              onClick={() => { setTrack("all"); setType("all"); setSearch(""); }}
+              className="btn-base btn-outline btn-sm"
+            >
+              {lang==="ar" ? "إعادة ضبط الفلاتر" : "Clear all filters"}
+            </button>
           </div>
-        : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
-          {filtered.map(c=>{
+        : <>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
+          {filtered.slice(0, visibleCount).map(c=>{
             const enrolled  = currentUser?.enrolledCourses?.find(e=>e.courseId===c.id);
             const prog      = enrolled?.progress||0;
             const trackData = TRACKS.find(tr=>tr.id===c.trackId);
@@ -216,6 +230,19 @@ export default function CoursesPage() {
             );
           })}
         </div>
+        {visibleCount < filtered.length && (
+          <div style={{ textAlign: "center", marginTop: 36 }}>
+            <button
+              onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+              className="btn-base btn-outline btn-md"
+            >
+              {lang === "ar"
+                ? `عرض المزيد (${filtered.length - visibleCount} متبقّي)`
+                : `Load more (${filtered.length - visibleCount} remaining)`}
+            </button>
+          </div>
+        )}
+        </>
       }
     </div>
   );
