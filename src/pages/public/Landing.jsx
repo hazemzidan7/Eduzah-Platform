@@ -108,10 +108,10 @@ export default function Landing() {
   const [statsRef, statsInView] = useInView();
   const ps = SITE.publicStats;
   const STATS = [
-    { target: ps.trainees, suffix: "+", label: lang === "ar" ? "متدرب" : "Trainees" },
-    { target: ps.partners, suffix: "+", label: lang === "ar" ? "مؤسسة شريكة" : "Partners" },
-    { target: 48, suffix: "/5", label: lang === "ar" ? "تقييم" : "Rating", display: String(ps.rating) },
-    { target: ps.years, suffix: "+", label: lang === "ar" ? "سنوات" : "Years" },
+    { target: ps.trainees, suffix: "+", label: lang === "ar" ? "طالب ملتحق" : "Students Enrolled" },
+    { target: ps.partners, suffix: "+", label: lang === "ar" ? "مدرب معتمد" : "Certified Instructors" },
+    { target: 48, suffix: "/5", label: lang === "ar" ? "تقييم الأهل" : "Parent Rating", display: String(ps.rating) },
+    { target: ps.years, suffix: "+", label: lang === "ar" ? "سنوات خبرة" : "Years Experience" },
   ];
   // Start at target so numbers are never misleadingly 0 before animation
   const [counts, setCounts] = useState(STATS.map(s => s.display ?? s.target));
@@ -147,13 +147,13 @@ export default function Landing() {
   const [testimonialsRef, testimonialsInView] = useInView();
   const [journeyRef, journeyInView] = useInView();
 
-  /** Footer: off-white top fade يخفف القفزة من أقسام داكنة */
+  /** Footer: dark, coherent with page theme */
   const F = {
-    bg: "linear-gradient(180deg, #f0ecf5 0%, #faf9fc 28px, #ffffff 100%)",
-    line: "#e2dce8",
-    h: "#1a1522",
-    t: "#4f4d5c",
-    m: "#7d778a",
+    bg: "linear-gradient(180deg, #12081d 0%, #0e0618 100%)",
+    line: "rgba(255,255,255,.1)",
+    h: "#f8fafc",
+    t: "rgba(248,250,252,.65)",
+    m: "rgba(248,250,252,.4)",
   };
 
   return (
@@ -206,7 +206,7 @@ export default function Landing() {
         .landing-footer-link {
           display: block;
           text-decoration: none;
-          color: ${F.t};
+          color: rgba(248,250,252,.55);
           font-size: 12px;
           margin-bottom: 8px;
           cursor: pointer;
@@ -243,35 +243,38 @@ export default function Landing() {
               letterSpacing: lang === "ar" ? 0 : 0.5,
             }}
           >
-            {lang === "ar" ? "تدريب تقني ومهني — للأفراد والشركات" : "Tech & professional training — individuals & teams"}
+            {lang === "ar" ? "تعليم تقني للأطفال والشباب — للأعمار 8–16" : "Tech education for kids & teens — ages 8–16"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:14}}>
             {lang==="ar"
-              ? <><span style={{color:C.orange}}>امشِ خطوة</span> لقدّام في شغلك<br/>مع <span style={{color:C.red}}>Eduzah</span></>
-              : <>Move Your Career<br/><span style={{color:C.orange}}>Forward</span> <span style={{color:C.red}}>with Eduzah</span></>}
+              ? <><span style={{color:C.orange}}>خطوة طفلك الأولى</span><br/>نحو عالم <span style={{color:C.red}}>التكنولوجيا</span></>
+              : <>Your Child's First Step<br/>Into the World of <span style={{color:C.red}}>Technology</span></>}
           </h1>
-          <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:14,maxWidth:500}}>
+          <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:8,maxWidth:500}}>
             {lang==="ar"
-              ? "دورات ودبلومات عملية في البرمجة، الذكاء الاصطناعي، الموارد البشرية، والإنجليزي — مع مدربين خبراء ودعم يقربك من سوق العمل."
-              : "Hands-on diplomas in software, AI, HR & English — expert instructors and support that gets you job-ready."
+              ? "كورسات برمجة، ذكاء اصطناعي وروبوتيك — مُصمَّمة خصيصاً للأطفال والشباب من سن 8 حتى 16، بالعربي والإنجليزي."
+              : "Coding, AI & Robotics courses — designed for kids & teens aged 8–16, taught in Arabic & English."
             }
           </p>
-          <p style={{ color: "rgba(255,255,255,.55)", fontSize: 12, lineHeight: 1.65, marginBottom: 18, maxWidth: 520 }}>
+          {/* Trust micro-line */}
+          <p style={{ color: "rgba(255,255,255,.45)", fontSize: 12, marginBottom: 24 }}>
             {lang === "ar"
-              ? "مسار سريع: تصفّح البرامج ← سجّل حسابك ← نفعّل وصولك ← تبدأ التعلّم. للشركات: برامج مخصصة عبر الزر أدناه."
-              : "Fast path: browse programs → sign up → we activate access → you learn. For teams: custom programs via Corporate Training."}
+              ? "وصول فوري · لا بطاقة ائتمان · داشبورد لمتابعة الأهل"
+              : "Instant access · No credit card · Parent progress dashboard"}
           </p>
-          <div className="hero-cta-row" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+
+          {/* ── 2 CTAs only — no decision paralysis ── */}
+          <div className="hero-cta-row" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32, alignItems: "center" }}>
             {!currentUser ? (
               <>
                 <Btn
                   className="hero-cta-primary"
-                  children={lang === "ar" ? "سجّل مجاناً وابدأ الآن" : "Sign up free — start now"}
+                  children={lang === "ar" ? "ابدأ التعلم مجاناً" : "Start Learning Free"}
                   onClick={() => navigate("/register")}
-                  style={{ padding: "13px 26px", fontSize: 14, borderRadius: 12, background: "linear-gradient(135deg,#d91b5b,#b51549)" }}
+                  style={{ padding: "13px 28px", fontSize: 14, borderRadius: 12, background: "linear-gradient(135deg,#d91b5b,#b51549)" }}
                 />
                 <Btn
-                  children={lang === "ar" ? "تصفّح البرامج أولاً" : "Browse programs first"}
+                  children={lang === "ar" ? "استعرض الكورسات ←" : "Explore Courses →"}
                   v="outline"
                   onClick={() => navigate("/courses")}
                   style={{ padding: "13px 26px", fontSize: 14, borderRadius: 12 }}
@@ -287,37 +290,10 @@ export default function Landing() {
             ) : (
               <Btn
                 className="hero-cta-primary"
-                children={lang==="ar" ? "كمل تعلّمك ▶" : "Continue learning ▶"}
+                children={lang==="ar" ? "كمل تعلّمك ▶" : "Continue Learning ▶"}
                 onClick={()=>navigate("/dashboard")}
                 style={{padding:"13px 28px",fontSize:14,borderRadius:12}}
               />
-            )}
-          </div>
-          <div className="hero-cta-secondary-row" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 32 }}>
-            {!currentUser && (
-              <>
-                <Btn
-                  children={lang === "ar" ? "لسه متردد؟ اختبر مسارك" : "Not sure? Find your path"}
-                  v="outline"
-                  sm
-                  onClick={() => navigate("/find-path")}
-                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
-                />
-                <Btn
-                  children={lang === "ar" ? "استشارة مجانية (١٥ دقيقة)" : "Free 15‑min consult"}
-                  v="outline"
-                  sm
-                  onClick={() => navigate("/consultation")}
-                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
-                />
-                <Btn
-                  children={lang === "ar" ? "تدريب للشركات" : "Corporate training"}
-                  v="outline"
-                  sm
-                  onClick={() => navigate("/corporate")}
-                  style={{ padding: "10px 18px", borderRadius: 10, fontSize: 12 }}
-                />
-              </>
             )}
           </div>
           <div ref={statsRef} className="hero-stats-grid" style={{display:"flex",gap:"clamp(16px,4vw,40px)",flexWrap:"wrap",justifyContent:"center"}}>
