@@ -43,11 +43,13 @@ export default function ProfilePage() {
     return course ? { ...ec, course } : null;
   }).filter(Boolean);
 
-  const totalProgress = enrolled.length
-    ? Math.round(enrolled.reduce((s, e) => s + (e.progress || 0), 0) / enrolled.length)
-    : 0;
-
   const completed = enrolled.filter(e => e.progress === 100).length;
+
+  const lessonsCompleted = (currentUser.enrolledCourses || []).reduce(
+    (sum, e) => sum + (e.completedLessons?.length || 0), 0
+  );
+
+  const streak = currentUser.streak || 0;
 
   const pickAvatar = e => {
     if (e.target.files[0]) readFile(e.target.files[0], data => {
@@ -135,11 +137,12 @@ export default function ProfilePage() {
             {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20, marginBottom: 20 }}>
               {[
-                { label: lang==="ar" ? "الكورسات" : "Courses",    value: enrolled.length,  color: C.orange },
-                { label: lang==="ar" ? "مكتمل"    : "Completed",  value: completed,         color: C.success },
-                { label: lang==="ar" ? "متوسط التقدم" : "Avg. Progress", value: `${totalProgress}%`, color: C.red, span: true },
+                { label: lang==="ar" ? "الكورسات"      : "Courses",          value: enrolled.length,   color: C.orange },
+                { label: lang==="ar" ? "مكتمل"         : "Completed",        value: completed,          color: C.success },
+                { label: lang==="ar" ? "دروس مكتملة"   : "Lessons done",     value: lessonsCompleted,   color: C.red },
+                { label: lang==="ar" ? "سلسلة أيام 🔥" : "Day streak 🔥",    value: streak,             color: "#ffb84d" },
               ].map(s => (
-                <div key={s.label} style={{ background: "rgba(255,255,255,.06)", borderRadius: 12, padding: "12px 8px", gridColumn: s.span ? "1/-1" : "auto" }}>
+                <div key={s.label} style={{ background: "rgba(255,255,255,.06)", borderRadius: 12, padding: "12px 8px" }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
                   <div style={{ fontSize: 11, color: C.muted }}>{s.label}</div>
                 </div>
