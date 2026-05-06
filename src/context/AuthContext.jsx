@@ -8,6 +8,8 @@ import {
   sendPasswordResetEmail,
   fetchSignInMethodsForEmail,
   getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -270,6 +272,48 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => signOut(auth).then(() => setCU(null));
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const profileRef = doc(db, "users", user.uid);
+      const profileSnap = await getDoc(profileRef);
+      if (!profileSnap.exists()) {
+        const welcomeMsg =
+          "تم إنشاء حسابك بنجاح — يمكنك الآن استكشاف المنصة. | "
+          + "Your account is ready — start exploring the platform.";
+        const userNotifications = appendPlainNotification({ userNotifications: [] }, welcomeMsg);
+        const enrolledCourses = [];
+        await setDoc(profileRef, {
+          name: user.displayName ?? "",
+          email: user.email ?? "",
+          phone: "",
+          role: "user",
+          status: "approved",
+          avatar: (user.displayName?.[0] || "?").toUpperCase(),
+          avatarImg: user.photoURL || null,
+          enrolledCourses,
+          enrolledCourseIds: courseIdsFromEnrolled(enrolledCourses),
+          assignedCourses: [],
+          xp: 0, level: 1, badges: [],
+          userNotifications,
+          lastViewedCourseId: null, lastViewedAt: null, courseActivity: {},
+          provider: "google",
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        const data = profileSnap.data();
+        if (data.status === "rejected") { await signOut(auth); return { ok: false, code: "REJECTED" }; }
+      }
+      return { ok: true };
+    } catch (err) {
+      if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request")
+        return { ok: false, code: "CANCELLED" };
+      return { ok: false, code: err.code || "GOOGLE_ERROR" };
+    }
+  };
 
   /**
    * After Firebase Phone Auth `confirm()`, create or load Firestore profile.
@@ -853,7 +897,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthCtx.Provider value={{
       users, currentUser, loading,
-      fetchUsers, login, logout, register, refreshUserProfile,
+      fetchUsers, login, logout, register, signInWithGoogle, refreshUserProfile,
       approveUser, rejectUser, deleteUser, approveEnrollmentRequest, rejectEnrollmentRequest,
       enrollUser, removeEnroll,
       assignInstructor, unassignInstructorFromCourse, markLesson, recordCourseView, updateProfile, adminUpdateUser,

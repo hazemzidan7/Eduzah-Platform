@@ -298,7 +298,7 @@ const loginErr = (code, lang, msg) => {
 };
 
 export function LoginPage() {
-  const { login }  = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const { lang }   = useLang();
   const navigate   = useNavigate();
   const ar = lang === "ar";
@@ -306,6 +306,18 @@ export function LoginPage() {
   const [pass,  setPass]  = useState("");
   const [err,   setErr]   = useState("");
   const [noProfile, setNoProfile] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const handleGoogle = async () => {
+    setErr(""); setGoogleBusy(true);
+    const r = await signInWithGoogle();
+    setGoogleBusy(false);
+    if (!r.ok && r.code !== "CANCELLED") {
+      setErr(ar ? "تعذر تسجيل الدخول بـ Google" : "Google sign-in failed");
+      return;
+    }
+    if (r.ok) navigate("/dashboard");
+  };
 
   const submit = async () => {
     setNoProfile(false);
@@ -335,6 +347,24 @@ export function LoginPage() {
           <div style={{ color: C.muted, fontSize: 13 }}>
             {ar ? "مرحباً بعودتك" : "Welcome back"}
           </div>
+        </div>
+
+        {/* Google sign-in */}
+        <button type="button" className="btn-google" onClick={handleGoogle} disabled={googleBusy}
+          style={{ marginBottom: 16, opacity: googleBusy ? 0.65 : 1 }}>
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.16C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="#FBBC05" d="M10.53 28.58A14.9 14.9 0 0 1 9.6 24c0-1.58.27-3.11.93-4.58l-7.98-6.16A23.93 23.93 0 0 0 0 24c0 3.77.9 7.34 2.55 10.74l7.98-6.16z"/>
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.55 13.26l7.98 6.16C12.43 13.72 17.74 9.5 24 9.5z"/>
+          </svg>
+          {googleBusy ? "…" : (ar ? "الدخول بـ Google" : "Continue with Google")}
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.12)" }} />
+          <span style={{ color: "rgba(248,250,252,.4)", fontSize: 11 }}>{ar ? "أو بالبريد" : "or with email"}</span>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.12)" }} />
         </div>
 
         <Field label={ar ? "البريد الإلكتروني" : "Email"}>
@@ -408,13 +438,21 @@ const MSG_EMAIL_TAKEN_AR = "البريد الإلكتروني مسجّل بال�
 const MSG_EMAIL_TAKEN_EN = "This email is already registered.";
 
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, signInWithGoogle } = useAuth();
   const { lang }     = useLang();
   const navigate     = useNavigate();
 
   const [f,    setF]    = useState({ name: "", email: "", pass: "", confirm: "", phone: "" });
   const [errs, setErrs] = useState({});
   const [emailTaken, setEmailTaken] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const handleGoogle = async () => {
+    setGoogleBusy(true);
+    const r = await signInWithGoogle();
+    setGoogleBusy(false);
+    if (r.ok) navigate("/dashboard", { state: { accountCreated: true } });
+  };
 
   const set = (k, v) => {
     if (k === "email") setEmailTaken(false);
@@ -476,6 +514,24 @@ export function RegisterPage() {
           </div>
         </div>
 
+        {/* Google sign-up */}
+        <button type="button" className="btn-google" onClick={handleGoogle} disabled={googleBusy}
+          style={{ marginBottom: 16, opacity: googleBusy ? 0.65 : 1 }}>
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.16C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="#FBBC05" d="M10.53 28.58A14.9 14.9 0 0 1 9.6 24c0-1.58.27-3.11.93-4.58l-7.98-6.16A23.93 23.93 0 0 0 0 24c0 3.77.9 7.34 2.55 10.74l7.98-6.16z"/>
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.55 13.26l7.98 6.16C12.43 13.72 17.74 9.5 24 9.5z"/>
+          </svg>
+          {googleBusy ? "…" : (lang === "ar" ? "التسجيل بـ Google" : "Sign up with Google")}
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.12)" }} />
+          <span style={{ color: "rgba(248,250,252,.4)", fontSize: 11 }}>{lang === "ar" ? "أو بالبريد" : "or with email"}</span>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.12)" }} />
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label={lang === "ar" ? "الاسم *" : "Name *"} error={errs.name}>
             <input value={f.name} onChange={e => set("name", e.target.value)}
@@ -514,12 +570,6 @@ export function RegisterPage() {
           <PassField label={lang === "ar" ? "تأكيد كلمة المرور *" : "Confirm Password *"}
             value={f.confirm} onChange={v => set("confirm", v)}
             placeholder="••••••••" error={errs.confirm} lang={lang} />
-        </div>
-
-        <div style={{ background: `${C.orange}18`, border: `1px solid ${C.orange}33`, borderRadius: 9, padding: "9px 12px", fontSize: 12, color: C.orange, marginBottom: 14 }}>
-          {lang === "ar"
-            ? "التسجيل كطالب فقط. لتسجيل حساب مدرب، تواصل مع الإدارة بعد إنشاء حسابك. حسابك يعمل فوراً — الموافقة مطلوبة فقط عند التقديم على كورس."
-            : "Student accounts only. For instructor access, contact the team after registering. Your account is active immediately — approval applies only when you apply for a course."}
         </div>
 
         <Btn children={lang === "ar" ? "إنشاء الحساب" : "Create Account"} full onClick={submit}
