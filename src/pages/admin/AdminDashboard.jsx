@@ -1741,17 +1741,30 @@ export default function AdminDashboard() {
               {courses.map(c => {
                 const inst = users.find(u => u.id === c.instructorId);
                 const sc   = users.filter(u => u.enrolledCourses?.find(e => e.courseId === c.id)).length;
+                const slugVal = c.slug || c.id || "";
+                const slugOk  = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slugVal);
+                const fixSlug = () => {
+                  const makeSlug = (s) => String(s||"").toLowerCase().trim()
+                    .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"")
+                    .replace(/-+/g,"-").replace(/^-+|-+$/g,"");
+                  const newSlug = makeSlug(c.title_en || c.title) || `course-${c.id}`;
+                  updateCourse(c.id, { slug: newSlug });
+                  showT(tx(`تم إصلاح الـ slug: ${newSlug}`, `Slug fixed: ${newSlug}`));
+                };
                 return (
-                  <Card key={c.id} style={{ padding: "12px 14px" }}>
+                  <Card key={c.id} style={{ padding: "12px 14px", border: slugOk ? undefined : "1px solid rgba(239,68,68,.5)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 9 }}>
                       <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${c.color||C.red},#321d3d)`, flexShrink: 0 }}></div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
                           <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{c.price.toLocaleString()} EGP · {sc} {tx("طالب", "students")} · {inst ? inst.name : tx("بدون مدرب", "No instructor")}</div>
-                          <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                          <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
                             <Badge color={C.orange}>{courseCategoryLabel(c.cat, lang)}</Badge>
                             {c.featured && <Badge color={C.red}>{tx("مميز","Featured")}</Badge>}
+                            <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 5, fontFamily: "monospace", background: slugOk ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.15)", color: slugOk ? "#10b981" : "#ef4444", border: `1px solid ${slugOk ? "rgba(16,185,129,.3)" : "rgba(239,68,68,.4)"}` }}>
+                              {slugOk ? "✓" : "⚠"} /{slugVal || "—"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1778,6 +1791,14 @@ export default function AdminDashboard() {
                             </>
                           }
                         />
+                        {!slugOk && (
+                          <Btn
+                            children={tx("🔧 إصلاح URL", "🔧 Fix URL")}
+                            sm
+                            onClick={fixSlug}
+                            style={{ background: "#ef4444", color: "#fff", border: "none" }}
+                          />
+                        )}
                         <Btn children="🗑" sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${c.title}" نهائياً؟` : `Permanently delete "${c.title_en || c.title}"?`)) return; deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
