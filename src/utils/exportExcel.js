@@ -159,6 +159,23 @@ export async function fetchCourseStudents(course, allUsers = []) {
         console.warn("enrollmentRequests(number courseId=", n, "):", e?.message || e);
       }
     }
+    // Fallback: also search by courseTitle to catch mismatched courseIds
+    const titleKeys = [
+      ...new Set(
+        [course?.title, course?.title_en].filter(Boolean).map(t => String(t).trim()),
+      ),
+    ];
+    for (const title of titleKeys) {
+      try {
+        mergeSnap(
+          await getDocs(query(collection(db, "enrollmentRequests"), where("courseTitle", "==", title))),
+        );
+        anyQueryOk = true;
+      } catch (e) {
+        console.warn("enrollmentRequests(courseTitle=", title, "):", e?.message || e);
+      }
+    }
+
     requests = [...byDocId.values()];
     if (!anyQueryOk && stringKeys.length > 0 && lastQueryErr) {
       throw lastQueryErr;
@@ -170,7 +187,8 @@ export async function fetchCourseStudents(course, allUsers = []) {
 
   const reqByKey = new Map();
   for (const r of requests) {
-    if (!sameCourseId(r.courseId, course)) continue;
+    const titleMatch = r.courseTitle && (r.courseTitle === course?.title || r.courseTitle === course?.title_en);
+    if (!sameCourseId(r.courseId, course) && !titleMatch) continue;
     const dk = enrollmentDedupeKey(r);
     const ex = reqByKey.get(dk);
     const exTime = typeof ex?.createdAt?.toMillis === "function" ? ex.createdAt.toMillis() : 0;

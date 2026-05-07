@@ -1834,6 +1834,32 @@ export default function AdminDashboard() {
                             )}
                           </>
                         )}
+                        <Btn
+                          children={tx("🛠 إصلاح Enrollments", "🛠 Fix Enrollments")}
+                          sm
+                          v="outline"
+                          title={tx("يبحث عن طلبات تسجيل بالاسم ويصلح الـ courseId", "Find enrollments by title and fix their courseId")}
+                          onClick={async () => {
+                            try {
+                              const titleKeys = [c.title, c.title_en].filter(Boolean);
+                              let fixed = 0;
+                              for (const title of titleKeys) {
+                                const snap = await getDocs(query(collection(db, "enrollmentRequests"), where("courseTitle", "==", title)));
+                                for (const d of snap.docs) {
+                                  if (String(d.data().courseId) !== String(c.id)) {
+                                    await updateDoc(d.ref, { courseId: String(c.id) });
+                                    fixed++;
+                                  }
+                                }
+                              }
+                              showT(fixed > 0
+                                ? tx(`تم إصلاح ${fixed} طلب`, `Fixed ${fixed} enrollment(s)`)
+                                : tx("لا توجد طلبات تحتاج إصلاح", "No enrollments needed fixing"));
+                            } catch (e) {
+                              showT(tx("خطأ: " + e.message, "Error: " + e.message), "error");
+                            }
+                          }}
+                        />
                         <Btn children="🗑" sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${c.title}" نهائياً؟` : `Permanently delete "${c.title_en || c.title}"?`)) return; deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
