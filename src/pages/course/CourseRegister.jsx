@@ -229,9 +229,8 @@ export default function CourseRegister() {
         paymentMethod:     "instapay",
         paymentPlan,
         amountQuoted,
-        status:            "approved",
-        enrollmentStatus:  "approved",
-        reviewedAt:        new Date().toISOString(),
+        status:            "pending",
+        enrollmentStatus:  "pending",
         createdAt:         new Date().toISOString(),
       });
 
