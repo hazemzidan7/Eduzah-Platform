@@ -46,7 +46,7 @@ export default function Navbar() {
     ["/",            lang === "ar" ? "الرئيسية"       : "Home"],
     ["/courses",     lang === "ar" ? "الكورسات"       : "Courses"],
     ["sep"],
-    ["/corporate",   lang === "ar" ? "تدريب الشركات" : "Corporate"],
+    ["/corporate",   lang === "ar" ? "تدريب المدارس" : "Corporate"],
     ["/hiring",      lang === "ar" ? "التوظيف"        : "Hiring"],
     ["/services",    lang === "ar" ? "الخدمات"        : "Services"],
     ["sep"],

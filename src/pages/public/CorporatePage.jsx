@@ -114,7 +114,7 @@ export default function CorporatePage() {
         <div style={{position:"absolute",top:"-20%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.35),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:700}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
-            {lang==="ar" ? "حلول تدريب الشركات والمؤسسات" : "Corporate & Institutional Training Solutions"}
+            {lang==="ar" ? "حلول تدريب المدارس والمؤسسات" : "Corporate & Institutional Training Solutions"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
