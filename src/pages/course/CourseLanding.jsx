@@ -79,6 +79,20 @@ export default function CourseLanding() {
     </div>
   );
 
+  const isValidSlug = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(course.slug || "");
+  if (!isValidSlug) return (
+    <div style={{ padding: "80px 5%", textAlign: "center" }} dir={dir}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+      <h2 style={{ marginBottom: 8 }}>{lang === "ar" ? "الكورس يحتاج مراجعة" : "Course needs attention"}</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
+        {lang === "ar"
+          ? "هذا الكورس لديه slug غير صحيح. يرجى تصحيحه من لوحة الإدارة (تعديل عنوان الكورس الإنجليزي)."
+          : "This course has an invalid slug. Please fix it from the admin dashboard (set an English title)."}
+      </p>
+      <Btn children={lang === "ar" ? "← الكورسات" : "← Courses"} onClick={() => navigate("/courses")} />
+    </div>
+  );
+
   const courseFaq = lang === "ar" ? (course.faq_ar || course.faq || null) : (course.faq_en || course.faq || null);
   const courseWho = lang === "ar" ? (course.who_ar || course.who || null) : (course.who_en || course.who || null);
   const FAQ = (Array.isArray(courseFaq) && courseFaq.length) ? courseFaq : (lang === "ar" ? FAQ_AR : FAQ_EN);

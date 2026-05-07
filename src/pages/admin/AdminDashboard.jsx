@@ -326,6 +326,7 @@ export default function AdminDashboard() {
     const pickPriceCardImg = e => { if (e.target.files[0]) readFile(e.target.files[0], d => set("priceCardImage", d)); };
     const submit = () => {
       if (!f.title || !f.price) { showT("أدخل العنوان والسعر على الأقل", "error"); return; }
+      if (!slugOk) { showT("أضف عنوان إنجليزي صحيح (title_en) حتى يكون الـ URL سليماً", "error"); return; }
       addCourse({
         ...f,
         coverTitleInImage: !!f.coverTitleInImage,
@@ -335,6 +336,14 @@ export default function AdminDashboard() {
       setModal(null);
     };
 
+    const previewSlug = (() => {
+      const src = f.title_en || f.title;
+      return src.toLowerCase().trim()
+        .replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+        .replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "(سيُولَّد تلقائياً)";
+    })();
+    const slugOk = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(previewSlug);
+
     return (
       <Modal title="إضافة كورس جديد" onClose={() => setModal(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -342,7 +351,11 @@ export default function AdminDashboard() {
             <Input label="عنوان الكورس (عربي/أساسي) *" value={f.title} onChange={v => set("title", v)} placeholder="دبلومة Front-End" />
           </div>
           <div style={{ gridColumn: "1/-1" }}>
-            <Input label="Course title (English)" value={f.title_en} onChange={v => set("title_en", v)} placeholder="Front-End Web Development" />
+            <Input label="Course title (English) — يُستخدم كـ URL slug *" value={f.title_en} onChange={v => set("title_en", v)} placeholder="Front-End Web Development" />
+            <div style={{ fontSize: 11, marginTop: -6, marginBottom: 8, padding: "4px 10px", borderRadius: 6, background: slugOk ? "rgba(16,185,129,.1)" : "rgba(239,68,68,.1)", border: `1px solid ${slugOk ? "rgba(16,185,129,.3)" : "rgba(239,68,68,.3)"}`, color: slugOk ? "#10b981" : "#ef4444" }}>
+              {slugOk ? "✓" : "⚠"} Slug: <strong>/courses/{previewSlug}</strong>
+              {!slugOk && " — أضف عنوان إنجليزي لتجنب رابط خاطئ"}
+            </div>
           </div>
           <Input label="السعر (EGP) *" value={f.price} onChange={v => set("price", v)} placeholder="8500" />
           <Input label="المدة" value={f.duration} onChange={v => set("duration", v)} placeholder="16 أسبوع" />

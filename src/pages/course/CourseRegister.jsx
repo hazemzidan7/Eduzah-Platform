@@ -103,6 +103,24 @@ export default function CourseRegister() {
 
   if (!course) return <div style={{ padding: 80, textAlign: "center", color: C.muted }}>{ar ? "الكورس غير موجود" : "Course not found"}</div>;
 
+  const isValidSlug = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(course.slug || "");
+  if (!isValidSlug) {
+    return (
+      <div dir={dir} style={{ padding: 80, textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 16 }}>⚠️</div>
+        <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 8 }}>
+          {ar ? "رابط الكورس غير صحيح" : "Invalid course URL"}
+        </div>
+        <div style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
+          {ar
+            ? "هذا الكورس لديه مشكلة في الـ slug. يرجى تصحيحه من لوحة الإدارة أو التواصل معنا."
+            : "This course has an invalid slug. Please fix it from the admin dashboard or contact us."}
+        </div>
+        <Btn children={ar ? "← رجوع" : "← Go back"} v="outline" onClick={() => navigate(-1)} />
+      </div>
+    );
+  }
+
   const set = (k, v) => {
     if (k === "email") setEmailAlreadyRegistered(false);
     setForm(p => ({ ...p, [k]: v }));

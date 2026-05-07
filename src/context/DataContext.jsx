@@ -168,7 +168,13 @@ export function DataProvider({ children }) {
 
   // ── COURSES ──────────────────────────────────────────
   const addCourse = async (form) => {
-    const slug = form.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const makeSlug = (str) =>
+      String(str || "").toLowerCase().trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    const slug = makeSlug(form.title_en || form.title) || `course-${Date.now()}`;
     const parseLines = (v) => (String(v || "").split("\n").map(s => s.trim()).filter(Boolean));
     const parseFaq = (v) => {
       const lines = parseLines(v);
