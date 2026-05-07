@@ -332,10 +332,10 @@ export default function Landing() {
             />
             <div style={{background:"rgba(26,15,36,.92)",padding:"14px 18px"}}>
               <div style={{fontWeight:800,fontSize:13,marginBottom:2}}>
-                {lang==="ar" ? "فريق Eduzah المتخصص" : "Eduzah Expert Team"}
+                {lang==="ar" ? "قوة Eduzah في خبراء يصنعون الفارق" : "Eduzah Expert Team"}
               </div>
               <div style={{color:C.muted,fontSize:11}}>
-                {lang==="ar" ? "مدربون خبراء متخصصون في مجالاتهم" : "Expert trainers specialized in their fields"}
+                {lang==="ar" ? "نخبة مدربين بخبرة عملية تقود أبناءك للتميز" : "Expert trainers specialized in their fields"}
               </div>
             </div>
           </div>
