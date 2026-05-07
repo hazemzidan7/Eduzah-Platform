@@ -43,6 +43,16 @@ const PROGRAMS = [
 
 const initForm = { company:"", contact:"", phone:"", email:"", program:"", employees:"", platform:"whatsapp", date:"", time:"", notes:"" };
 
+function FieldWrap({ label, error, children }) {
+  return (
+    <div>
+      <label style={{fontSize:12,color:C.muted,fontWeight:700,display:"block",marginBottom:6}}>{label}</label>
+      {children}
+      {error && <div style={{color:C.danger,fontSize:11,marginTop:3}}>{error}</div>}
+    </div>
+  );
+}
+
 export default function CorporatePage() {
   const navigate = useNavigate();
   const { lang } = useLang();
@@ -90,14 +100,6 @@ export default function CorporatePage() {
     setLoading(false);
     setDone(true);
   };
-
-  const FieldWrap = ({ label, error, children }) => (
-    <div>
-      <label style={{fontSize:12,color:C.muted,fontWeight:700,display:"block",marginBottom:6}}>{label}</label>
-      {children}
-      {error && <div style={{color:C.danger,fontSize:11,marginTop:3}}>{error}</div>}
-    </div>
-  );
 
   const inputSx = (hasError) => ({
     width:"100%", boxSizing:"border-box",
