@@ -58,7 +58,7 @@ export default function CorporatePage() {
 
   const validate = () => {
     const e = {};
-    if (!form.company.trim()) e.company = lang==="ar" ? "اسم الشركة مطلوب" : "Company name required";
+    if (!form.company.trim()) e.company = lang==="ar" ? "اسم المدرسة/المؤسسة مطلوب" : "Organization name required";
     if (!form.contact.trim()) e.contact = lang==="ar" ? "اسم المسؤول مطلوب" : "Contact name required";
     if (!form.phone.trim())   e.phone   = lang==="ar" ? "رقم الهاتف مطلوب" : "Phone number required";
     if (form.email && !form.email.includes("@")) e.email = lang==="ar" ? "بريد غير صحيح" : "Invalid email";
@@ -114,7 +114,7 @@ export default function CorporatePage() {
         <div style={{position:"absolute",top:"-20%",right:"-8%",width:500,height:500,background:`radial-gradient(circle,rgba(103,45,134,.35),transparent 70%)`,borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:2,maxWidth:700}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,background:`${C.orange}22`,border:`1px solid ${C.orange}44`,color:C.orange,borderRadius:50,padding:"5px 16px",fontSize:12,fontWeight:700,marginBottom:20}}>
-            {lang==="ar" ? "حلول تدريب الشركات والمؤسسات" : "Corporate & Institutional Training Solutions"}
+            {lang==="ar" ? "حلول تدريب المدارس والمؤسسات" : "Corporate & Institutional Training Solutions"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
@@ -123,8 +123,8 @@ export default function CorporatePage() {
           </h1>
           <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:30,maxWidth:560}}>
             {lang==="ar"
-              ? "نقدم برامج تدريبية مخصصة للشركات والجهات الحكومية في مجالات التكنولوجيا والإدارة واللغات. هدفنا رفع كفاءة فريقك وتحقيق أهداف مؤسستك."
-              : "We offer customized training programs for companies and government bodies in Technology, Management, and Languages. Our goal is elevating your team's performance."
+              ? "نقدم برامج تدريبية مخصصة للمدارس والمؤسسات في مجالات التكنولوجيا والإدارة واللغات. هدفنا رفع كفاءة فريقك وتحقيق أهداف مؤسستك."
+              : "We offer customized training programs for schools and organizations in Technology, Management, and Languages. Our goal is elevating your team's performance."
             }
           </p>
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
@@ -146,7 +146,7 @@ export default function CorporatePage() {
             ["50+", lang==="ar"?"مؤسسة شريكة":"Partner Organizations"],
             ["5,000+", lang==="ar"?"موظف مدرَّب":"Trained Employees"],
             ["100%", lang==="ar"?"رضا العملاء":"Client Satisfaction"],
-            ["3+", lang==="ar"?"سنوات خبرة مؤسسية":"Years of Corporate Training"],
+            ["3+", lang==="ar"?"سنوات خبرة في التدريب المؤسسي":"Years of Institutional Training"],
           ].map(([v,l])=>(
             <div key={l} style={{...centeredCell(160),textAlign:"center",background:"rgba(50,29,61,.6)",border:`1px solid ${C.border}`,borderRadius:16,padding:"22px 16px"}}>
               <div style={{fontSize:"clamp(1.6rem,3vw,2.4rem)",fontWeight:900,color:C.orange}}>{v}</div>
@@ -160,7 +160,7 @@ export default function CorporatePage() {
       <div style={{background:"#2a1540",color:"#f8fafc",padding:"clamp(36px,7vw,70px) 5%"}}>
         <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:10}}>
-            {lang==="ar" ? "برامجنا المؤسسية" : "CORPORATE PROGRAMS"}
+            {lang==="ar" ? "برامجنا للمدارس والمؤسسات" : "SCHOOLS & INSTITUTIONAL PROGRAMS"}
           </div>
           <h2 style={{fontSize:"clamp(1.4rem,3vw,2.4rem)",fontWeight:900,color:"#f8fafc"}}>
             {lang==="ar" ? "ما الذي نقدمه لمؤسستك؟" : "What We Offer Your Organization"}
@@ -239,8 +239,8 @@ export default function CorporatePage() {
           ) : (
             <div style={{background:"rgba(50,29,61,.5)",border:`1px solid ${C.border}`,borderRadius:20,padding:28}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-                <FieldWrap label={lang==="ar"?"اسم الشركة *":"Company Name *"} error={errors.company}>
-                  <input value={form.company} onChange={set("company")} style={inputSx(errors.company)} placeholder={lang==="ar"?"شركة ABC":"ABC Company"}/>
+                <FieldWrap label={lang==="ar"?"اسم المدرسة/المؤسسة *":"School / Organization Name *"} error={errors.company}>
+                  <input value={form.company} onChange={set("company")} style={inputSx(errors.company)} placeholder={lang==="ar"?"مدرسة النور":"Example School"}/>
                 </FieldWrap>
                 <FieldWrap label={lang==="ar"?"اسم المسؤول *":"Contact Person *"} error={errors.contact}>
                   <input value={form.contact} onChange={set("contact")} style={inputSx(errors.contact)} placeholder={lang==="ar"?"اسمك الكامل":"Your full name"}/>
