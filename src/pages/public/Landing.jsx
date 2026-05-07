@@ -447,11 +447,11 @@ export default function Landing() {
               {lang==="ar" ? "عن EDUZAH" : "ABOUT EDUZAH"}
             </div>
             <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:16,lineHeight:1.3}}>
-              {lang==="ar" ? "شركة تدريب متكاملة" : "A Complete Training Company"}
+              {lang==="ar" ? "حلول تدريب متكاملة للمدارس والمؤسسات" : "Complete Training Solutions for Schools & Organizations"}
             </h2>
             <p style={{color:C.muted,fontSize:14,lineHeight:1.9,marginBottom:20}}>
               {lang==="ar"
-                ? "نركّز على المهارة قبل الشهادة: مشاريع عملية، متابعة من الفريق، وربط بمسارات توظيف لمن يناسبه. سواء كنت فرداً أو شركة، نبني برنامجاً يطابق هدفك ووقتك."
+                ? "نركّز على المهارة قبل الشهادة: مشاريع عملية، متابعة من الفريق، وربط بمسارات توظيف لمن يناسبه. سواء كنت فرداً أو مدرسة أو مؤسسة، نبني برنامجاً يطابق هدفك ووقتك."
                 : "Skills first, certificates follow: real projects, team follow-up, and hiring pathways where it fits. Whether you’re an individual or a company, we shape a program around your goal and schedule."
               }
             </p>
