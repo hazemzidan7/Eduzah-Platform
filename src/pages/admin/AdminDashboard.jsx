@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { courseCategorySelectOptions, normalizeCourseCategory, courseCategoryLabel } from "../../constants/courseCategories";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, doc, updateDoc, orderBy, query, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, orderBy, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import { C } from "../../theme";
 import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
@@ -1751,6 +1751,31 @@ export default function AdminDashboard() {
                   updateCourse(c.id, { slug: newSlug });
                   showT(tx(`تم إصلاح الـ slug: ${newSlug}`, `Slug fixed: ${newSlug}`));
                 };
+                const mergeAndDelete = async () => {
+                  const twin = courses.find(
+                    x => x.id !== c.id && (x.title === c.title || x.title_en === c.title_en)
+                  );
+                  const targetId = twin?.id;
+                  if (!targetId) {
+                    showT(tx("لم يُعثر على كورس مطابق للدمج", "No matching course found to merge into"), "error");
+                    return;
+                  }
+                  if (!window.confirm(
+                    tx(`سيتم نقل جميع طلبات التسجيل من "${c.title}" (id: ${c.id}) إلى "${twin.title}" (id: ${targetId}) ثم حذف هذا الكورس. هل أنت متأكد؟`,
+                       `Move all enrollments from "${c.title}" (id: ${c.id}) into "${twin.title}" (id: ${targetId}) then delete this course. Confirm?`)
+                  )) return;
+                  try {
+                    const snap = await getDocs(
+                      query(collection(db, "enrollmentRequests"), where("courseId", "==", String(c.id)))
+                    );
+                    const toMigrate = snap.docs;
+                    await Promise.all(toMigrate.map(d => updateDoc(d.ref, { courseId: targetId, courseTitle: twin.title })));
+                    deleteCourse(c.id);
+                    showT(tx(`تم نقل ${toMigrate.length} طلب وحذف الكورس`, `Migrated ${toMigrate.length} enrollments and deleted course`));
+                  } catch (e) {
+                    showT(tx("حدث خطأ أثناء الدمج", "Merge failed: " + e.message), "error");
+                  }
+                };
                 return (
                   <Card key={c.id} style={{ padding: "12px 14px", border: slugOk ? undefined : "1px solid rgba(239,68,68,.5)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 9 }}>
@@ -1792,12 +1817,22 @@ export default function AdminDashboard() {
                           }
                         />
                         {!slugOk && (
-                          <Btn
-                            children={tx("🔧 إصلاح URL", "🔧 Fix URL")}
-                            sm
-                            onClick={fixSlug}
-                            style={{ background: "#ef4444", color: "#fff", border: "none" }}
-                          />
+                          <>
+                            <Btn
+                              children={tx("🔧 إصلاح URL", "🔧 Fix URL")}
+                              sm
+                              onClick={fixSlug}
+                              style={{ background: "#f59e0b", color: "#fff", border: "none" }}
+                            />
+                            {courses.some(x => x.id !== c.id && (x.title === c.title || x.title_en === c.title_en)) && (
+                              <Btn
+                                children={tx("🔀 دمج وحذف", "🔀 Merge & Delete")}
+                                sm
+                                onClick={mergeAndDelete}
+                                style={{ background: "#8b5cf6", color: "#fff", border: "none" }}
+                              />
+                            )}
+                          </>
                         )}
                         <Btn children="🗑" sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${c.title}" نهائياً؟` : `Permanently delete "${c.title_en || c.title}"?`)) return; deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
