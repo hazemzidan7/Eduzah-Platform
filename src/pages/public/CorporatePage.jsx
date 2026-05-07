@@ -26,22 +26,22 @@ const centeredCell = (basisPx) => ({
 });
 
 const MEETING_PLATFORMS = [
-  { v:"zoom",  label:"Zoom" },
-  { v:"meet",  label:"Google Meet" },
-  { v:"teams", label:"Microsoft Teams" },
+  { v:"whatsapp", label:"WhatsApp" },
   { v:"phone", label:"هاتف / Phone" },
+  { v:"email", label:"بريد إلكتروني / Email" },
+  { v:"meet", label:"Google Meet" },
 ];
 
 const PROGRAMS = [
   { abbr:"TK", icon:"💻", color:"#d91b5b", ar:"تدريب تقني",           en:"Technical Training",       desc_ar:"Front-End, Back-End, Flutter, AI, UI/UX",              desc_en:"Front-End, Back-End, Flutter, AI, UI/UX" },
   { abbr:"MG", icon:"📊", color:"#faa633", ar:"تدريب إداري",          en:"Management Training",      desc_ar:"HR, Soft Skills, القيادة, التصميم التعليمي",           desc_en:"HR, Soft Skills, Leadership, Instructional Design" },
   { abbr:"EN", icon:"🌐", color:"#0ea5e9", ar:"اللغة الإنجليزية",     en:"English Language",         desc_ar:"من المبتدئ حتى المتقدم + إنجليزي متخصص",              desc_en:"Beginner to advanced + business English" },
-  { abbr:"KD", icon:"🧒", color:"#10b981", ar:"تدريب الأطفال",        en:"Children Programs",        desc_ar:"برمجة وإنجليزي للأطفال",                              desc_en:"Coding and English for children" },
+  { abbr:"KD", icon:"🧒", color:"#10b981", ar:"تدريب الأطفال",        en:"Children Programs",        desc_ar:"برمجة، روبوتكس، وذكاء اصطناعي للأطفال",              desc_en:"Coding, robotics, and AI for children" },
   { abbr:"ED", icon:"📚", color:"#672d86", ar:"الاستشارات التعليمية", en:"Educational Consulting",   desc_ar:"تصميم برامج تدريبية مخصصة",                           desc_en:"Custom training program design" },
   { abbr:"CT", icon:"🏆", color:"#f59e0b", ar:"شهادات معتمدة",        en:"Certified Programs",       desc_ar:"برامج بشهادات معترف بها",                             desc_en:"Internationally recognized certificates" },
 ];
 
-const initForm = { company:"", contact:"", phone:"", email:"", program:"", employees:"", platform:"meet", date:"", time:"", notes:"" };
+const initForm = { company:"", contact:"", phone:"", email:"", program:"", employees:"", platform:"whatsapp", date:"", time:"", notes:"" };
 
 export default function CorporatePage() {
   const navigate = useNavigate();
@@ -118,12 +118,12 @@ export default function CorporatePage() {
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4vw,3rem)",fontWeight:900,lineHeight:1.25,marginBottom:18}}>
             {lang==="ar"
-              ? <>حلول تدريبية متكاملة<br/><span style={{color:C.red}}>لمؤسستك</span></>
+              ? <>حلول تدريبية متكاملة<br/><span style={{color:C.red}}>لمدرستك أو مؤسستك</span></>
               : <>Complete Training Solutions<br/><span style={{color:C.red}}>for Your Organization</span></>}
           </h1>
           <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:30,maxWidth:560}}>
             {lang==="ar"
-              ? "نقدم برامج تدريبية مخصصة للمدارس والمؤسسات في مجالات التكنولوجيا والإدارة واللغات. هدفنا رفع كفاءة فريقك وتحقيق أهداف مؤسستك."
+              ? "نقدم برامج تدريبية مخصصة للمدارس والمؤسسات في مجالات التكنولوجيا والإدارة واللغات، بهدف تطوير المهارات ورفع كفاءة الأفراد وتحقيق أهداف مؤسستك."
               : "We offer customized training programs for schools and organizations in Technology, Management, and Languages. Our goal is elevating your team's performance."
             }
           </p>
@@ -144,7 +144,7 @@ export default function CorporatePage() {
         <div style={centeredRow(18)}>
           {[
             ["50+", lang==="ar"?"مؤسسة شريكة":"Partner Organizations"],
-            ["5,000+", lang==="ar"?"موظف مدرَّب":"Trained Employees"],
+            ["5,000+", lang==="ar"?"متدرب":"Trainees"],
             ["100%", lang==="ar"?"رضا العملاء":"Client Satisfaction"],
             ["3+", lang==="ar"?"سنوات خبرة في التدريب المؤسسي":"Years of Institutional Training"],
           ].map(([v,l])=>(
@@ -254,7 +254,7 @@ export default function CorporatePage() {
                 <FieldWrap label={lang==="ar"?"المجال المطلوب":"Requested Program"}>
                   <input value={form.program} onChange={set("program")} style={inputSx(false)} placeholder={lang==="ar"?"مثال: تدريب HR":"e.g. HR Training"}/>
                 </FieldWrap>
-                <FieldWrap label={lang==="ar"?"عدد الموظفين":"No. of Employees"}>
+                <FieldWrap label={lang==="ar"?"عدد الطلاب / المتدربين المتوقع":"Expected number of students / trainees"}>
                   <input value={form.employees} onChange={set("employees")} type="number" style={inputSx(false)} placeholder="20"/>
                 </FieldWrap>
               </div>
@@ -262,7 +262,7 @@ export default function CorporatePage() {
               {/* Meeting Platform */}
               <div style={{marginBottom:18}}>
                 <label style={{fontSize:12,color:C.muted,fontWeight:700,display:"block",marginBottom:10}}>
-                  {lang==="ar" ? "منصة الاجتماع المفضلة" : "Preferred Meeting Platform"}
+                  {lang==="ar" ? "طريقة التواصل المفضلة" : "Preferred Contact Method"}
                 </label>
                 <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                   {MEETING_PLATFORMS.map(mp=>(
