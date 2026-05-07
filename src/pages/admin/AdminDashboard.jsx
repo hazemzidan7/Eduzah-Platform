@@ -1741,6 +1741,11 @@ export default function AdminDashboard() {
               {courses.map(c => {
                 const inst = users.find(u => u.id === c.instructorId);
                 const sc   = users.filter(u => u.enrolledCourses?.find(e => e.courseId === c.id)).length;
+                const pendingReqs = enrollmentRequests.filter(r => {
+                  const isThisCourse = String(r.courseId) === String(c.id) ||
+                    (r.courseTitle && (r.courseTitle === c.title || r.courseTitle === c.title_en));
+                  return isThisCourse && (r.enrollmentStatus ?? "pending") === "pending";
+                }).length;
                 const slugVal = c.slug || c.id || "";
                 const slugOk  = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slugVal);
                 const fixSlug = () => {
@@ -1783,7 +1788,17 @@ export default function AdminDashboard() {
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg,${c.color||C.red},#321d3d)`, flexShrink: 0 }}></div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
-                          <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>{c.price.toLocaleString()} EGP · {sc} {tx("طالب", "students")} · {inst ? inst.name : tx("بدون مدرب", "No instructor")}</div>
+                          <div style={{ color: C.muted, fontSize: 11, marginTop: 2 }}>
+                            {c.price.toLocaleString()} EGP
+                            {" · "}
+                            <span style={{ color: "#10b981" }}>{sc} {tx("مسجّل", "enrolled")}</span>
+                            {pendingReqs > 0 && (
+                              <span style={{ color: C.warning, marginLeft: 4 }}>
+                                {" + "}{pendingReqs} {tx("طلب جديد", "pending")}
+                              </span>
+                            )}
+                            {" · "}{inst ? inst.name : tx("بدون مدرب", "No instructor")}
+                          </div>
                           <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
                             <Badge color={C.orange}>{courseCategoryLabel(c.cat, lang)}</Badge>
                             {c.featured && <Badge color={C.red}>{tx("مميز","Featured")}</Badge>}
@@ -1860,6 +1875,27 @@ export default function AdminDashboard() {
                             }
                           }}
                         />
+                        {pendingReqs > 0 && (
+                          <Btn
+                            children={tx(`✅ قبول الكل (${pendingReqs})`, `✅ Approve all (${pendingReqs})`)}
+                            sm
+                            style={{ background: "#10b981", color: "#fff", border: "none" }}
+                            title={tx("قبول جميع طلبات التسجيل المعلقة لهذا الكورس", "Approve all pending enrollment requests for this course")}
+                            onClick={async () => {
+                              if (!window.confirm(tx(`قبول ${pendingReqs} طلب تسجيل لكورس "${c.title}"؟`, `Approve ${pendingReqs} pending request(s) for "${c.title_en || c.title}"?`))) return;
+                              const toApprove = enrollmentRequests.filter(r => {
+                                const isThisCourse = String(r.courseId) === String(c.id) ||
+                                  (r.courseTitle && (r.courseTitle === c.title || r.courseTitle === c.title_en));
+                                return isThisCourse && (r.enrollmentStatus ?? "pending") === "pending";
+                              });
+                              let done = 0;
+                              for (const r of toApprove) {
+                                try { await approveEnrollmentRequest(r.id); done++; } catch {}
+                              }
+                              showT(tx(`تم قبول ${done} طلب`, `Approved ${done} request(s)`));
+                            }}
+                          />
+                        )}
                         <Btn children="🗑" sm v="danger" onClick={() => { if (!window.confirm(ar ? `هل تريد حذف "${c.title}" نهائياً؟` : `Permanently delete "${c.title_en || c.title}"?`)) return; deleteCourse(c.id); showT(tx("تم الحذف", "Deleted"), "error"); }} />
                       </div>
                     </div>
