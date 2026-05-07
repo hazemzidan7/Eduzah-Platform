@@ -447,7 +447,7 @@ export default function Landing() {
               {lang==="ar" ? "عن EDUZAH" : "ABOUT EDUZAH"}
             </div>
             <h2 style={{fontSize:"clamp(1.4rem,3vw,2.2rem)",fontWeight:900,marginBottom:16,lineHeight:1.3}}>
-              {lang==="ar" ? "حلول تدريب متكاملة للمدارس والمؤسسات" : "Complete Training Solutions for Schools & Organizations"}
+              {lang==="ar" ? "حلول تدريبية متكاملة لمدرستك أو مؤسستك" : "Complete Training Solutions for Schools & Organizations"}
             </h2>
             <p style={{color:C.muted,fontSize:14,lineHeight:1.9,marginBottom:20}}>
               {lang==="ar"
