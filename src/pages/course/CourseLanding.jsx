@@ -390,37 +390,6 @@ export default function CourseLanding() {
         </div>
       </div>
 
-      {/* ── TECH STACK ── */}
-      {course.techStack?.length > 0 && (
-        <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
-              {lang === "ar" ? "التقنيات" : "TECHNOLOGIES"}
-            </div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
-              {lang === "ar" ? "ما ستتعلمه" : "What You Will Learn"}
-            </h2>
-          </div>
-          <div style={{ maxWidth: 760, margin: "0 auto" }}>
-            {course.techStack.map((group, gi) => (
-              <div key={gi} style={{ marginBottom: 18 }}>
-                <div style={{ fontWeight: 700, fontSize: 12, color: group.ai ? C.red : C.orange, marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
-                  <span style={{ width: 3, height: 14, background: group.ai ? C.red : C.orange, borderRadius: 2, display: "inline-block" }}></span>
-                  {group.label}
-                </div>
-                <div style={{ lineHeight: 2.2 }}>
-                  {group.items.map(item => (
-                    <span key={item} style={{ background: group.ai ? "rgba(250,166,51,.1)" : "rgba(255,255,255,.06)", border: `1px solid ${group.ai ? "rgba(250,166,51,.3)" : "rgba(255,255,255,.11)"}`, color: group.ai ? C.orange : "#fff", borderRadius: 50, padding: "6px 14px", fontSize: 12, fontWeight: 600, display: "inline-block", margin: "3px" }}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── CURRICULUM ── */}
       {course.curriculum?.length > 0 && (
         <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }} id="curriculum">

@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { C, gHero } from "../../theme";
 import { Btn, Card, Stars } from "../../components/UI";
@@ -27,80 +27,11 @@ const centeredCell = (basisPx) => ({
   boxSizing: "border-box",
 });
 
-const CourseCard = memo(function CourseCard({ course, lang }) {
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [hovered, setHovered] = useState(false);
-  const enrolled = currentUser?.enrolledCourses?.find(e => e.courseId === course.id);
-  const title = lang === "ar" ? course.title : (course.title_en || course.title);
-  const desc = lang === "ar" ? (course.desc || "") : (course.desc_en || course.desc || "");
-  const dur = (d) => lang === "ar" ? d : d.replace(/أسابيع|أسبوع/g, "weeks").replace("ترمين سنوياً", "2 Terms/Year");
-  const graphicCover = course.image && course.coverTitleInImage;
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={()=>navigate(`/courses/${course.slug}`)}
-      style={{
-        background:"rgba(50,29,61,.65)", border:`1px solid ${C.border}`,
-        borderRadius:20, overflow:"hidden", cursor:"pointer",
-        transition:"all .3s",
-        transform: hovered ? "translateY(-8px) scale(1.01)" : "translateY(0) scale(1)",
-        boxShadow: hovered ? `0 20px 50px rgba(217,27,91,.3)` : "none",
-      }}>
-      <div style={{position:"relative",height:160,overflow:"hidden",flexShrink:0}}>
-        {course.image
-          ? <img src={course.image} alt={title} loading="lazy" decoding="async"
-              width="400" height="160"
-              style={{width:"100%",height:"100%",objectFit:"cover",display:"block",
-                transform: hovered ? "scale(1.06)" : "scale(1)", transition:"transform .4s ease"}}/>
-          : <div style={{width:"100%",height:"100%",background:`linear-gradient(135deg,${course.color||C.red},#321d3d)`}}/>
-        }
-        {!graphicCover && (
-          <>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)"}}/>
-            <span style={{position:"absolute",bottom:12,left:14,right:14,fontWeight:800,fontSize:13,lineHeight:1.4,color:"#fff",textShadow:"0 1px 4px rgba(0,0,0,.6)"}}>{title}</span>
-          </>
-        )}
-        {course.badge&&<div style={{position:"absolute",top:10,right:10,background:"rgba(217,27,91,.92)",borderRadius:7,padding:"3px 10px",fontSize:10,fontWeight:700,color:"#fff"}}>{lang==="ar"?course.badge:(course.badge_en||course.badge)}</div>}
-        {/* Hover preview overlay */}
-        {desc && (
-          <div style={{
-            position:"absolute", inset:0,
-            background:"rgba(26,10,46,.92)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            padding:16, textAlign:"center",
-            opacity: hovered ? 1 : 0,
-            transition:"opacity .3s ease",
-            pointerEvents:"none",
-          }}>
-            <p style={{color:"rgba(255,255,255,.9)",fontSize:12,lineHeight:1.8,margin:0}}>
-              {desc.slice(0, 100)}{desc.length > 100 ? "…" : ""}
-            </p>
-          </div>
-        )}
-      </div>
-      <div style={{padding:"14px 16px 16px"}}>
-        <div style={{fontWeight:800,fontSize:13,marginBottom:4}}>{title}</div>
-        <div style={{display:"flex",gap:10,marginBottom:10}}>
-          <span style={{color:C.muted,fontSize:11}}>{dur(course.duration)}</span>
-          <span style={{color:C.muted,fontSize:11}}>{course.hours}h</span>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:`1px solid ${C.border}`,paddingTop:10}}>
-          <span style={{fontWeight:900,fontSize:15,color:C.red}}>{course.price.toLocaleString()} <small style={{fontSize:10,color:C.muted,fontWeight:400}}>EGP</small></span>
-          <Btn children={enrolled?(lang==="ar"?"متابعة ▶":"Continue ▶"):(lang==="ar"?"سجّل الآن":"Enroll")} sm onClick={e=>{e.stopPropagation();navigate(`/courses/${course.slug}`);}}/>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 export default function Landing() {
   const navigate = useNavigate();
   const { lang } = useLang();
   const { currentUser } = useAuth();
-  const { courses, news, programs, testimonials } = useData();
-  const featured    = courses.filter(c => c.featured).slice(0,3);
+  const { news, programs, testimonials } = useData();
   const latestNews  = news.slice(0,3);
   const dir = lang === "ar" ? "rtl" : "ltr";
 
@@ -416,28 +347,6 @@ export default function Landing() {
           </div>
         </div>
       )}
-
-      {/* ── Featured Courses ── */}
-      <div style={{background:"#2a1540",padding:"clamp(36px,7vw,70px) 5%"}}>
-        <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{color:C.orange,fontWeight:700,fontSize:11,letterSpacing:2,marginBottom:8}}>
-            {lang==="ar" ? "الكورسات المميزة" : "FEATURED COURSES"}
-          </div>
-          <h2 style={{fontSize:"clamp(1.4rem,3vw,2.4rem)",fontWeight:900}}>
-            {lang==="ar" ? "أبرز كورساتنا" : "Our Top Courses"}
-          </h2>
-        </div>
-        {featured.length===0
-          ? <div style={{textAlign:"center",color:C.muted,padding:"40px 0"}}>{lang==="ar"?"لا توجد كورسات مميزة.":"No featured courses yet."}</div>
-          : <div style={centeredRow(20)}>{featured.map(c=>(
-              <div key={c.id} style={centeredCell(288)}>
-                <CourseCard course={c} lang={lang}/>
-              </div>
-            ))}</div>}
-        <div style={{textAlign:"center",marginTop:28}}>
-          <Btn children={lang==="ar"?"شاهد كل الكورسات ←":"See all courses →"} v="outline" onClick={()=>navigate("/courses")} style={{padding:"11px 26px"}}/>
-        </div>
-      </div>
 
       {/* ── About / Team ── */}
       <div style={{background:"#321d3d",padding:"clamp(36px,7vw,70px) 5%"}}>
