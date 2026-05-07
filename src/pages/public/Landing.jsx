@@ -247,7 +247,7 @@ export default function Landing() {
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:14}}>
             {lang==="ar"
-              ? <><span style={{color:C.orange}}>خطوة طفلك الأولى</span><br/>نحو عالم <span style={{color:C.red}}>التكنولوجيا</span></>
+              ? <><span style={{color:C.orange}}>من أول خطوة...</span><br/>ابنك يصنع مستقبل <span style={{color:C.red}}>التكنولوجيا</span></>
               : <>Your Child's First Step<br/>Into the World of <span style={{color:C.red}}>Technology</span></>}
           </h1>
           <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:8,maxWidth:500}}>
