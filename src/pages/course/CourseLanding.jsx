@@ -461,41 +461,6 @@ export default function CourseLanding() {
         </div>
       )}
 
-      {/* ── FAQ ── */}
-      <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
-            {lang === "ar" ? "الأسئلة الشائعة" : "FAQ"}
-          </div>
-          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
-            {lang === "ar" ? "هل لديك سؤال؟" : "Have a Question?"}
-          </h2>
-        </div>
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          {FAQ.map((faq, fi) => (
-            <div key={fi} style={{ border: `1px solid ${openFaq === fi ? C.orange + "55" : C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 8, transition: "border-color .2s" }}>
-              <div onClick={() => setOpenFaq(openFaq === fi ? null : fi)}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: openFaq === fi ? `${C.orange}10` : "rgba(255,255,255,.04)", cursor: "pointer" }}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>{faq.q}</span>
-                <span style={{ color: C.muted, fontSize: 18, transition: "transform .25s", transform: openFaq === fi ? "rotate(45deg)" : "" }}>+</span>
-              </div>
-              {openFaq === fi && (
-                <div style={{ padding: "12px 18px", borderTop: `1px solid ${C.border}` }}>
-                  <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.8 }}>{faq.a}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          <span style={{ color: C.muted, fontSize: 13 }}>{lang === "ar" ? "هل لديك سؤال آخر؟ " : "Have another question? "}</span>
-          <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
-            style={{ color: "#25d366", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
-            {lang === "ar" ? "تواصل معنا عبر واتساب" : "Chat with us on WhatsApp"}
-          </a>
-        </div>
-      </div>
-
       {/* ── ENROLLMENT FORM ── */}
       {!enrolled && (
         <div ref={enrollFormRef} id="enroll" style={{ padding: "clamp(40px,7vw,72px) 4%", background: "linear-gradient(180deg,#1a0a2e 0%,#2a1540 100%)", borderTop: `1px solid ${C.border}` }}>
@@ -540,6 +505,41 @@ export default function CourseLanding() {
           </div>
         </div>
       )}
+
+      {/* ── FAQ ── */}
+      <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
+            {lang === "ar" ? "الأسئلة الشائعة" : "FAQ"}
+          </div>
+          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
+            {lang === "ar" ? "هل لديك سؤال؟" : "Have a Question?"}
+          </h2>
+        </div>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          {FAQ.map((faq, fi) => (
+            <div key={fi} style={{ border: `1px solid ${openFaq === fi ? C.orange + "55" : C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 8, transition: "border-color .2s" }}>
+              <div onClick={() => setOpenFaq(openFaq === fi ? null : fi)}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: openFaq === fi ? `${C.orange}10` : "rgba(255,255,255,.04)", cursor: "pointer" }}>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{faq.q}</span>
+                <span style={{ color: C.muted, fontSize: 18, transition: "transform .25s", transform: openFaq === fi ? "rotate(45deg)" : "" }}>+</span>
+              </div>
+              {openFaq === fi && (
+                <div style={{ padding: "12px 18px", borderTop: `1px solid ${C.border}` }}>
+                  <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.8 }}>{faq.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <span style={{ color: C.muted, fontSize: 13 }}>{lang === "ar" ? "هل لديك سؤال آخر؟ " : "Have another question? "}</span>
+          <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
+            style={{ color: "#25d366", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+            {lang === "ar" ? "تواصل معنا عبر واتساب" : "Chat with us on WhatsApp"}
+          </a>
+        </div>
+      </div>
 
       {/* ── OUTCOMES ── */}
       {displayOutcomes?.length > 0 && (
