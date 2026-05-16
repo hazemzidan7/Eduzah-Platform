@@ -2,6 +2,7 @@ import { useCallback, useState, useMemo } from "react";
 import { C } from "../../theme";
 import { Btn, Input } from "../UI";
 import { submitEnrollmentCrm } from "../../utils/submitEnrollmentCrm";
+import { getUtmParams, utmSourceToBookingVia, trackFbEvent } from "../../utils/utm";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function isValidEmail(s) {
@@ -102,6 +103,9 @@ export default function EnrollmentForm({ diploma, courseCost }) {
       ? courseCost
       : Number(courseCost) || 0;
 
+  const utm = useMemo(() => getUtmParams(), []);
+  const detectedBookingVia = utmSourceToBookingVia(utm.utmSource);
+
   const initial = useMemo(
     () => ({
       fullName: "",
@@ -113,11 +117,11 @@ export default function EnrollmentForm({ diploma, courseCost }) {
       programmingLevel: "",
       employmentStatus: "",
       contactMethod: "",
-      bookingVia: "",
+      bookingVia: detectedBookingVia || "",
       notes: "",
       createAccount: false,
     }),
-    [],
+    [detectedBookingVia],
   );
 
   const [form, setForm] = useState(initial);
@@ -159,11 +163,21 @@ export default function EnrollmentForm({ diploma, courseCost }) {
         courseCost:       dc,
         deposit: 0, inst1: 0, inst2: 0, inst3: 0,
         attendance: "", followUp: "", plan: "", payOk: "",
+        utmSource:        utm.utmSource,
+        utmMedium:        utm.utmMedium,
+        utmCampaign:      utm.utmCampaign,
+        utmContent:       utm.utmContent,
       };
 
       setBusy(true);
       try {
         await submitEnrollmentCrm(payload);
+        trackFbEvent("Lead", {
+          content_name:     diploma || "",
+          content_category: utm.utmCampaign || "organic",
+          value:            dc,
+          currency:         "EGP",
+        });
         setSent(true);
         setForm(initial);
       } catch (x) {

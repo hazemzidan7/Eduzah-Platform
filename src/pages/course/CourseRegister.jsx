@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { submitEnrollmentCrm } from "../../utils/submitEnrollmentCrm";
 import { appendPlainNotification } from "../../utils/gamification";
+import { getUtmParams, utmSourceToBookingVia, trackFbEvent } from "../../utils/utm";
 import { auth, db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
@@ -80,6 +81,10 @@ export default function CourseRegister() {
   const course = courses.find(c => c.slug === slug);
 
   const [paymentPlan, setPaymentPlan] = useState("full");
+
+  const utm = useMemo(() => getUtmParams(), []);
+  const detectedSource = utmSourceToBookingVia(utm.utmSource);
+
   const [form, setForm] = useState({
     fullName:          currentUser?.name || "",
     email:             currentUser?.email || "",
@@ -90,7 +95,7 @@ export default function CourseRegister() {
     hasPC:             "",
     employmentStatus:  "",
     contactPreference: "",
-    source:            "Facebook / Instagram",
+    source:            detectedSource || "Facebook / Instagram",
     notes:             "",
     trainingType:      (course?.trainingTypes || ["online"])[0],
     createAccount:     false,
@@ -223,6 +228,10 @@ export default function CourseRegister() {
         plan:             paymentPlan,
         courseCost:       course?.price ?? 0,
         deposit:          amountQuoted,
+        utmSource:        utm.utmSource,
+        utmMedium:        utm.utmMedium,
+        utmCampaign:      utm.utmCampaign,
+        utmContent:       utm.utmContent,
       }).catch(err => console.warn("[CRM] Sheet submit failed (non-blocking):", err));
 
       const courseIdStr    = String(course.id ?? "");
@@ -256,6 +265,13 @@ export default function CourseRegister() {
       if (uidForDoc) {
         try { await enrollUser(uidForDoc, courseIdStr); } catch (_) {}
       }
+
+      trackFbEvent("Lead", {
+        content_name:     ar ? course?.title : (course?.title_en || course?.title || ""),
+        content_category: utm.utmCampaign || "organic",
+        value:            amountQuoted,
+        currency:         "EGP",
+      });
 
       setDone(true);
 
