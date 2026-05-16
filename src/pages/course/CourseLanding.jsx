@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { db } from "../../firebase";
 import { Seo } from "../../components/Seo";
+import EnrollmentForm from "../../components/enrollment/EnrollmentForm";
 
 const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
@@ -142,9 +143,12 @@ export default function CourseLanding() {
   const hoursNum = Number(course.hours) || 0;
   const projectsNum = Number(course.projects) || 0;
 
+  const enrollFormRef = useRef(null);
+
   const handleEnroll = () => {
     if (enrollmentReqStatus === "pending") return;
-    navigate(`/courses/${slug}/register`);
+    if (enrolled) { navigate(`/learn/${slug}`); return; }
+    enrollFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
     const enrollBtnLabel = enrolled
@@ -554,6 +558,51 @@ export default function CourseLanding() {
           {lang === "ar" ? "دفع آمن · ضمان استرداد 14 يوم · شهادة معتمدة" : "Secure payment · 14-day money-back · Accredited certificate"}
         </div>
       </div>
+
+      {/* ── ENROLLMENT FORM ── */}
+      {!enrolled && (
+        <div ref={enrollFormRef} id="enroll" style={{ padding: "clamp(40px,7vw,72px) 4%", background: "linear-gradient(180deg,#1a0a2e 0%,#2a1540 100%)", borderTop: `1px solid ${C.border}` }}>
+          <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", gap: 48, flexWrap: "wrap", alignItems: "flex-start" }}>
+
+            {/* Left — pitch */}
+            <div style={{ flex: "1 1 260px" }}>
+              <div style={{ color: C.red, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 10 }}>
+                {lang === "ar" ? "سجّل الآن" : "ENROLL NOW"}
+              </div>
+              <h2 style={{ fontSize: "clamp(1.3rem,3vw,2rem)", fontWeight: 900, marginBottom: 14, lineHeight: 1.25 }}>
+                {lang === "ar" ? "ابدأ رحلتك مع Eduzah" : "Start your journey with Eduzah"}
+              </h2>
+              <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.9, marginBottom: 20 }}>
+                {lang === "ar"
+                  ? "أكمل بياناتك وسيتواصل معك الفريق خلال 24 ساعة لتأكيد تسجيلك."
+                  : "Complete your details and our team will contact you within 24 hours to confirm your enrollment."}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  lang === "ar" ? `السعر: ${priceNum.toLocaleString()} EGP` : `Price: ${priceNum.toLocaleString()} EGP`,
+                  lang === "ar" ? `أو 3 أقساط × ${installmentNum.toLocaleString()} EGP` : `Or 3 × ${installmentNum.toLocaleString()} EGP`,
+                  lang === "ar" ? "شهادة معتمدة من Eduzah" : "Eduzah accredited certificate",
+                  lang === "ar" ? "ضمان استرداد 14 يوم" : "14-day money-back guarantee",
+                ].map((item) => (
+                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600 }}>
+                    <span style={{ color: C.success, fontWeight: 800, flexShrink: 0 }}>✓</span>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — form */}
+            <div style={{ flex: "1 1 320px", background: "rgba(255,255,255,.04)", border: `1px solid ${C.border}`, borderRadius: 18, padding: "clamp(20px,4vw,32px)" }}>
+              <EnrollmentForm
+                diploma={lang === "ar" ? course.title : (course.title_en || course.title)}
+                courseCost={course.price}
+              />
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ── STICKY BAR ── */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(26,10,46,.97)", backdropFilter: "blur(16px)", borderTop: `1px solid ${C.border}`, padding: "10px 4%", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 90, gap: 12, flexWrap: "wrap" }}>
