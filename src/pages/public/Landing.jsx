@@ -41,7 +41,7 @@ export default function Landing() {
   const STATS = [
     { target: ps.trainees, suffix: "+", label: lang === "ar" ? "طالب ملتحق" : "Students Enrolled" },
     { target: ps.partners, suffix: "+", label: lang === "ar" ? "مدرب معتمد" : "Certified Instructors" },
-    { target: 48, suffix: "/5", label: lang === "ar" ? "تقييم الأهل" : "Parent Rating", display: String(ps.rating) },
+    { target: 48, suffix: "/5", label: lang === "ar" ? "تقييم الطلاب" : "Student Rating", display: String(ps.rating) },
     { target: ps.years, suffix: "+", label: lang === "ar" ? "سنوات خبرة" : "Years Experience" },
   ];
   // Start at target so numbers are never misleadingly 0 before animation
@@ -174,24 +174,24 @@ export default function Landing() {
               letterSpacing: lang === "ar" ? 0 : 0.5,
             }}
           >
-            {lang === "ar" ? "تعليم تقني للأطفال والشباب — للأعمار 8–16" : "Tech education for kids & teens — ages 8–16"}
+            {lang === "ar" ? "تدريب تقني مهني — برمجة · ذكاء اصطناعي · إدارة" : "Professional Tech Training — Dev · AI · Management"}
           </div>
           <h1 style={{fontSize:"clamp(1.8rem,4.5vw,3.2rem)",fontWeight:900,lineHeight:1.2,marginBottom:14}}>
             {lang==="ar"
-              ? <><span style={{color:C.orange}}>من أول خطوة...</span><br/>ابنك يصنع مستقبل <span style={{color:C.red}}>التكنولوجيا</span></>
-              : <>Your Child's First Step<br/>Into the World of <span style={{color:C.red}}>Technology</span></>}
+              ? <><span style={{color:C.orange}}>طوّر مهاراتك...</span><br/>وابدأ مسيرتك في <span style={{color:C.red}}>التكنولوجيا</span></>
+              : <>Level Up Your Skills<br/>And Launch Your <span style={{color:C.red}}>Tech Career</span></>}
           </h1>
           <p style={{color:C.muted,fontSize:15,lineHeight:1.85,marginBottom:8,maxWidth:500}}>
             {lang==="ar"
-              ? "كورسات برمجة، ذكاء اصطناعي وروبوتيك — مُصمَّمة خصيصاً للأطفال والشباب من سن 8 حتى 16، بالعربي والإنجليزي."
-              : "Coding, AI & Robotics courses — designed for kids & teens aged 8–16, taught in Arabic & English."
+              ? "تدريبات مكثفة في البرمجة، الذكاء الاصطناعي، وإدارة المشاريع — بإشراف مدربين معتمدين وشهادات معترف بها."
+              : "Intensive training in software development, AI, and project management — led by certified instructors with accredited certificates."
             }
           </p>
           {/* Trust micro-line */}
           <p style={{ color: "rgba(255,255,255,.45)", fontSize: 12, marginBottom: 24 }}>
             {lang === "ar"
-              ? "وصول فوري · لا بطاقة ائتمان · داشبورد لمتابعة الأهل"
-              : "Instant access · No credit card · Parent progress dashboard"}
+              ? "وصول فوري · دفع آمن · شهادة معتمدة من Eduzah"
+              : "Instant access · Secure payment · Eduzah accredited certificate"}
           </p>
 
           {/* ── 2 CTAs only — no decision paralysis ── */}

@@ -116,7 +116,7 @@ export default function Navbar() {
         {/* ── Logo ── */}
         <Link to="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center" }}>
           <img
-            src={lang === "ar" ? "/logo-ar.png" : "/logo-en.png"}
+            src="/logo-en.png"
             alt="Eduzah"
             style={{ height: 38, width: "auto", display: "block" }}
           />
