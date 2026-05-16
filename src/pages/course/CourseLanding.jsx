@@ -382,26 +382,6 @@ export default function CourseLanding() {
         </div>
       )}
 
-      {/* ── WHO IS THIS FOR ── */}
-      <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
-            {lang === "ar" ? "هل هذا البرنامج لك؟" : "IS THIS FOR YOU?"}
-          </div>
-          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
-            {lang === "ar" ? "هذا البرنامج مناسب إذا كنت..." : "This program is right for you if you are..."}
-          </h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12, maxWidth: 760, margin: "0 auto" }}>
-          {WHO.map((w, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", fontSize: 13, fontWeight: 600 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.orange, flexShrink: 0, marginTop: 7, display: "inline-block" }}></span>
-              {w}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── CURRICULUM ── */}
       {course.curriculum?.length > 0 && (
         <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }} id="curriculum">
@@ -445,28 +425,6 @@ export default function CourseLanding() {
                     </div>
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── OUTCOMES ── */}
-      {displayOutcomes?.length > 0 && (
-        <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
-              {lang === "ar" ? "مخرجات التعلم" : "OUTCOMES"}
-            </div>
-            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
-              {lang === "ar" ? "مهاراتك بعد البرنامج" : "Your Skills After the Program"}
-            </h2>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10, maxWidth: 800, margin: "0 auto" }}>
-            {displayOutcomes.map((o, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: 13 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.success, flexShrink: 0, marginTop: 1 }}>✓</div>
-                <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{o}</span>
               </div>
             ))}
           </div>
@@ -538,27 +496,6 @@ export default function CourseLanding() {
         </div>
       </div>
 
-      {/* ── BOTTOM CTA ── */}
-      <div style={{ background: "linear-gradient(135deg,#1a0a2e,#4a1f6e)", border: `1px solid rgba(217,27,91,.2)`, borderRadius: 20, padding: "clamp(24px,5vw,44px)", textAlign: "center", margin: "0 4% 80px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "-30px", right: "-30px", width: 200, height: 200, background: "radial-gradient(circle,rgba(217,27,91,.22),transparent 70%)", borderRadius: "50%" }} />
-        <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.8rem)", fontWeight: 900, marginBottom: 8, position: "relative" }}>
-          {lang === "ar" ? "ابدأ رحلتك الآن" : "Start Your Journey Now"}
-        </h2>
-        <p style={{ color: C.muted, fontSize: 13, marginBottom: 22, position: "relative" }}>
-          {lang === "ar" ? "الدفعة القادمة محدودة — الأماكن تمتلئ بسرعة" : "Next batch is limited — spots fill up fast"}
-        </p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
-          <Btn children={enrolled ? enrollBtnLabel : `${enrollBtnLabel} — ${priceNum.toLocaleString()} EGP`} onClick={enrolled ? goLearn : handleEnroll} disabled={!enrolled && enrollmentReqStatus === "pending"} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
-          <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
-            style={{ background: "#25d366", color: "#fff", padding: "13px 24px", borderRadius: 12, fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {lang === "ar" ? "استفسر عبر واتساب" : "Ask on WhatsApp"}
-          </a>
-        </div>
-        <div style={{ marginTop: 12, color: C.muted, fontSize: 11, position: "relative" }}>
-          {lang === "ar" ? "دفع آمن · ضمان استرداد 14 يوم · شهادة معتمدة" : "Secure payment · 14-day money-back · Accredited certificate"}
-        </div>
-      </div>
-
       {/* ── ENROLLMENT FORM ── */}
       {!enrolled && (
         <div ref={enrollFormRef} id="enroll" style={{ padding: "clamp(40px,7vw,72px) 4%", background: "linear-gradient(180deg,#1a0a2e 0%,#2a1540 100%)", borderTop: `1px solid ${C.border}` }}>
@@ -603,6 +540,69 @@ export default function CourseLanding() {
           </div>
         </div>
       )}
+
+      {/* ── OUTCOMES ── */}
+      {displayOutcomes?.length > 0 && (
+        <div style={{ padding: "clamp(32px,6vw,56px) 4%" }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
+              {lang === "ar" ? "مخرجات التعلم" : "OUTCOMES"}
+            </div>
+            <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
+              {lang === "ar" ? "مهاراتك بعد البرنامج" : "Your Skills After the Program"}
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 10, maxWidth: 800, margin: "0 auto" }}>
+            {displayOutcomes.map((o, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: 13 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 6, background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.success, flexShrink: 0, marginTop: 1 }}>✓</div>
+                <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{o}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── WHO IS THIS FOR ── */}
+      <div style={{ background: "#2a1540", padding: "clamp(32px,6vw,56px) 4%" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 11, letterSpacing: 2, marginBottom: 8 }}>
+            {lang === "ar" ? "هل هذا البرنامج لك؟" : "IS THIS FOR YOU?"}
+          </div>
+          <h2 style={{ fontSize: "clamp(1.2rem,3vw,2rem)", fontWeight: 900 }}>
+            {lang === "ar" ? "هذا البرنامج مناسب إذا كنت..." : "This program is right for you if you are..."}
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12, maxWidth: 760, margin: "0 auto" }}>
+          {WHO.map((w, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(255,255,255,.05)", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", fontSize: 13, fontWeight: 600 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.orange, flexShrink: 0, marginTop: 7, display: "inline-block" }}></span>
+              {w}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── BOTTOM CTA ── */}
+      <div style={{ background: "linear-gradient(135deg,#1a0a2e,#4a1f6e)", border: `1px solid rgba(217,27,91,.2)`, borderRadius: 20, padding: "clamp(24px,5vw,44px)", textAlign: "center", margin: "0 4% 80px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "-30px", right: "-30px", width: 200, height: 200, background: "radial-gradient(circle,rgba(217,27,91,.22),transparent 70%)", borderRadius: "50%" }} />
+        <h2 style={{ fontSize: "clamp(1.2rem,3vw,1.8rem)", fontWeight: 900, marginBottom: 8, position: "relative" }}>
+          {lang === "ar" ? "ابدأ رحلتك الآن" : "Start Your Journey Now"}
+        </h2>
+        <p style={{ color: C.muted, fontSize: 13, marginBottom: 22, position: "relative" }}>
+          {lang === "ar" ? "الدفعة القادمة محدودة — الأماكن تمتلئ بسرعة" : "Next batch is limited — spots fill up fast"}
+        </p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", position: "relative" }}>
+          <Btn children={enrolled ? enrollBtnLabel : `${enrollBtnLabel} — ${priceNum.toLocaleString()} EGP`} onClick={enrolled ? goLearn : handleEnroll} disabled={!enrolled && enrollmentReqStatus === "pending"} style={{ padding: "13px 30px", fontSize: 14, borderRadius: 12 }} />
+          <a href="https://wa.me/201044222881" target="_blank" rel="noreferrer"
+            style={{ background: "#25d366", color: "#fff", padding: "13px 24px", borderRadius: 12, fontFamily: "'Cairo',sans-serif", fontWeight: 700, fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {lang === "ar" ? "استفسر عبر واتساب" : "Ask on WhatsApp"}
+          </a>
+        </div>
+        <div style={{ marginTop: 12, color: C.muted, fontSize: 11, position: "relative" }}>
+          {lang === "ar" ? "دفع آمن · ضمان استرداد 14 يوم · شهادة معتمدة" : "Secure payment · 14-day money-back · Accredited certificate"}
+        </div>
+      </div>
 
       {/* ── STICKY BAR ── */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(26,10,46,.97)", backdropFilter: "blur(16px)", borderTop: `1px solid ${C.border}`, padding: "10px 4%", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 90, gap: 12, flexWrap: "wrap" }}>
