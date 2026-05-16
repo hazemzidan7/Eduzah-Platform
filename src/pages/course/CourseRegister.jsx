@@ -8,6 +8,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { submitEnrollmentCrm } from "../../utils/submitEnrollmentCrm";
 import { appendPlainNotification } from "../../utils/gamification";
+import { getUtmParams, utmSourceToBookingVia, trackFbEvent } from "../../utils/utm";
+import { Seo } from "../../components/Seo";
 import { auth, db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
@@ -80,6 +82,10 @@ export default function CourseRegister() {
   const course = courses.find(c => c.slug === slug);
 
   const [paymentPlan, setPaymentPlan] = useState("full");
+
+  const utm = useMemo(() => getUtmParams(), []);
+  const detectedSource = utmSourceToBookingVia(utm.utmSource);
+
   const [form, setForm] = useState({
     fullName:          currentUser?.name || "",
     email:             currentUser?.email || "",
@@ -90,7 +96,7 @@ export default function CourseRegister() {
     hasPC:             "",
     employmentStatus:  "",
     contactPreference: "",
-    source:            "Facebook / Instagram",
+    source:            detectedSource || "Facebook / Instagram",
     notes:             "",
     trainingType:      (course?.trainingTypes || ["online"])[0],
     createAccount:     false,
@@ -223,6 +229,10 @@ export default function CourseRegister() {
         plan:             paymentPlan,
         courseCost:       course?.price ?? 0,
         deposit:          amountQuoted,
+        utmSource:        utm.utmSource,
+        utmMedium:        utm.utmMedium,
+        utmCampaign:      utm.utmCampaign,
+        utmContent:       utm.utmContent,
       }).catch(err => console.warn("[CRM] Sheet submit failed (non-blocking):", err));
 
       const courseIdStr    = String(course.id ?? "");
@@ -256,6 +266,13 @@ export default function CourseRegister() {
       if (uidForDoc) {
         try { await enrollUser(uidForDoc, courseIdStr); } catch (_) {}
       }
+
+      trackFbEvent("Lead", {
+        content_name:     ar ? course?.title : (course?.title_en || course?.title || ""),
+        content_category: utm.utmCampaign || "organic",
+        value:            amountQuoted,
+        currency:         "EGP",
+      });
 
       setDone(true);
 
@@ -318,8 +335,13 @@ export default function CourseRegister() {
   }
 
   /* ───────── Main form ───────── */
+  const regTitle = ar ? course.title : (course.title_en || course.title);
   return (
     <div dir={dir} style={{ background: "linear-gradient(135deg,#1a0a2e,#321d3d,#4a1f6e)", minHeight: "calc(100vh - 58px)", padding: "36px 4%", display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <Seo
+        title={ar ? `سجّل في ${regTitle} | Eduzah` : `Enroll in ${regTitle} | Eduzah`}
+        description={ar ? `سجّل الآن في دبلومة ${regTitle} من Eduzah — أكمل بياناتك وسيتواصل معك الفريق لتأكيد التسجيل.` : `Enroll now in ${regTitle} diploma from Eduzah — complete your details and our team will confirm your enrollment.`}
+      />
 
       {/* ══ Form column ══ */}
       <div style={{ flex: "1 1 320px", maxWidth: 520 }}>

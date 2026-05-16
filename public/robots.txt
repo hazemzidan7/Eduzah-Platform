@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Block admin and dev routes from indexing
+Disallow: /admin
+Disallow: /setup-admin
+Disallow: /dev-seed
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /learn/
+Disallow: /exam/
+Disallow: /instructor/
+Disallow: /accounting/
+
+Sitemap: https://eduzah.com/sitemap.xml
