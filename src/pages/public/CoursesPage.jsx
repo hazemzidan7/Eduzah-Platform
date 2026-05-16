@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
 import { useLang } from "../../context/LangContext";
 import { TRACKS } from "../../data";
+import { Seo } from "../../components/Seo";
 
 const TRAINING_TYPES = [
   { v: "all",     ar: "الكل",          en: "All" },
@@ -99,6 +100,12 @@ export default function CoursesPage() {
 
   return (
     <div style={{ padding: "clamp(24px,5vw,44px) 5%" }} dir={dir}>
+      <Seo
+        title={lang === "ar" ? "الكورسات | Eduzah" : "Courses | Eduzah"}
+        description={lang === "ar"
+          ? "تصفح جميع دبلومات ودورات Eduzah في البرمجة، الذكاء الاصطناعي، تصميم UI/UX، الجرافيك وأكثر — تدريب مباشر أونلاين وحضوري."
+          : "Browse all Eduzah diplomas and courses in programming, AI, UI/UX design, graphic design and more — live online and offline training."}
+      />
 
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 36 }}>

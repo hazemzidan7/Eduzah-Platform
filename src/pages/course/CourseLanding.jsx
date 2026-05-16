@@ -7,6 +7,7 @@ import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLang } from "../../context/LangContext";
 import { db } from "../../firebase";
+import { Seo } from "../../components/Seo";
 
 const FAQ_AR = [
   { q:"هل محتاج خبرة سابقة؟",         a:"لا، الدبلومة تبدأ من الصفر وتوصلك للاحتراف. كل اللي محتاجه هو الرغبة والالتزام." },
@@ -177,8 +178,15 @@ export default function CourseLanding() {
     : null;
   const freeNote = !enrolled && course.freeLessonNote?.trim();
 
+  const seoTitle = lang === "ar" ? course.title : (course.title_en || course.title);
+  const seoDesc  = lang === "ar" ? (course.desc || course.tagline || "") : (course.desc_en || course.tagline_en || course.desc || course.tagline || "");
+
   return (
     <div style={{ paddingBottom: 70 }} dir={dir}>
+      <Seo
+        title={`${seoTitle} | Eduzah`}
+        description={seoDesc || `دبلومة ${seoTitle} من Eduzah — تدريب مكثف أونلاين وحضوري مع شهادة معتمدة.`}
+      />
 
       {/* ── Course hero (full width) — hidden when cover is title-only graphic ── */}
       {course.image && !course.coverTitleInImage && (

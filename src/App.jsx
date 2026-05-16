@@ -6,6 +6,7 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
+    try { window.fbq?.("track", "PageView"); } catch {}
   }, [pathname]);
   return null;
 }
@@ -120,8 +121,8 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password"  element={<ResetPasswordPage />} />
-          <Route path="/setup-admin" element={<BootstrapAdmin />} />
-          <Route path="/dev-seed"   element={<DevSeed />} />
+          <Route path="/setup-admin" element={import.meta.env.DEV ? <BootstrapAdmin /> : <Navigate to="/" replace />} />
+          <Route path="/dev-seed"   element={import.meta.env.DEV ? <DevSeed />        : <Navigate to="/" replace />} />
 
           {/* ── Course Landing + Register ──────── */}
           <Route path="/courses/:slug"          element={<CourseLanding />} />

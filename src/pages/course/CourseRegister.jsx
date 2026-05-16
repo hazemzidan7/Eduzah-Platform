@@ -9,6 +9,7 @@ import { useLang } from "../../context/LangContext";
 import { submitEnrollmentCrm } from "../../utils/submitEnrollmentCrm";
 import { appendPlainNotification } from "../../utils/gamification";
 import { getUtmParams, utmSourceToBookingVia, trackFbEvent } from "../../utils/utm";
+import { Seo } from "../../components/Seo";
 import { auth, db } from "../../firebase";
 
 const SITE_PHONE = "201044222881";
@@ -334,8 +335,13 @@ export default function CourseRegister() {
   }
 
   /* ───────── Main form ───────── */
+  const regTitle = ar ? course.title : (course.title_en || course.title);
   return (
     <div dir={dir} style={{ background: "linear-gradient(135deg,#1a0a2e,#321d3d,#4a1f6e)", minHeight: "calc(100vh - 58px)", padding: "36px 4%", display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <Seo
+        title={ar ? `سجّل في ${regTitle} | Eduzah` : `Enroll in ${regTitle} | Eduzah`}
+        description={ar ? `سجّل الآن في دبلومة ${regTitle} من Eduzah — أكمل بياناتك وسيتواصل معك الفريق لتأكيد التسجيل.` : `Enroll now in ${regTitle} diploma from Eduzah — complete your details and our team will confirm your enrollment.`}
+      />
 
       {/* ══ Form column ══ */}
       <div style={{ flex: "1 1 320px", maxWidth: 520 }}>
