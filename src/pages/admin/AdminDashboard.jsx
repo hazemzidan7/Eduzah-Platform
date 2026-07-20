@@ -8,7 +8,9 @@ import { Btn, Card, Badge, Modal, Input, Select } from "../../components/UI";
 import AddSessionModal from "../../components/AddSessionModal";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
+import { useLeads } from "../../context/LeadsContext";
 import { useLang } from "../../context/LangContext";
+import CrmModule from "./crm/CrmModule";
 import { exportCourseStudents } from "../../utils/exportExcel";
 import CourseStudentsModal from "../../components/CourseStudentsModal";
 import { StatCard, BarChart, DonutChart } from "../../components/Charts";
@@ -83,6 +85,7 @@ export default function AdminDashboard() {
     addTestimonial, deleteTestimonial,
     addTeamMember, updateTeamMember, deleteTeamMember,
   } = useData();
+  const { leads } = useLeads();
   const navigate = useNavigate();
   const { lang } = useLang();
   const ar = lang === "ar";
@@ -207,6 +210,7 @@ export default function AdminDashboard() {
   const pending      = users.filter(u => u.status === "pending");
   const pendingEnrollments = enrollmentRequests.filter((r) => (r.enrollmentStatus ?? "pending") === "pending");
   const adminsList   = users.filter(u => u.role === "admin");
+  const newLeadsCount = leads.filter(l => l.status === "new").length;
   const instructors  = users.filter(u => u.role === "instructor");
   const studentsEnr  = users.filter(u => (u.role === "student" || u.role === "user") && u.status === "approved" && (u.enrolledCourses || []).length > 0);
   const usersOnly    = users.filter(u => (u.role === "user" || u.role === "student") && u.status === "approved" && !(u.enrolledCourses || []).length);
@@ -282,6 +286,7 @@ export default function AdminDashboard() {
         ["overview",   "نظرة عامة"],
         ["users",      "المستخدمون"],
         ["requests",   "الطلبات"],
+        ["crm",        "إدارة المبيعات"],
         ["accounting", "المحاسبة"],
         ["leads",      "طلبات الخدمات"],
         ["courses",    "الكورسات"],
@@ -298,6 +303,7 @@ export default function AdminDashboard() {
         ["overview",   "Overview"],
         ["users",      "Users"],
         ["requests",   "Requests"],
+        ["crm",        "CRM"],
         ["accounting", "Accounting"],
         ["leads",      "Service Leads"],
         ["courses",    "Courses"],
@@ -1294,6 +1300,9 @@ export default function AdminDashboard() {
             {k === "requests" && pendingEnrollments.length > 0 && (
               <span style={{ background: C.danger, borderRadius: "50%", width: 17, height: 17, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{pendingEnrollments.length}</span>
             )}
+            {k === "crm" && newLeadsCount > 0 && (
+              <span style={{ background: C.danger, borderRadius: "50%", width: 17, height: 17, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{newLeadsCount}</span>
+            )}
           </div>
         ))}
       </div>
@@ -1623,6 +1632,9 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* ── CRM ── */}
+        {tab === "crm" && <CrmModule />}
 
         {/* ── Accounting (admin session; no separate accounting login) ── */}
         {tab === "accounting" && (
