@@ -10,6 +10,8 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "./AuthContext";
 import { normalizeLeadStatus } from "../constants/leadStatus";
+import { normalizeLeadSource } from "../constants/leadSource";
+import { normalizePhone, normalizeEmail } from "../utils/leadDedupe";
 
 const LeadsCtx = createContext(null);
 
@@ -37,9 +39,23 @@ export function LeadsProvider({ children }) {
     return () => unsub();
   }, [currentUser?.id, currentUser?.role]);
 
+  // ── DUPLICATE CHECK ────────────────────────────────────
+  // Client-side lookup over the already-subscribed `leads` list (admins only ever see
+  // their own real-time full collection, same pattern as everywhere else in this app).
+  // Matches on phone OR email — either one matching an existing lead counts as the same person.
+  // No auto-merge: this only ever returns a candidate for a human (the admin) to act on.
+  const findDuplicateLead = ({ phone, email }) => {
+    const np = normalizePhone(phone);
+    const ne = email ? normalizeEmail(email) : null;
+    if (!np && !ne) return null;
+    return leads.find((l) => (np && l.normalizedPhone === np) || (ne && l.normalizedEmail === ne)) || null;
+  };
+
   // ── CREATE ───────────────────────────────────────────
-  // `source` is "manual" (admin, via Add Lead modal) or "public_form" (public lead-capture page).
-  const addLead = async (form, source = "manual") => {
+  // `entryMethod` is "manual" (admin, via Add Lead modal) or "public_form" (public lead-capture page).
+  // `form.possibleDuplicateOfLeadId` is only ever set when an admin was shown a duplicate warning
+  // (via findDuplicateLead) and explicitly chose to create a new lead anyway.
+  const addLead = async (form, entryMethod = "manual") => {
     const now = new Date().toISOString();
     const nl = {
       fullName: form.fullName || "",
@@ -50,11 +66,11 @@ export function LeadsProvider({ children }) {
       faculty: form.faculty || "",
       academicYear: form.academicYear || "",
       city: form.city || "",
-      interestedCourseId: form.interestedCourseId || null,
-      interestedCourse: form.interestedCourse || "",
-      leadSource: form.leadSource || "",
+      courseId: form.courseId || null,
+      courseName: form.courseName || "",
+      leadSource: normalizeLeadSource(form.leadSource),
       campaign: form.campaign || "",
-      assignedTo: source === "manual" ? (form.assignedTo || null) : null,
+      assignedTo: entryMethod === "manual" ? (form.assignedTo || null) : null,
       status: "new",
       lastContactDate: null,
       nextFollowUpDate: null,
@@ -62,12 +78,15 @@ export function LeadsProvider({ children }) {
       activityLog: [{
         id: genId(),
         type: "system",
-        text: source === "public_form" ? "Lead created via public form" : "Lead created manually",
+        text: entryMethod === "public_form" ? "Lead created via public form" : "Lead created manually",
         byUid: currentUser?.id || null,
         byName: currentUser?.name || null,
         at: now,
       }],
-      source,
+      entryMethod,
+      normalizedPhone: normalizePhone(form.phone),
+      normalizedEmail: form.email ? normalizeEmail(form.email) : null,
+      possibleDuplicateOfLeadId: form.possibleDuplicateOfLeadId || null,
       utmSource: form.utmSource || null,
       utmMedium: form.utmMedium || null,
       utmCampaign: form.utmCampaign || null,
@@ -124,7 +143,7 @@ export function LeadsProvider({ children }) {
   };
 
   return (
-    <LeadsCtx.Provider value={{ leads, loading, addLead, updateLead, changeLeadStatus, logLeadContact }}>
+    <LeadsCtx.Provider value={{ leads, loading, findDuplicateLead, addLead, updateLead, changeLeadStatus, logLeadContact }}>
       {children}
     </LeadsCtx.Provider>
   );
