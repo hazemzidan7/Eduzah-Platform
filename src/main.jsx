@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
+import { LeadsProvider } from './context/LeadsContext'
 import { LangProvider } from './context/LangContext'
 import { ThemeProvider } from './context/ThemeContext'
 import App from './App.jsx'
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <LangProvider>
             <AuthProvider>
               <DataProvider>
-                <App />
+                <LeadsProvider>
+                  <App />
+                </LeadsProvider>
               </DataProvider>
             </AuthProvider>
           </LangProvider>
