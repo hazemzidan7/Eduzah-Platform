@@ -5,6 +5,7 @@ import CrmDashboardTab from "./CrmDashboardTab";
 import LeadsListTab from "./LeadsListTab";
 import PipelineTab from "./PipelineTab";
 import FollowUpsTab from "./FollowUpsTab";
+import CrmSettingsTab from "./CrmSettingsTab";
 
 export default function CrmModule() {
   const { lang } = useLang();
@@ -17,6 +18,7 @@ export default function CrmModule() {
     { key: "leads", ar: "العملاء المحتملون", en: "Leads" },
     { key: "pipeline", ar: "خط المبيعات", en: "Pipeline" },
     { key: "followups", ar: "المتابعات", en: "Follow-ups" },
+    { key: "settings", ar: "الإعدادات", en: "Settings" },
   ];
 
   return (
@@ -40,6 +42,7 @@ export default function CrmModule() {
       {crmSubTab === "leads" && <LeadsListTab />}
       {crmSubTab === "pipeline" && <PipelineTab />}
       {crmSubTab === "followups" && <FollowUpsTab />}
+      {crmSubTab === "settings" && <CrmSettingsTab />}
     </div>
   );
 }
