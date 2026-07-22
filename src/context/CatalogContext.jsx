@@ -4,6 +4,8 @@ import {
   doc,
   addDoc,
   updateDoc,
+  setDoc,
+  getDoc,
   getDocs,
   onSnapshot,
 } from "firebase/firestore";
@@ -33,12 +35,28 @@ export function CatalogProvider({ children }) {
     return () => unsub();
   }, [currentUser?.id, currentUser?.role]);
 
-  // Seed the 5 Business Units + their first-pass Category children, once, only if empty.
+  // Seed the 5 Business Units + their first-pass Category children — exactly once, ever.
+  // Guarded by settings/seedState.catalogSeeded (mirrors the same pattern DataContext
+  // uses for courses) so archiving/deleting every node later can never cause a silent
+  // re-seed. The seed only bootstraps an empty database; Firestore is the source of
+  // truth from that point on, permanently.
   useEffect(() => {
     if (currentUser?.role !== "admin") return;
     (async () => {
+      let seeded = {};
+      try {
+        const s = await getDoc(doc(db, "settings", "seedState"));
+        if (s.exists()) seeded = s.data() || {};
+      } catch (_) {}
+      if (seeded.catalogSeeded === true) return;
+
       const snap = await getDocs(collection(db, "catalogNodes"));
-      if (!snap.empty) return;
+      if (!snap.empty) {
+        // Data already exists (e.g. from before this guard existed) — mark seeded
+        // without touching it, rather than assuming it's safe to add more on top.
+        await setDoc(doc(db, "settings", "seedState"), { ...seeded, catalogSeeded: true, updatedAt: new Date().toISOString() }, { merge: true });
+        return;
+      }
       const now = new Date().toISOString();
       for (const [buOrder, bu] of CATALOG_SEED.entries()) {
         const buRef = await addDoc(collection(db, "catalogNodes"), {
@@ -68,6 +86,7 @@ export function CatalogProvider({ children }) {
           });
         }
       }
+      await setDoc(doc(db, "settings", "seedState"), { ...seeded, catalogSeeded: true, updatedAt: new Date().toISOString() }, { merge: true });
     })().catch((e) => console.warn("Catalog seed failed:", e));
   }, [currentUser?.id, currentUser?.role]);
 
@@ -86,6 +105,10 @@ export function CatalogProvider({ children }) {
     nodes.filter((n) => Array.isArray(n.path) && n.path.includes(nodeId));
 
   // ── CREATE ───────────────────────────────────────────
+  // `type` is a free string, not a fixed enum — the tree doesn't hardcode which
+  // levels exist. `extraFields` is an open bag for whatever a given type needs
+  // (a "batch" might want startDate/capacity, a future "company" might want
+  // orgName/contactPerson) — no code change is needed here to support a new type.
   const addNode = async (form) => {
     const parent = form.parentId ? nodeById(form.parentId) : null;
     const path = parent ? [...(parent.path || []), parent.id] : [];
@@ -99,13 +122,7 @@ export function CatalogProvider({ children }) {
       order: form.order ?? 0,
       isActive: true,
       archivedAt: null,
-      ...(form.type === "batch" ? {
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-        capacity: form.capacity || null,
-        instructorId: form.instructorId || null,
-        status: form.status || "planned",
-      } : {}),
+      ...(form.extraFields || {}),
       createdAt: now,
       updatedAt: now,
     };
