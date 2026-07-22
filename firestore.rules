@@ -181,6 +181,9 @@ service cloud.firestore {
     match /catalogNodes/{id} {
       allow read, write: if isAdmin();
     }
+    match /catalogNodeTypes/{id} {
+      allow read, write: if isAdmin();
+    }
 
     /* ── CRM: Leads ──────────────────────────────────────────────────────────
        Public lead-capture form can create, locked to status "new" / source
