@@ -9,7 +9,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "./AuthContext";
-import { normalizeLeadStatus } from "../constants/leadStatus";
+import { useLeadStatus } from "./LeadStatusContext";
 import { normalizeLeadSource } from "../constants/leadSource";
 import { normalizePhone, normalizeEmail } from "../utils/leadDedupe";
 
@@ -21,6 +21,7 @@ function genId() {
 
 export function LeadsProvider({ children }) {
   const { currentUser } = useAuth();
+  const { globalStatuses } = useLeadStatus();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +32,9 @@ export function LeadsProvider({ children }) {
     const unsub = onSnapshot(
       collection(db, "leads"),
       (snap) => {
-        setLeads(snap.docs.map((d) => ({ id: d.id, ...d.data(), status: normalizeLeadStatus(d.data().status) })));
+        // statusId is a Firestore reference now, not a fixed enum — no normalization needed,
+        // whatever's stored is whatever leadStatuses doc it points to (or null/stale, handled at render time).
+        setLeads(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setLoading(false);
       },
       () => setLoading(false),
@@ -71,7 +74,7 @@ export function LeadsProvider({ children }) {
       leadSource: normalizeLeadSource(form.leadSource),
       campaign: form.campaign || "",
       assignedTo: entryMethod === "manual" ? (form.assignedTo || null) : null,
-      status: "new",
+      statusId: globalStatuses.find((s) => s.isDefault)?.id || null,
       lastContactDate: null,
       nextFollowUpDate: null,
       notes: form.notes || "",
@@ -104,19 +107,18 @@ export function LeadsProvider({ children }) {
     await updateDoc(doc(db, "leads", id), { ...updates, updatedAt: new Date().toISOString() });
   };
 
-  // ── STATUS CHANGE (patches status + appends a Timeline entry) ────
-  const changeLeadStatus = async (id, newStatus) => {
-    const status = normalizeLeadStatus(newStatus);
+  // ── STATUS CHANGE (patches statusId + appends a Timeline entry) ────
+  const changeLeadStatus = async (id, newStatusId) => {
     const lead = leads.find((l) => l.id === id);
     const now = new Date().toISOString();
     await updateDoc(doc(db, "leads", id), {
-      status,
+      statusId: newStatusId,
       updatedAt: now,
       activityLog: arrayUnion({
         id: genId(),
         type: "status_change",
-        statusFrom: lead?.status || null,
-        statusTo: status,
+        statusFrom: lead?.statusId || null,
+        statusTo: newStatusId,
         byUid: currentUser?.id || null,
         byName: currentUser?.name || null,
         at: now,

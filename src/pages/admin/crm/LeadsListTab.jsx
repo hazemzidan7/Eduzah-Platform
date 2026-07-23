@@ -3,8 +3,8 @@ import { Card, Btn } from "../../../components/UI";
 import { C } from "../../../theme";
 import { useLeads } from "../../../context/LeadsContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useLeadStatus } from "../../../context/LeadStatusContext";
 import { useLang } from "../../../context/LangContext";
-import { LEAD_STATUSES, leadStatusColor, leadStatusLabel } from "../../../constants/leadStatus";
 import { leadSourceLabel } from "../../../constants/leadSource";
 import LeadStatusBadge from "../../../components/crm/LeadStatusBadge";
 import AddLeadModal from "./AddLeadModal";
@@ -15,6 +15,10 @@ const td = { padding: "11px 14px", fontSize: 12.5, borderBottom: "1px solid rgba
 export default function LeadsListTab() {
   const { leads, loading } = useLeads();
   const { users } = useAuth();
+  // Leads don't carry a businessUnitId yet (that lands with the Customer/Engagement
+  // migration), so only global statuses are offered here for now — Business-Unit-
+  // specific statuses become selectable once a lead can be linked to a catalog node.
+  const { globalStatuses } = useLeadStatus();
   const { lang } = useLang();
   const ar = lang === "ar";
   const tx = (a, e) => (ar ? a : e);
@@ -31,13 +35,13 @@ export default function LeadsListTab() {
 
   const counts = useMemo(() => {
     const c = { all: leads.length };
-    for (const s of LEAD_STATUSES) c[s] = leads.filter((l) => l.status === s).length;
+    for (const s of globalStatuses) c[s.id] = leads.filter((l) => l.statusId === s.id).length;
     return c;
-  }, [leads]);
+  }, [leads, globalStatuses]);
 
   const filtered = useMemo(() => {
     let rows = leads;
-    if (statusFilter !== "all") rows = rows.filter((l) => l.status === statusFilter);
+    if (statusFilter !== "all") rows = rows.filter((l) => l.statusId === statusFilter);
     const q = search.trim().toLowerCase();
     if (q) {
       rows = rows.filter((l) =>
@@ -67,9 +71,9 @@ export default function LeadsListTab() {
         <button onClick={() => setStatusFilter("all")} style={pillStyle(statusFilter === "all", C.purple)}>
           {tx("الكل", "All")} <span style={{ opacity: 0.7 }}>({counts.all})</span>
         </button>
-        {LEAD_STATUSES.map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)} style={pillStyle(statusFilter === s, leadStatusColor(s), LIGHT_BG_STATUSES.has(s))}>
-            {leadStatusLabel(s, lang)} <span style={{ opacity: 0.7 }}>({counts[s]})</span>
+        {globalStatuses.map((s) => (
+          <button key={s.id} onClick={() => setStatusFilter(s.id)} style={pillStyle(statusFilter === s.id, s.color || C.purple, isLightColor(s.color))}>
+            {ar ? s.name_ar : s.name_en} <span style={{ opacity: 0.7 }}>({counts[s.id] || 0})</span>
           </button>
         ))}
       </div>
@@ -108,7 +112,7 @@ export default function LeadsListTab() {
                     <td style={td}>{l.courseName || tx("لم يتحدد", "—")}</td>
                     <td style={td}>{leadSourceLabel(l.leadSource, lang)}</td>
                     <td style={td}>{employeeName(l.assignedTo)}</td>
-                    <td style={td}><LeadStatusBadge status={l.status} /></td>
+                    <td style={td}><LeadStatusBadge statusId={l.statusId} /></td>
                     <td style={td}>{fmtDate(l.nextFollowUpDate)}</td>
                   </tr>
                 ))}
@@ -123,8 +127,13 @@ export default function LeadsListTab() {
   );
 }
 
-// Interested/Follow-up/Deposit Paid use light backgrounds (orange/warning/success) — dark text reads better than white.
-const LIGHT_BG_STATUSES = new Set(["interested", "follow_up", "deposit_paid"]);
+// Status colors are now admin-defined data, not fixed keys — so instead of a
+// hardcoded set of "light" statuses, compute it from the actual color's luminance.
+function isLightColor(hex) {
+  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return false;
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+}
 
 function pillStyle(active, color, lightBg) {
   return {

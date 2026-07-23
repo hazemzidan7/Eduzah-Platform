@@ -80,7 +80,7 @@ export default function AddLeadModal({ onClose }) {
         <Card style={{ padding: "12px 14px", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>{dupLead.fullName || "—"}</div>
-            <LeadStatusBadge status={dupLead.status} />
+            <LeadStatusBadge statusId={dupLead.statusId} />
           </div>
           <div style={{ fontSize: 12, color: C.muted }}>
             {dupLead.phone}{dupLead.email ? ` · ${dupLead.email}` : ""}
