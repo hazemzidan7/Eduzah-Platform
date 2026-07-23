@@ -5,6 +5,7 @@ import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { CatalogProvider } from './context/CatalogContext'
+import { LeadStatusProvider } from './context/LeadStatusContext'
 import { LeadsProvider } from './context/LeadsContext'
 import { LangProvider } from './context/LangContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -20,9 +21,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <AuthProvider>
               <DataProvider>
                 <CatalogProvider>
-                  <LeadsProvider>
-                    <App />
-                  </LeadsProvider>
+                  <LeadStatusProvider>
+                    <LeadsProvider>
+                      <App />
+                    </LeadsProvider>
+                  </LeadStatusProvider>
                 </CatalogProvider>
               </DataProvider>
             </AuthProvider>
