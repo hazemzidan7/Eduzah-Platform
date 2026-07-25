@@ -6,6 +6,10 @@ import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { CatalogProvider } from './context/CatalogContext'
 import { LeadStatusProvider } from './context/LeadStatusContext'
+import { CustomFieldProvider } from './context/CustomFieldContext'
+import { TagProvider } from './context/TagContext'
+import { DictionaryProvider } from './context/DictionaryContext'
+import { ImportProfileProvider } from './context/ImportProfileContext'
 import { CustomerProvider } from './context/CustomerContext'
 import { LeadsProvider } from './context/LeadsContext'
 import { LangProvider } from './context/LangContext'
@@ -23,11 +27,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <DataProvider>
                 <CatalogProvider>
                   <LeadStatusProvider>
-                    <CustomerProvider>
-                      <LeadsProvider>
-                        <App />
-                      </LeadsProvider>
-                    </CustomerProvider>
+                    <CustomFieldProvider>
+                      <TagProvider>
+                        <DictionaryProvider>
+                          <ImportProfileProvider>
+                            <CustomerProvider>
+                              <LeadsProvider>
+                                <App />
+                              </LeadsProvider>
+                            </CustomerProvider>
+                          </ImportProfileProvider>
+                        </DictionaryProvider>
+                      </TagProvider>
+                    </CustomFieldProvider>
                   </LeadStatusProvider>
                 </CatalogProvider>
               </DataProvider>
