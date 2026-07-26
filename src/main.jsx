@@ -10,6 +10,7 @@ import { CustomFieldProvider } from './context/CustomFieldContext'
 import { TagProvider } from './context/TagContext'
 import { DictionaryProvider } from './context/DictionaryContext'
 import { ImportProfileProvider } from './context/ImportProfileContext'
+import { ImportBatchProvider } from './context/ImportBatchContext'
 import { CustomerProvider } from './context/CustomerContext'
 import { LeadsProvider } from './context/LeadsContext'
 import { LangProvider } from './context/LangContext'
@@ -31,11 +32,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                       <TagProvider>
                         <DictionaryProvider>
                           <ImportProfileProvider>
-                            <CustomerProvider>
-                              <LeadsProvider>
-                                <App />
-                              </LeadsProvider>
-                            </CustomerProvider>
+                            <ImportBatchProvider>
+                              <CustomerProvider>
+                                <LeadsProvider>
+                                  <App />
+                                </LeadsProvider>
+                              </CustomerProvider>
+                            </ImportBatchProvider>
                           </ImportProfileProvider>
                         </DictionaryProvider>
                       </TagProvider>

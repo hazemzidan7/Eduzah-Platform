@@ -208,19 +208,7 @@ service cloud.firestore {
     match /importProfileVersions/{id} {
       allow read, write: if isAdmin();
     }
-    match /tags/{id} {
-      allow read, write: if isAdmin();
-    }
-    match /customFieldDefinitions/{id} {
-      allow read, write: if isAdmin();
-    }
-    match /dictionaries/{id} {
-      allow read, write: if isAdmin();
-    }
-    match /importProfiles/{id} {
-      allow read, write: if isAdmin();
-    }
-    match /importProfileVersions/{id} {
+    match /importBatches/{id} {
       allow read, write: if isAdmin();
     }
 
