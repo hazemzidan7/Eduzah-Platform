@@ -2,7 +2,7 @@ import { useState } from "react";
 import { C } from "../../../theme";
 import { useLang } from "../../../context/LangContext";
 import CrmDashboardTab from "./CrmDashboardTab";
-import LeadsListTab from "./LeadsListTab";
+import EngagementsListTab from "./EngagementsListTab";
 import PipelineTab from "./PipelineTab";
 import FollowUpsTab from "./FollowUpsTab";
 import CrmSettingsTab from "./CrmSettingsTab";
@@ -41,7 +41,7 @@ export default function CrmModule() {
       </div>
 
       {crmSubTab === "dashboard" && <CrmDashboardTab />}
-      {crmSubTab === "leads" && <LeadsListTab />}
+      {crmSubTab === "leads" && <EngagementsListTab />}
       {crmSubTab === "pipeline" && <PipelineTab />}
       {crmSubTab === "followups" && <FollowUpsTab />}
       {crmSubTab === "import" && <ImportTab />}
